@@ -1,0 +1,17 @@
+# Project dirs
+build/
+documentation/_build
+
+# Python
+.ipynb_checkpoints
+*.pyc
+*.pyo
+__pycache__/
+*.egg-info
+
+
+# other shite
+.vscode
+chempiler_output/
+logs/
+crash_dump/
