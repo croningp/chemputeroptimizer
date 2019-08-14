@@ -33,6 +33,7 @@ class OptimizeStep(AbstractDynamicStep):
         nmr_delta (float): Absolute difference between two spectra. If the
             absolute difference between two consecutive spectra falls below
             this threshold the reaction is deemed to be complete.
+        nmr_volume (float): Volume of reaction mixture to send to NMR.
         temp (bool): If True, optimise temp property of child step. Used by
             outer level Optimizer step.
         min_temp (float): Minimum temperature to use in optimisation. Only
@@ -54,6 +55,7 @@ class OptimizeStep(AbstractDynamicStep):
         on_time_obtained: Callable,
         time: bool = True,
         nmr_delta: float = 1,
+        nmr_volume: float = 3,
         temp: bool = False,
         min_temp: float = None,
         max_temp: float = None,
@@ -138,17 +140,19 @@ class Optimizer(AbstractDynamicStep):
     """Outer level wrapper for optimizing multiple parameters in an entire
     procedure.
 
+    e.g.
     <Optimizer>
         <Add  ... />
         <OptimizeStep ... >
             <HeatChill ... />
         </OptimizeStep>
+        <Filter />
         ...
     </Optimizer>
 
     Args:
-        children (List[Step]): List of steps to execute. Should contain steps
-            wrapped by OptimizeStep.
+        children (List[Step]): List of steps to execute. Should contain some
+            steps wrapped by OptimizeStep.
         n_iterations (int): Number of iterations to do before returning optimum
             params found.
         save_path (str): Path to save results to.
