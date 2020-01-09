@@ -6,135 +6,85 @@ from typing import List, Callable, Optional, Dict, Any
 from xdl.utils.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from xdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer
-from xdl.steps.steps_analysis import RunNMR
+from xdl.steps.steps_analysis import RunNMR, RunRaman
 from typing import Dict
 
-class OptimizeStep(AbstractDynamicStep):
-    """Wrapper for a step to run it and detect when the step is complete by NMR.
-    Also contains flags to highlight which parameters in the step should be
-    optimised. Multiple parameters to optimise can be specified, i.e. time and
-    temp both set to True.
+from .analyzer import spectrum_difference
 
-    Steps supported:
-        temp: Any step with 'temp' property, e.g. HeatChill, HeatChillToTemp
-        time: HeatChill, Wait
-        volume: Any step with volume property, e.g. Add
+class OptimizeStep(AbstractStep):
+    """Wrapper for a step to be optimised
+
+    Steps and parameters supported:
+        Add: addition volume
+        HeatChill, HeatChillToTemp: reaction temperature
+        HeatChill, Wait, Stir: reaction time
 
     Args:
         id (str): ID to keep track of what parameters are being optimised.
         children (List[Step]): List of steps to optimize parameters for.
             Max length 1. Reason for using a list is for later integration into
             XDL.
-        nmr (str): NMR node name.
-        on_time_obtained (Callable): Callback function to handle result after
-            optimum reaction time is obtained.
-        time (bool): If True, will record optimum reaction time using NMR to
-            determine if the rxn is complete.
-        nmr_delta (float): Absolute difference between two spectra. If the
-            absolute difference between two consecutive spectra falls below
-            this threshold the reaction is deemed to be complete.
-        nmr_volume (float): Volume of reaction mixture to send to NMR.
-        temp (bool): If True, optimise temp property of child step. Used by
-            outer level Optimizer step.
-        min_temp (float): Minimum temperature to use in optimisation. Only
-            used if temp is True. Used by outer level Optimizer step.
-        max_temp (float): Maximum temperature to use in optimisation. Only
-            used if temp is True. Used by outer level Optimizer step.
-        volume (bool): If True, optimise volume property of child step. Used by
-            outer level Optimizer step.
-        min_volume (float): Minimum volume to use in optimisation. Only
-            used if temp is True. Used by outer level Optimizer step.
-        max_volume (float): Maximum volume to use in optimisation. Only
-            used if temp is True. Used by outer level Optimizer step.
+        max_value (float): Minimum parameter value for the optimization routine.
+        min_value (float): Maximum parameter value for the optimization routine.
+    
+    Example:
+        ...
+        <OptimizeStep "max_value"=1.2, "min_value"=3.2
+            <Add
+                "reagent"="reagent"
+                "volume"=volume
+            <Add />
+        <OptimizeStep />
+        <OptimizeStep "max_value"=70, "min_value"=25
+            <HeatChill "temp"=temperature />
+        <OptimizeStep />
+        ...
     """
+
     def __init__(
         self,
         id: str,
         children: List[Step],
-        nmr: str,
-        on_time_obtained: Callable,
-        time: bool = True,
-        nmr_delta: float = 1,
-        nmr_volume: float = 3,
-        temp: bool = False,
-        min_temp: float = None,
-        max_temp: float = None,
-        volume: bool = False,
-        min_volume: float = None,
-        max_volume: float = None,
+        max_value: float = None,
+        min_value: float = None,
     ):
         super().__init__(locals())
-
+        
         # Check there is only one child step.
         if len(children) > 1:
             raise XDLError('Only one step can be wrapped by OptimizeStep.')
 
         self.step = children[0]
 
-        # Initialise state (only needed if self.time == True)
-        self.state = {
-            'current_nmr': [],
-            'done': False,
-        }
+    def _get_optimized_parameters(self):
+        pass
 
-    def on_nmr_finish(self, result: List[float]):
-        """Check if reaction is done according to the difference in the current
-        and last NMR spectrum. Set state['done'] to True if rxn is complete.
-        Set state['current_nmr'] to the new NMR spectrum.
-        """
-        if abs(self.state['current_nmr'] - result) < self.nmr_delta:
-            self.state['done'] = True
-        self.state['current_nmr'] = result
+    def _check_input(self):
+        pass
 
-    def on_start(self):
-        # Not optimising time, just execute steps.
-        if not self.time:
-            return self.children
+    def get_steps(self):
+        return self.children
 
-        # HeatChill step, start heating/chilling and move onto on_continue loop.
-        if type(self.step) == HeatChill:
-            return [
-                HeatChillToTemp(self.step.vessel, self.step.temp, stir=self.step.stir)
-            ]
+    def human_readable(self, language='en'):
+        pass
 
-        # Wait step, move straight onto on_continue loop.
-        elif type(self.step) == Wait:
-            return []
+class FinalAnalysis(AbstractStep):
+    """Wrapper for a step to obtain final yield and purity. Should be used
+    to indicate the last step of the procedure where pure material is obtained.
 
-    def on_continue(self):
-        # Rxn is complete or not recording time, finish.
-        if self.state['done'] or not self.time:
-            return []
+    Steps supported:
+        Dry: material was dried and needs to be dissolved for analysis
+        Evaporate: material was concentrated and needs to be dissolved for analysis
+        Filter (solid): solid material was filtered and needs to be dissolved for analysis
+        Filter (filtrate) : dissolved material was filtered and filtrate could be analyzed directly
 
-        # Get start_t and continuously run NMR until rxn is complete.
-        self.start_t = time.time()
-
-        return [
-            Transfer(from_vessel=self.step.vessel,
-                     to_vessel=self.nmr,
-                     volume=self.nmr_volume),
-            RunNMR(nmr=self.nmr, on_finish=self.on_nmr_finish)
-        ]
-
-    def on_finish(self):
-        # Not recording time, finish.
-        if not self.time:
-            return []
-
-        # Send elapsed time to on_time_obtained callback and finish.
-        self.end_t = time.time()
-        self.on_time_obtained(self.end_t - self.start_t)
-
-        # Stop heating/chilling and finish.
-        if type(self.step) == HeatChill:
-            return [
-                StopHeatChill(vessel=self.step.vessel)
-            ]
-        
-        # No heating/chilling, just finish.
-        elif type(self.step) == Wait:
-            return []
-
+    Args:
+        children (List[Step]): List of steps to obtain final analysis from.
+            Max length 1. Reason for using a list is for later integration into
+            XDL.
+        methods (List): List of analytical methods for material analysis, e.g. Raman, NMR, HPLC, etc.
+            Will determine necessary steps to obtain analytical data, e.g. if sampling is required.
+    """
 
 class Optimizer(AbstractDynamicStep):
     """Outer level wrapper for optimizing multiple parameters in an entire
@@ -153,137 +103,88 @@ class Optimizer(AbstractDynamicStep):
     Args:
         children (List[Step]): List of steps to execute. Should contain some
             steps wrapped by OptimizeStep.
-        n_iterations (int): Number of iterations to do before returning optimum
-            params found.
+        max_iterations (int): Maximum number of iterations.
+        criteria (float): Target value.
         save_path (str): Path to save results to.
     """
-    def __init__(
-        self,
-        children: List[Step],
-        n_iterations: int,
-        save_path: str
-    ):
-        self.results = {}
-        
-        self.state = {
-            'iteration': 1
-        }
 
-    def get_optimize_steps(self) -> List[OptimizeStep]:
-        """Get all OptimizeSteps in self.children."""
-        optimize_steps = []
-        for step in self.children:
-            if type(step) == OptimizeStep:
-                optimize_steps.append(step)
-        return optimize_steps
+    def __init__(self):
+        pass
 
-    def get_params_template(self) -> Dict[str, Dict[str, Any]]:
-        """Get dictionary of all parameters that are to be optimised and
-        associated min/max values. Keys are of the form
-        f'{optimizestep_id}_{param_to_optimize}' i.e. 'reflux1_temp'
-        """
-        optimized_steps = self.get_optimize_steps()
-        params = {}
-        for step in optimized_steps:
-            if step.temp:
-                params[f'{step.id}_temp'] = {
-                    'min': step.min_temp, 'max': step.max_temp, type: 'temp'}
-            if step.volume:
-                params[f'{step.id}_volume'] = {
-                    'min': step.min_volume, 'max': step.max_volume, type: 'temp'}
-        return params
+    def get_optimize_steps(self):
+        """Get all OptimizeSteps in children steps"""
 
-    def get_random_params(self) -> Dict[str, float]:
-        """Get dictionary of params and random values within specified range for
-        all params that are to be optimised. Keys are of the form
-        f'{optimizestep_id}_{param_to_optimize}' i.e. 'reflux1_temp'
-        """
-        template = self.get_params_template()
-        params = {}
-        for param in template:
-            params[param] = random.randint(int(param['min']), int(param['max']))
-        return params
-
-    def get_frozenset_params(
-        self, params: Optional[Dict[str, float]] = None) -> frozenset:
-        """Get frozenset of params for use as a dictionary key.
-        
-        Args:
-            params (Dict[str, float]): Param dictionary to convert to frozenset.
-                If None, self.state['params'] will be used.
+    def get_params_template(self) -> Dict[str, float]:
+        """Get dictionary of all parametrs to be optimized.
         
         Returns:
-            frozenset: params as frozenset.
-        """
-        if params == None:
-            params = self.state['params']
-        return frozenset([(param, val) for param, val in params.items()])
+            (Dict): Nested dictionary of optimizing steps and corresponding parameters of the form:
+                {
+                    "parameterID": {
+                        "value": <parameter value>,
+                        "max": <maximum parameter value>,
+                        "min": <minimum parameter value>,
+                    }
+                }
 
-    def on_time_obtained(self, optimizestep_id: str, rxn_time: float) -> None:
-        """Callback function for when optimum reaction time is obtained. Stores
-        reaction time in self.results and saves self.results.
+        Example:
+            {
+                "HeatChill1_temp": {
+                    "value": 35,
+                    "max": 70,
+                    "min": 25,
+                }
+            }
+        """
+
+    def get_new_params(self, result: Dict) -> Dict:
+        """Calls the algorithm optimizer to yield and update a parameter set.
         
         Args:
-            optimizestep_id (str): ID of OptimizeStep which the rxn time relates
-                to.
-            rxn_time (float): Optimum reaction time found in seconds.
-        """
-        fs_params = self.get_frozenset_params()
-        self.results[fs_params][f'{optimizestep_id}_time'] = rxn_time
-        self.save()
+            result (Dict): Dictionary with input parameters and final result, e.g.:
+                {
+                    "<stepID>_<parameter>": "<parameter value>",
+                    ...
+                    "<target_parameter>": "<current value>",
+                }
 
-    def on_nmr_finished(self, spectrum: List[float]) -> None:
+        Returns:
+            (Dict): Dictionary with new set of input parameters
+        """
+
+    def get_final_analysis_steps(self, method):
+        """Get all steps required to obtained analytical data for a given method
+
+        Args:
+            method (str): A given method for an analytical technique, e.g. Raman, NMR, HPLC
+
+        Returns:
+            (List): List of XDL steps required to obtain analytical data, i.e. sampling and analysis
+        """
+
+    def on_final_analysis(self, data, reference):
         """Callback function for when NMR spectra has been recorded at end of
-        procedure. Stores spectrum in self.results and saves self.results.
-        
+        procedure. Updates the target parameter.
+
         Args:
-            spectrum (List[float]): Spectrum obtained by NMR.
+            data (Any): Spectral data (e.g. NMR) of the final product
+            reference (Any): A reference spectral data (e.g. peak_ID or full spectra) to
+                obtain quantitative yield and purity
         """
-        fs_params = self.get_frozenset_params()
-        self.results[fs_params]['final_nmr'] = spectrum
-        self.save()
 
-    def on_start(self) -> None:
-        return []
+        final_yield, final_purity = spectrum_difference(data, reference)
 
-    def on_continue(self) -> None:
-        # Reached max number of iterations, finish.
-        if self.state['iteration'] >= self.n_iterations:
-            return []
+    def on_start(self):
+        pass
 
-        # Get new params and run the procedure, saving all results obtained.
-        self.state['params'] = self.get_random_params()
-        params = self.state['params']
-        fs_params = self.get_frozenset_params(params)
-        self.results[fs_params] = {}
+    def on_continue(self):
+        pass
 
-        # Adjust OptimizeSteps with new params
-        for step in self.children:
-            if type(step) == OptimizeStep:
-                if step.time:
-                    step.on_time_obtained = self.on_time_obtained
+    def on_finish(self):
+        pass
 
-                if step.temp:
-                    step.step.temp = params[f'{step.id}_temp']
+    def cleaning_steps(self):
+        pass
 
-                if step.volume:
-                    step.step.volume = params[f'{step.id}_volume']
-        
-        self.state['iteration'] += 1
-
-        # Run procedure, followed by analysis by NMR and rig cleaning.
-        return self.children + [
-            Transfer(from_vessel=self.final_vessel, to_vessel=self.nmr, volume=self.nmr_volume),
-            RunNMR(nmr=self.nmr, on_finish=self.on_nmr_finish),
-        ] + self.cleaning_steps()
-
-    def on_finish(self) -> None:
-        return []
-
-    def cleaning_steps(self) -> List[Step]:
-        return []
-
-    def save(self) -> None:
-        """Save results as JSON to save_path given in __init__."""
-        with open(self.save_path, 'w') as fd:
-            json.dump({str(fs): res for fs, res in self.results.items()}, fd)
+    def save(self):
+        pass
