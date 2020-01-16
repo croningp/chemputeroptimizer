@@ -9,7 +9,7 @@ from xdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer
 from xdl.steps.steps_analysis import RunNMR, RunRaman
 from typing import Dict
 
-from .analyzer import spectrum_difference
+from .utils import SpectraAnalyzer, Algorithm
 
 class OptimizeStep(AbstractStep):
     """Wrapper for a step to be optimised
@@ -55,6 +55,9 @@ class OptimizeStep(AbstractStep):
             raise XDLError('Only one step can be wrapped by OptimizeStep.')
 
         self.step = children[0]
+
+        self.analyzer = SpectraAnalyzer(5, 'data_path')
+        self.algorithm = Algorithm('<algorithm_name', 30)
 
     def _get_optimized_parameters(self):
         pass
@@ -171,8 +174,6 @@ class Optimizer(AbstractDynamicStep):
             reference (Any): A reference spectral data (e.g. peak_ID or full spectra) to
                 obtain quantitative yield and purity
         """
-
-        final_yield, final_purity = spectrum_difference(data, reference)
 
     def on_start(self):
         pass

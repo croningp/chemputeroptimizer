@@ -6,7 +6,7 @@ from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from xdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer, StartStir, Stir
 from xdl.steps.steps_analysis import RunNMR
 
-from .analyzer import spectrum_difference
+from .utils import SpectraAnalyzer
 
 class Monitor(AbstractDynamicStep):
     """Wrapper for a step to run it and detect when the step is complete by an analysis step.
@@ -36,6 +36,8 @@ class Monitor(AbstractDynamicStep):
     ):
         super().__init__(locals())
 
+        self.analyzer = SpectraAnalyzer(10, 'data_path')
+
         # Check there is only one child step.
         if len(children) > 1:
             raise XDLError('Only one step can be wrapped by Monitor.')
@@ -62,7 +64,7 @@ class Monitor(AbstractDynamicStep):
         and last analysis spectrum. Set state['done'] to True if rxn is complete.
         Set state['current_state'] to the new spectrum.
         """
-        if spectrum_difference(self.state['current_state'], result) < self.threshold:
+        if (self.state['current_state'] - result) < self.threshold:
             self.state['done'] = True
         self.state['current_state'] = result
 

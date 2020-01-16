@@ -1,10 +1,5 @@
-"""
-Module for interfacing algorithms for optimisation.
-"""
-
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-import numpy as np
 
 class AbstractAlgorithm(ABC):
     """Default constructor for algorithmic optimisation.
@@ -134,61 +129,3 @@ class AbstractAlgorithm(ABC):
 
     def save_iteration(self):
         """Save a parameter set with target function value."""
-
-class Algorithm():
-    """General class to provide methods for parametric optimization.
-    
-    Arguments:
-        method (str): Name of the chosen algorithm.
-        max_iterations (int): Maximum number of iterations.
-    """
-
-    def __init__(self, method, max_iterations):
-
-        if method == 'nelder-mead':
-            self.algorithm = ModifiedNelderMead(max_iterations)
-        
-        elif method == 'SNOBFIT':
-            self.algorithm = SNOBFIT(max_iterations)
-
-    def optimize(self, data):
-        """Finds the next parameters set based on the experimental data
-        
-        Args:
-            data (Dict): An experimental data with final analysis assignment,
-                obtained from FinalAnalysis step.
-        """
-        self.algorithm.load_input(data)
-        return self.algorithm.optmize()
-
-class ModifiedNelderMead(AbstractAlgorithm):
-    """The Nelder-Mead simplex optimization algorithm."""
-
-    def initialise(self):
-        pass
-
-    def optmize(self):
-        pass
-
-    def _check_termination(self):
-        if super()._check_termination():
-            return super()._check_termination()
-
-        else:
-            return False
-
-class SNOBFIT(AbstractAlgorithm):
-    """The Stable Noisy Optimization by Branch and Fit algorithm."""
-    
-    def initialise(self):
-        pass
-
-    def optmize(self):
-        pass
-
-    def _check_termination(self):
-        if super()._check_termination():
-            return super()._check_termination()
-
-        else:
-            return False
