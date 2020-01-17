@@ -6,7 +6,7 @@ from typing import List, Callable, Optional, Dict, Any
 from xdl.utils.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from xdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer
-from xdl.steps.steps_analysis import RunNMR, RunRaman
+#from xdl.steps.steps_analysis import RunNMR, RunRaman
 from typing import Dict
 
 from .utils import SpectraAnalyzer, Algorithm
