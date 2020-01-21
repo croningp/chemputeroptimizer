@@ -47,6 +47,7 @@ class OptimizeStep(AbstractStep):
         children: List[Step],
         max_value: float = None,
         min_value: float = None,
+        **kwargs
     ):
         super().__init__(locals())
         
@@ -69,7 +70,7 @@ class OptimizeStep(AbstractStep):
         return self.children
 
     def human_readable(self, language='en'):
-        pass
+        return 'Optimize ' + self.step.human_readable()
 
 class FinalAnalysis(AbstractStep):
     """Wrapper for a step to obtain final yield and purity. Should be used

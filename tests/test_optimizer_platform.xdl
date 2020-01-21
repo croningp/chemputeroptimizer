@@ -1,0 +1,71 @@
+<Synthesis>
+
+  <Hardware>
+
+    <Component
+
+      id="filter"
+
+      type="filter" />
+
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      id="copper(I)iodide" />
+    <Reagent
+      id="distilled water" />
+    <Reagent
+      id="hydriodic acid" />
+    <Reagent
+      id="propiolic acid" />
+  </Reagents>
+
+  <Procedure>
+
+    <Add
+      reagent="copper(I)iodide"
+      vessel="filter"
+      mass="0.2 g"
+      stir="False" />
+    <Add
+      reagent="hydriodic acid"
+      vessel="filter"
+      volume="40 mL"
+      stir="False" />
+    <OptimizeStep id="volume" max_value="12" min_value="7">
+      <Add
+        reagent="propiolic acid"
+        vessel="filter"
+        volume="10 mL"
+        time="60 secs"
+        stir="True" />
+    </OptimizeStep>
+    <OptimizeStep id="temp">
+      <HeatChillToTemp
+        vessel="filter"
+        temp="130°C" />
+    </OptimizeStep>
+    <Stir
+      vessel="filter"
+      time="30 mins" />
+    <HeatChillToTemp
+      vessel="filter"
+      temp="28°C"
+      active="False" />
+    <HeatChill
+      vessel="filter"
+      temp="25°C"
+      time="15 mins" />
+    <Filter
+      filter_vessel="filter" />
+    <WashSolid
+      vessel="filter"
+      solvent="distilled water"
+      volume="70 mL"
+      repeat="3" />
+    <Dry
+      vessel="filter" />
+  </Procedure>
+
+</Synthesis>

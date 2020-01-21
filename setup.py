@@ -6,7 +6,7 @@ setup(
     description="Package for running interactive chemical reaction optimization",
     packages=find_packages(),
     install_requires=[
-        "XDL",
+        "xdl @ git+ssh://git@gitlab.com/croningroup/chemputer/xdl.git",
         "numpy",
     ]
 )

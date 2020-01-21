@@ -6,7 +6,7 @@ from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from xdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer, StartStir, Stir
 #from xdl.steps.steps_analysis import RunNMR
 
-from .utils import SpectraAnalyzer
+# from .utils import SpectraAnalyzer
 
 class Monitor(AbstractDynamicStep):
     """Wrapper for a step to run it and detect when the step is complete by an analysis step.
