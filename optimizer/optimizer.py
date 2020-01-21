@@ -4,6 +4,8 @@ Module to run chemical reaction optimization.
 
 from xdl import XDL
 
+from .steps import Optimize
+
 class Optimizer(object):
     """
     Main class to run the chemical reaction optimization.
@@ -29,7 +31,7 @@ class Optimizer(object):
     def prepare_for_optimization(self, interactive):
         """Get the Optimize step and the respective parameters"""
         #self._xdl_object.prepare_for_execution(self.graph, interactive)
-        #self.optimizer = self._xdl_object.steps[0]
+        #self.optimizer = Optimize(self._xdl_object)
         #self._validate_otpimization_parameters(interactive)
 
     def _validate_otpimization_parameters(self, interactive):

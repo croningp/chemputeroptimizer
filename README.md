@@ -8,8 +8,8 @@ The repo contains the optimizer package to perform interactive chemical reaction
 from optimizer import Optimizer
 
 o = Optimizer('<xdl optimization procedure>')
-o.prepare_for_execution('<optimization graph>')
-o.optimize('<optimization_algorithm>', <max_iteration_number>)
+o.prepare_for_optimization('<optimization graph>')
+o.optimize('<chempiler>')
 ```
 
 ## Development
