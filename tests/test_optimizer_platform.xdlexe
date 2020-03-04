@@ -473,47 +473,93 @@
           use_backbone="True" />
       </Add>
     </OptimizeStep>
-    <HeatChillToTemp
-      vessel="filter"
-      temp="130°C"
-      active="True"
-      continue_heatchill="True"
-      stir="True"
-      stir_speed="250 RPM"
-      vessel_type="filter"
-      wait_recording_speed="2000"
-      after_recording_speed="14"
-      heater="None"
-      chiller="chiller_filter">
-      <StartStir
-        vessel="filter"
-        vessel_type="filter"
-        stir_speed="250 RPM">
-        <CStir
-          vessel="filter" />
-        <CSetStirRate
-          vessel="filter"
-          stir_speed="250 RPM" />
-      </StartStir>
-      <StartHeatChill
+    <OptimizeStep
+      id="temp"
+      max_value="None"
+      min_value="None">
+      <HeatChillToTemp
         vessel="filter"
         temp="130°C"
+        active="True"
+        continue_heatchill="True"
+        stir="True"
+        stir_speed="250 RPM"
         vessel_type="filter"
+        wait_recording_speed="2000"
+        after_recording_speed="14"
         heater="None"
         chiller="chiller_filter">
-        <CChillerSetTemp
+        <StartStir
           vessel="filter"
-          temp="130°C" />
-        <CStartChiller
+          vessel_type="filter"
+          stir_speed="250 RPM">
+          <CStir
+            vessel="filter" />
+          <CSetStirRate
+            vessel="filter"
+            stir_speed="250 RPM" />
+        </StartStir>
+        <StartHeatChill
+          vessel="filter"
+          temp="130°C"
+          vessel_type="filter"
+          heater="None"
+          chiller="chiller_filter">
+          <CChillerSetTemp
+            vessel="filter"
+            temp="130°C" />
+          <CStartChiller
+            vessel="filter" />
+        </StartHeatChill>
+        <CSetRecordingSpeed
+          recording_speed="2000" />
+        <CChillerWaitForTemp
           vessel="filter" />
-      </StartHeatChill>
-      <CSetRecordingSpeed
-        recording_speed="2000" />
-      <CChillerWaitForTemp
-        vessel="filter" />
-      <CSetRecordingSpeed
-        recording_speed="14" />
-    </HeatChillToTemp>
+        <CSetRecordingSpeed
+          recording_speed="14" />
+      </HeatChillToTemp>
+      <HeatChillToTemp
+        vessel="filter"
+        temp="130°C"
+        active="True"
+        continue_heatchill="True"
+        stir="True"
+        stir_speed="250 RPM"
+        vessel_type="filter"
+        wait_recording_speed="2000"
+        after_recording_speed="14"
+        heater="None"
+        chiller="chiller_filter">
+        <StartStir
+          vessel="filter"
+          vessel_type="filter"
+          stir_speed="250 RPM">
+          <CStir
+            vessel="filter" />
+          <CSetStirRate
+            vessel="filter"
+            stir_speed="250 RPM" />
+        </StartStir>
+        <StartHeatChill
+          vessel="filter"
+          temp="130°C"
+          vessel_type="filter"
+          heater="None"
+          chiller="chiller_filter">
+          <CChillerSetTemp
+            vessel="filter"
+            temp="130°C" />
+          <CStartChiller
+            vessel="filter" />
+        </StartHeatChill>
+        <CSetRecordingSpeed
+          recording_speed="2000" />
+        <CChillerWaitForTemp
+          vessel="filter" />
+        <CSetRecordingSpeed
+          recording_speed="14" />
+      </HeatChillToTemp>
+    </OptimizeStep>
     <Stir
       vessel="filter"
       time="30 mins"
