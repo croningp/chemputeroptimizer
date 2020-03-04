@@ -1,4 +1,4 @@
-from xdl.platforms.chemputer import ChemputerPlatform
+from chemputerxdl import ChemputerPlatform
 from .steps.monitor_steps import Monitor
 from .steps.optimize_steps import OptimizeStep, Optimize, FinalAnalysis
 

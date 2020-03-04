@@ -3,7 +3,7 @@ from typing import List, Callable, Optional, Dict, Any
 
 from xdl.utils.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
-from xdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer, StartStir, Stir
+from chemputerxdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer, StartStir, Stir
 #from xdl.steps.steps_analysis import RunNMR
 
 # from .utils import SpectraAnalyzer

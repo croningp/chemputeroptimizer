@@ -63,7 +63,7 @@ class Optimizer(object):
             if opt_step.id not in SUPPORTED_PARAMETERS[opt_step.step.name]:
                 raise ParameterError(
                     "The following parameters <{}> are not valid for the selected step: <{}>".format(opt_step.id, opt_step.step.name)
-            )
+                )
 
     def _get_optimization_steps(self, interactive=False):
         """Get the optimization steps from the given procedure"""
