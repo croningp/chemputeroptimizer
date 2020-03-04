@@ -8,7 +8,7 @@ from xdl import XDL
 
 from .steps import Optimize
 from .platform import OptimizerPlatform
-from .constants import (SUPPORTED_STEPS, SUPPORTED_PARAMETERS)
+from .constants import (SUPPORTED_STEPS_PARAMETERS)
 from .utils.errors import OptimizerError, ParameterError
 
 class Optimizer(object):
@@ -35,49 +35,60 @@ class Optimizer(object):
 
         self._original_steps = self._xdl_object.steps
 
-        self._optimization_steps = []
+        self._optimization_steps = {}
 
         self.logger = logging.getLogger('optimizer')
 
-    def prepare_for_optimization(self, interactive=False):
-        """Get the Optimize step and the respective parameters"""
+        self._fetch_optimize_steps()
 
-        # get the steps for optimization
-        self._get_optimization_steps(interactive)
+    def _fetch_optimize_steps(self):
+        """Fetches all OptimizeStep steps if present"""
 
-        # check the steps for optimization and their parameters
-        self._check_otpimization_steps_and_parameters()
-
-        # create an Optimize step
-        #self._xdl_object.prepare_for_execution(self.graph, interactive)
-        #self.optimizer = Optimize(self._xdl_object)
-        #self._validate_otpimization_parameters(interactive)
+        for i, step in enumerate(self._xdl_object.steps):
+            if step.name == 'OptimizeStep':
+                self._optimization_steps.update(
+                    {
+                        f'{step.children[0].name}_{i}': step.optimize_properties
+                    }
+                )
 
     def _check_otpimization_steps_and_parameters(self):
         """Get the optimization parameters and validate them if needed"""
 
-        for opt_step in self._optimization_steps:
-            if opt_step.step.name not in SUPPORTED_STEPS:
-                raise OptimizerError(
-                    "The following step is not supported for optimization: <{}>".format(opt_step.step.name))
-            if opt_step.id not in SUPPORTED_PARAMETERS[opt_step.step.name]:
-                raise ParameterError(
-                    "The following parameters <{}> are not valid for the selected step: <{}>".format(opt_step.id, opt_step.step.name)
-                )
+        if not self._optimization_steps:
+            for step in self._optimization_steps:
+                if step not in SUPPORTED_STEPS_PARAMETERS:
+                    raise OptimizerError(f'Step {step} is not supported for optimization')
+
+                for parameter in self._optimization_steps[step]:
+                    if parameter not in SUPPORTED_STEPS_PARAMETERS[step]:
+                        raise ParameterError(f'Parameter {parameter} is not supported for step {step}')
 
     def _get_optimization_steps(self, interactive=False):
         """Get the optimization steps from the given procedure"""
 
-        # allow user to choose steps and their parameters for optimization
-        if interactive:
-            pass
-        
-        # iterate through xdl procedure and peak all OptimizeStep steps
-        for step in self._xdl_object.steps:
-            if step.name == "OptimizeStep":
-                self._optimization_steps.append(step)
+        if self._optimization_steps and not interactive:
+            return
+
+        if not interactive:
+            for i, step in enumerate(self._xdl_object.steps):
+                if step.name in SUPPORTED_STEPS_PARAMETERS:
+                    self._optimization_steps.update(
+                        {
+                            f'{step.name}_{i}': {
+                                parameter: {
+                                    'max_value': float(step.properties[parameter]) * 1.2,
+                                    'min_value': float(step.properties[parameter]) * 0.8
+                                } for parameter in SUPPORTED_STEPS_PARAMETERS[step.name]
+                                if step.properties[parameter] is not None
+                            }
+                        }
+                    )
+
+    def prepare_for_optimization(self, interactive=False):
+        """Get the Optimize step and the respective parameters"""
+
+        self._get_optimization_steps(interactive=interactive)
 
     def optimize(self, chempiler):
         """Execute the Optimize step and follow the optimization routine"""
-        
-        #self.optimizer.execute(chempiler)

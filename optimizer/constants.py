@@ -1,13 +1,6 @@
 # from xdl.steps import Add, HeatChill, HeatChillToTemp, Stir
 
-SUPPORTED_STEPS = [
-    'Add',
-    'HeatChillToTemp',
-    'HeatChill',
-    'Stir',
-]
-
-SUPPORTED_PARAMETERS = {
+SUPPORTED_STEPS_PARAMETERS = {
     'Add': {
         "volume",
         "mass",
