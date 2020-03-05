@@ -41,14 +41,19 @@ class OptimizeStep(AbstractStep):
         ...
     """
 
+    PROP_TYPES = {
+        'id': str,
+        'children': List,
+        'optimize_properties': Dict,
+    }
+
     def __init__(
-        self,
-        id: str,
-        children: List[Step],
-        max_value: float = None,
-        min_value: float = None,
-        **kwargs
-    ):
+            self,
+            id: str,
+            children: List[Step],
+            optimize_properties: Dict,
+            **kwargs
+        ):
         super().__init__(locals())
         
         # Check there is only one child step.
@@ -56,9 +61,6 @@ class OptimizeStep(AbstractStep):
             raise XDLError('Only one step can be wrapped by OptimizeStep.')
 
         self.step = children[0]
-
-        self.analyzer = SpectraAnalyzer(5, 'data_path')
-        self.algorithm = Algorithm('<algorithm_name', 30)
 
     def _get_optimized_parameters(self):
         pass
@@ -105,18 +107,41 @@ class Optimize(AbstractDynamicStep):
     </Optimize>
 
     Args:
-        children (List[Step]): List of steps to execute. Should contain some
+        children (List[Step]): List of steps to execute. Optionally contain some
             steps wrapped by OptimizeStep.
         max_iterations (int): Maximum number of iterations.
         criteria (float): Target value.
         save_path (str): Path to save results to.
+        optimize_steps (List[Step], optional): List of optimization steps.
+        reference (Any, optional): Optional reference for the target product,
+            may be supplied as :float: reference peak or :array: reference spectrum.
     """
 
-    def __init__(self):
-        pass
+    PROP_TYPES = {
+        'children': List,
+        'max_iterations': int,
+        'criteria': float,
+        'save_path': str,
+        'optimize_steps': List,
+        'reference': Any,
+    }
 
-    def get_optimize_steps(self):
-        """Get all OptimizeSteps in children steps"""
+    def __init__(
+            self,
+            children: List[Step],
+            max_iterations: int,
+            criteria: float,
+            save_path: str,
+            optimize_steps: List[Step] = None,
+            reference: Any = None,
+            **kwargs
+        ):
+        super().__init__(locals())
+
+        self.steps = children
+
+        self.target = None
+        self.parameters = None
 
     def get_params_template(self) -> Dict[str, float]:
         """Get dictionary of all parametrs to be optimized.
