@@ -143,28 +143,42 @@ class Optimize(AbstractDynamicStep):
         self.target = None
         self.parameters = None
 
-    def get_params_template(self) -> Dict[str, float]:
+        self._get_params_template()
+
+    def _get_params_template(self) -> Dict[str, float]:
         """Get dictionary of all parametrs to be optimized.
         
         Returns:
             (Dict): Nested dictionary of optimizing steps and corresponding parameters of the form:
                 {
-                    "parameterID": {
-                        "value": <parameter value>,
-                        "max": <maximum parameter value>,
-                        "min": <minimum parameter value>,
+                    "step_ID_parameter": {
+                        "max_value": <maximum parameter value>,
+                        "min_value": <minimum parameter value>,
+                        "current_value": <parameter value>,
                     }
                 }
 
         Example:
             {
-                "HeatChill1_temp": {
-                    "value": 35,
-                    "max": 70,
-                    "min": 25,
+                "HeatChill_1_temp": {
+                    "max_value": 70,
+                    "min_value": 25,
+                    "current_value": 35,
                 }
             }
         """
+        param_template = {}
+
+        for optimize_step, optimize_step_instance in self.optimize_steps.items():
+            param_template.update({
+                f'{optimize_step}_{param}': {
+                    **optimize_step_instance.optimize_properties[param],
+                    'current_value': optimize_step_instance.children[0].properties[param]
+                }
+                for param in optimize_step_instance.optimize_properties
+            })
+
+        self.parameters = param_template
 
     def get_new_params(self, result: Dict) -> Dict:
         """Calls the algorithm optimizer to yield and update a parameter set.
