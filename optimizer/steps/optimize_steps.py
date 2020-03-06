@@ -142,6 +142,7 @@ class Optimize(AbstractDynamicStep):
 
         self.target = None
         self.parameters = None
+        self.algorithm = Algorithm()
 
         self._get_params_template()
 
@@ -194,6 +195,12 @@ class Optimize(AbstractDynamicStep):
         Returns:
             (Dict): Dictionary with new set of input parameters
         """
+
+        return self.algorithm.optimize(self.parameters, result)
+
+
+    def update_steps_parameters(self) -> None:
+        """Updates the parameter template and corresponding procedure steps"""
 
     def get_final_analysis_steps(self, method):
         """Get all steps required to obtained analytical data for a given method
