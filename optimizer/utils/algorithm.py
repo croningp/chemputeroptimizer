@@ -2,7 +2,7 @@
 Module for interfacing algorithms for optimisation.
 """
 
-from ..algorithms import ModifiedNelderMead, SNOBFIT
+from ..algorithms import ModifiedNelderMead, SNOBFIT, Random_
 
 class Algorithm():
     """General class to provide methods for parametric optimization.
@@ -20,7 +20,8 @@ class Algorithm():
         elif method == 'SNOBFIT':
             self.algorithm = SNOBFIT(max_iterations)
 
-    def optimize(self, data):
+        else:
+            self.algorithm = Random_(max_iterations)
         """Finds the next parameters set based on the experimental data
         
         Args:
