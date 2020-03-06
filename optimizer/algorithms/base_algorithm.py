@@ -84,7 +84,7 @@ class AbstractAlgorithm(ABC):
         """Maps the data with the parameters."""
 
     @abstractmethod
-    def optmize(self):
+    def optimize(self):
         """Find the parameters for the next iteration.
         
         Uses the experimental matrixes to find new parameter set through

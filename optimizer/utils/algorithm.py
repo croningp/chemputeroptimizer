@@ -12,7 +12,7 @@ class Algorithm():
         max_iterations (int): Maximum number of iterations.
     """
 
-    def __init__(self, method, max_iterations):
+    def __init__(self, method=None, max_iterations=1):
 
         if method == 'nelder-mead':
             self.algorithm = ModifiedNelderMead(max_iterations)
@@ -28,4 +28,4 @@ class Algorithm():
                 obtained from FinalAnalysis step.
         """
         self.algorithm.load_input(data)
-        return self.algorithm.optmize()
+        return self.algorithm.optimize()

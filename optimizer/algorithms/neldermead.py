@@ -6,7 +6,7 @@ class ModifiedNelderMead(AbstractAlgorithm):
     def initialise(self):
         pass
 
-    def optmize(self):
+    def optimize(self):
         pass
 
     def _check_termination(self):
