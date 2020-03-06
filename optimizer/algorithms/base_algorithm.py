@@ -1,5 +1,9 @@
+"""Defines abstact algorithm class"""
+
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+
+import numpy as np
 
 class AbstractAlgorithm(ABC):
     """Default constructor for algorithmic optimisation.
@@ -16,12 +20,13 @@ class AbstractAlgorithm(ABC):
 
         self.max_iterations = max_iterations
 
-        self.current_setup = None
+        self.current_setup = OrderedDict() # current parameters setup
+        self.setup_constraints = OrderedDict() # dictionary with data points contsraints
+        self.current_result = OrderedDict() # current result parameters
         self.parameter_matrix = None
         self.result_matrix = None
-        self.full_experiment_matrix = None
 
-    def load_input(self, data):
+    def load_input(self, data, result):
         """Loads the data dictionary and updates self.current_setup.
         
         Args:
@@ -42,7 +47,18 @@ class AbstractAlgorithm(ABC):
             }
         """
 
-        self.current_setup = OrderedDict(data)
+        # stripping input from parameter constraints
+        for param, param_set in data.items():
+            self.current_setup.update({param: param_set['current_value']})
+            
+        # saving constraints
+        if not self.setup_constraints:
+            for param, param_set in data.items():
+                self.setup_constraints.update({param: (param_set['min_value'], param_set['max_value'])})
+        
+        # appending the final result
+        self.current_result.update(result)
+
 
     def _parse_data(self):
         """Parse the experimental data.
@@ -77,11 +93,29 @@ class AbstractAlgorithm(ABC):
                 self.full_experiment_matrix = np.array([1.5, 35., 0.75]).
         """
 
-    def _sort(self):
-        """Sorts the experimental matrixes according to target value."""
+        # if no value parsed yet
+        if self.parameter_matrix is None and self.result_matrix is None:
+            self.parameter_matrix = np.array(list(self.current_setup.values()))
+            self.result_matrix = np.array(list(self.current_result.values()))
+        
+        # stacking with previous results
+        else: 
+            self.parameter_matrix = np.vstack(
+                (
+                    self.parameter_matrix,
+                    list(self.current_setup.values())
+                )
+            )
+            self.result_matrix = np.vstack(
+                (
+                    self.result_matrix,
+                    list(self.current_result.values())
+                )
+            )
 
-    def _map_data(self):
+    def _map_data(self, data_points):
         """Maps the data with the parameters."""
+
 
     @abstractmethod
     def optimize(self):
@@ -119,7 +153,6 @@ class AbstractAlgorithm(ABC):
             (np.array): An array with boolean values, mapped to experimental input parameters.
         """
 
-    @abstractmethod
     def _check_termination(self):
         """Check if the optimal function value was found.
         

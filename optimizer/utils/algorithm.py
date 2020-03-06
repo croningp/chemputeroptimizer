@@ -22,11 +22,13 @@ class Algorithm():
 
         else:
             self.algorithm = Random_(max_iterations)
+
+    def optimize(self, data, result):
         """Finds the next parameters set based on the experimental data
         
         Args:
             data (Dict): An experimental data with final analysis assignment,
                 obtained from FinalAnalysis step.
         """
-        self.algorithm.load_input(data)
+        self.algorithm.load_input(data, result)
         return self.algorithm.optimize()
