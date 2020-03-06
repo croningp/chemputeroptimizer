@@ -146,10 +146,10 @@ class Optimize(AbstractDynamicStep):
 
         self._get_params_template()
 
-    def _get_params_template(self) -> Dict[str, float]:
+    def _get_params_template(self) -> None:
         """Get dictionary of all parametrs to be optimized.
         
-        Returns:
+        Updates parameters attribute in form:
             (Dict): Nested dictionary of optimizing steps and corresponding parameters of the form:
                 {
                     "step_ID_parameter": {
@@ -197,7 +197,6 @@ class Optimize(AbstractDynamicStep):
         """
 
         return self.algorithm.optimize(self.parameters, result)
-
 
     def update_steps_parameters(self) -> None:
         """Updates the parameter template and corresponding procedure steps"""

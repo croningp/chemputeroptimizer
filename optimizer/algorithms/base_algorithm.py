@@ -20,6 +20,7 @@ class AbstractAlgorithm(ABC):
 
         self.max_iterations = max_iterations
 
+        # OrderedDict used to preserve the order when parsing to a np.array
         self.current_setup = OrderedDict() # current parameters setup
         self.setup_constraints = OrderedDict() # dictionary with data points contsraints
         self.current_result = OrderedDict() # current result parameters
@@ -27,24 +28,35 @@ class AbstractAlgorithm(ABC):
         self.result_matrix = None
 
     def load_input(self, data, result):
-        """Loads the data dictionary and updates self.current_setup.
+        """Loads the experimental data dictionary.
+
+        Updates:
+            current_setup (OrderedDict): current parameters setup ('param', <value>)
+            setup_constraints (OrderedDict): constraints of the parameters
+                setup ('param', (<min_value>, <max_value>))
+            current_result (OrderedDict): current results of the experiment
+                ('result_param', <value>)
         
         Args:
-            data (dict): Nested dictionary containing all input parameters
-                and current value of the target function.
+            data (Dict): Nested dictionary containing all input parameters.
+            result (Dict): Nested dictionary containg all result parameters
+                with desired target value.
 
         Example:
-            {
-                "HeatChill1_temp": {
-                    "value": 35,
-                    "max": 70,
-                    "min": 25,
-                },
-                "final_yield": {
-                    "value": 0.75,
-                    "target": 0.95,
+            data = {
+                    "HeatChill1_temp": {
+                        "value": 35,
+                        "max": 70,
+                        "min": 25,
+                    }
                 }
-            }
+
+            result = {
+                    "final_yield": {
+                        "value": 0.75,
+                        "target": 0.95,
+                    }
+                }
         """
 
         # stripping input from parameter constraints
@@ -67,30 +79,16 @@ class AbstractAlgorithm(ABC):
             self.parameter_matrix: (n x i) size matrix where n is number of experiments and i
                 is number of experimental parameters;
             self.result_matrix: (n x j) size matrix where j is number of the target parameters;
-            self.full_experiment_matrix: (n x i+j) size matrix.
         
         Example:
             The experimental result:
-                {
-                    "Add1_volume": {
-                        "value": 1.5,
-                        "min": 1,
-                        "max": 2,
-                    }
-                    "HeatChill1_temp": {
-                        "value": 35,
-                        "max": 70,
-                        "min": 25,
-                    },
-                    "final_yield": {
-                        "value": 0.75,
-                        "target": 0.95,
-                    }
-                }
+                {"Add_1_volume": 1.5,
+                    "HeatChill_1_temp": 35,
+                    "final_yield": 0.75}
+                    
             will be dumped into the following np.arrays matrixes:
                 self.parameter_matrix = np.array([1.5, 35.]);
-                self.result_matrix = np.array([0.75]);
-                self.full_experiment_matrix = np.array([1.5, 35., 0.75]).
+                self.result_matrix = np.array([0.75])
         """
 
         # if no value parsed yet
