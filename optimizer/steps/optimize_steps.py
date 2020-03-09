@@ -65,7 +65,7 @@ class OptimizeStep(AbstractStep):
         pass
 
     def update(self, prop):
-        print(f'Step updated with {prop} \n')
+        print(f'Step {self.children[0].name} updated with {prop} \n')
 
     def _check_input(self):
         pass
@@ -182,21 +182,6 @@ class Optimize(AbstractDynamicStep):
             })
 
         self.parameters = param_template
-
-    def get_new_params(self, result: Dict) -> Dict:
-        """Calls the algorithm optimizer to yield and update a parameter set.
-        
-        Args:
-            result (Dict): Dictionary with input parameters and final result, e.g.:
-                {
-                    "<stepID>-<parameter>": "<parameter value>",
-                    ...
-                    "<target_parameter>": "<current value>",
-                }
-
-        Returns:
-            (Dict): Dictionary with new set of input parameters
-        """
 
     def update_steps_parameters(self, result: Dict) -> None:
         """Updates the parameter template and corresponding procedure steps"""
