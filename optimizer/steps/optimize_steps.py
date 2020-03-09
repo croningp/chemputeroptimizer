@@ -1,8 +1,10 @@
 import random
 import time
 import json
+import logging
 from typing import List, Callable, Optional, Dict, Any
 
+from xdl import xdl_copy, XDL
 from xdl.utils.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from chemputerxdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer
@@ -64,9 +66,6 @@ class OptimizeStep(AbstractStep):
     def _get_optimized_parameters(self):
         pass
 
-    def update(self, prop):
-        print(f'Step {self.children[0].name} updated with {prop} \n')
-
     def _check_input(self):
         pass
 
@@ -120,7 +119,7 @@ class Optimize(AbstractDynamicStep):
     """
 
     PROP_TYPES = {
-        'children': List,
+        'xdl_object': XDL,
         'max_iterations': int,
         'criteria': float,
         'save_path': str,
@@ -130,7 +129,7 @@ class Optimize(AbstractDynamicStep):
 
     def __init__(
             self,
-            children: List[Step],
+            xdl_object: XDL,
             max_iterations: int,
             criteria: float,
             save_path: str,
@@ -140,10 +139,15 @@ class Optimize(AbstractDynamicStep):
         ):
         super().__init__(locals())
 
-        self.steps = children
+        #self.steps = xdl_object.steps
 
         self.target = None
         self.parameters = None
+
+        self.tick = 0
+
+        self.logger = logging.getLogger('dynamic optimize step')
+
         self.algorithm = Algorithm()
 
         self._get_params_template()
@@ -191,9 +195,31 @@ class Optimize(AbstractDynamicStep):
         new_setup = self.algorithm.optimize() # OrderedDict
         
         for step_id_param, step_id_param_value in new_setup.items():
+
             self.parameters[step_id_param].update({'current_value': step_id_param_value})
 
-        print(self.parameters)
+        print('New parameters: ', self.parameters)
+
+        self._update_xdl()
+
+    def _update_xdl(self):
+        """Creates a new copy of xdl procedure with updated parameters and saves the .xdl file"""
+
+        new_xdl = xdl_copy(self.xdl_object)
+
+        for record in self.parameters:
+            # slicing the parameter name for step id:
+            step_id = int(record[record.index('_')+1:record.index('-')])
+            # slicing for the parameter name
+            param = record[record.index('-')+1:]
+            try:
+                new_xdl.steps[step_id].properties[param] = self.parameters[record]['current_value']
+            except KeyError:
+                print('KeyError')
+
+        new_xdl.save('new_xdl.xdl')
+
+        self.xdl_object = new_xdl
 
     def get_final_analysis_steps(self, method):
         """Get all steps required to obtained analytical data for a given method
@@ -206,7 +232,7 @@ class Optimize(AbstractDynamicStep):
         """
 
     def on_final_analysis(self, data, reference):
-        """Callback function for when NMR spectra has been recorded at end of
+        """Callback function for when spectra has been recorded at end of
         procedure. Updates the target parameter.
 
         Args:

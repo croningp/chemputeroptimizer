@@ -109,7 +109,7 @@ class Optimizer(object):
         self._get_optimization_steps(interactive=interactive)
 
         self.optimizer = Optimize(
-            children=self._xdl_object,
+            xdl_object=self._xdl_object,
             max_iterations=1,
             criteria=0.95,
             save_path='here',

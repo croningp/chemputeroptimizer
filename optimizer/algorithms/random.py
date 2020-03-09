@@ -20,7 +20,7 @@ class Random_(AbstractAlgorithm):
         )
 
         return np.array(
-            [random.uniform(a, b) for a, b in constraints]
+            [round(random.uniform(a, b), 2) for a, b in constraints]
         )
 
     def initialise(self):
