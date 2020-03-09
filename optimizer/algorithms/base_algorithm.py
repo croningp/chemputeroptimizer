@@ -1,9 +1,6 @@
 """Defines abstact algorithm class"""
 
 from abc import ABC, abstractmethod
-from collections import OrderedDict
-
-import numpy as np
 
 class AbstractAlgorithm(ABC):
     """Default constructor for algorithmic optimisation.
@@ -20,109 +17,20 @@ class AbstractAlgorithm(ABC):
 
         self.max_iterations = max_iterations
 
-        # OrderedDict used to preserve the order when parsing to a np.array
-        self.current_setup = OrderedDict() # current parameters setup
-        self.setup_constraints = OrderedDict() # dictionary with data points contsraints
-        self.current_result = OrderedDict() # current result parameters
-        self.parameter_matrix = None
-        self.result_matrix = None
-
-    def load_input(self, data, result):
-        """Loads the experimental data dictionary.
-
-        Updates:
-            current_setup (OrderedDict): current parameters setup ('param', <value>)
-            setup_constraints (OrderedDict): constraints of the parameters
-                setup ('param', (<min_value>, <max_value>))
-            current_result (OrderedDict): current results of the experiment
-                ('result_param', <value>)
-        
-        Args:
-            data (Dict): Nested dictionary containing all input parameters.
-            result (Dict): Nested dictionary containg all result parameters
-                with desired target value.
-
-        Example:
-            data = {
-                    "HeatChill1_temp": {
-                        "value": 35,
-                        "max": 70,
-                        "min": 25,
-                    }
-                }
-
-            result = {
-                    "final_yield": {
-                        "value": 0.75,
-                        "target": 0.95,
-                    }
-                }
-        """
-
-        # stripping input from parameter constraints
-        for param, param_set in data.items():
-            self.current_setup.update({param: param_set['current_value']})
-            
-        # saving constraints
-        if not self.setup_constraints:
-            for param, param_set in data.items():
-                self.setup_constraints.update({param: (param_set['min_value'], param_set['max_value'])})
-        
-        # appending the final result
-        self.current_result.update(result)
-
-
-    def _parse_data(self):
-        """Parse the experimental data.
-        
-        Create the following arrays for the first experiment and add the subsequent data as rows:
-            self.parameter_matrix: (n x i) size matrix where n is number of experiments and i
-                is number of experimental parameters;
-            self.result_matrix: (n x j) size matrix where j is number of the target parameters;
-        
-        Example:
-            The experimental result:
-                {"Add_1_volume": 1.5,
-                    "HeatChill_1_temp": 35,
-                    "final_yield": 0.75}
-                    
-            will be dumped into the following np.arrays matrixes:
-                self.parameter_matrix = np.array([1.5, 35.]);
-                self.result_matrix = np.array([0.75])
-        """
-
-        # if no value parsed yet
-        if self.parameter_matrix is None and self.result_matrix is None:
-            self.parameter_matrix = np.array(list(self.current_setup.values()))
-            self.result_matrix = np.array(list(self.current_result.values()))
-        
-        # stacking with previous results
-        else: 
-            self.parameter_matrix = np.vstack(
-                (
-                    self.parameter_matrix,
-                    list(self.current_setup.values())
-                )
-            )
-            self.result_matrix = np.vstack(
-                (
-                    self.result_matrix,
-                    list(self.current_result.values())
-                )
-            )
-
-    def _map_data(self, data_points):
-        """Maps the data with the parameters."""
-
-
     @abstractmethod
-    def optimize(self):
+    def optimize(self, parameters, results, constraints=None):
         """Find the parameters for the next iteration.
         
         Uses the experimental matrixes to find new parameter set through
         given optimisation algorithm. Replaces the worst parameter with new points
         setting the target value to -1.
         This method has to be redefined in ancestor classes.
+
+        Args:
+            parameters (:obj: np.array): (n x i) size matrix where n is number of experiments and i
+                is number of experimental parameters.
+            results (:obj: np.array): (n x j) size matrix where j is number of the target parameters.
+            constraints (Any): tuple with min/max values for the parameters
         
         Returns:
             (np.array): An array with new set of experimental input parameters.
@@ -160,3 +68,12 @@ class AbstractAlgorithm(ABC):
 
     def save_iteration(self):
         """Save a parameter set with target function value."""
+
+    def parse_constraints(self, constraints):
+        """Parsing the setup constraints"""
+
+        try:
+            return tuple(constraints)
+
+        except TypeError:
+            pass

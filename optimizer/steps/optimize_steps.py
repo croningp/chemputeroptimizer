@@ -7,7 +7,6 @@ from xdl.utils.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from chemputerxdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer
 #from xdl.steps.steps_analysis import RunNMR, RunRaman
-from typing import Dict
 
 from ..utils import SpectraAnalyzer, Algorithm
 
@@ -64,6 +63,9 @@ class OptimizeStep(AbstractStep):
 
     def _get_optimized_parameters(self):
         pass
+
+    def update(self, prop):
+        print(f'Step updated with {prop} \n')
 
     def _check_input(self):
         pass
@@ -152,7 +154,7 @@ class Optimize(AbstractDynamicStep):
         Updates parameters attribute in form:
             (Dict): Nested dictionary of optimizing steps and corresponding parameters of the form:
                 {
-                    "step_ID_parameter": {
+                    "step_ID-parameter": {
                         "max_value": <maximum parameter value>,
                         "min_value": <minimum parameter value>,
                         "current_value": <parameter value>,
@@ -161,7 +163,7 @@ class Optimize(AbstractDynamicStep):
 
         Example:
             {
-                "HeatChill_1_temp": {
+                "HeatChill_1-temp": {
                     "max_value": 70,
                     "min_value": 25,
                     "current_value": 35,
@@ -172,7 +174,7 @@ class Optimize(AbstractDynamicStep):
 
         for optimize_step, optimize_step_instance in self.optimize_steps.items():
             param_template.update({
-                f'{optimize_step}_{param}': {
+                f'{optimize_step}-{param}': {
                     **optimize_step_instance.optimize_properties[param],
                     'current_value': optimize_step_instance.children[0].properties[param]
                 }
@@ -187,7 +189,7 @@ class Optimize(AbstractDynamicStep):
         Args:
             result (Dict): Dictionary with input parameters and final result, e.g.:
                 {
-                    "<stepID>_<parameter>": "<parameter value>",
+                    "<stepID>-<parameter>": "<parameter value>",
                     ...
                     "<target_parameter>": "<current value>",
                 }
@@ -196,10 +198,17 @@ class Optimize(AbstractDynamicStep):
             (Dict): Dictionary with new set of input parameters
         """
 
-        return self.algorithm.optimize(self.parameters, result)
-
-    def update_steps_parameters(self) -> None:
+    def update_steps_parameters(self, result: Dict) -> None:
         """Updates the parameter template and corresponding procedure steps"""
+
+        self.algorithm.load_input(self.parameters, result)
+
+        new_setup = self.algorithm.optimize() # OrderedDict
+        
+        for step_id_param, step_id_param_value in new_setup.items():
+            self.parameters[step_id_param].update({'current_value': step_id_param_value})
+
+        print(self.parameters)
 
     def get_final_analysis_steps(self, method):
         """Get all steps required to obtained analytical data for a given method
