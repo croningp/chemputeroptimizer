@@ -13,10 +13,9 @@ class Algorithm():
     
     Arguments:
         method (str): Name of the chosen algorithm.
-        max_iterations (int): Maximum number of iterations.
     """
 
-    def __init__(self, method=None, max_iterations=1):
+    def __init__(self, method=None):
 
         # OrderedDict used to preserve the order when parsing to a np.array
         self.current_setup = OrderedDict() # current parameters setup
@@ -26,17 +25,17 @@ class Algorithm():
         self.result_matrix = None
         self._calculated = None
 
-        self.load_method(method, max_iterations)
+        self.load_method(method)
 
-    def load_method(self, method, max_iterations):
+    def load_method(self, method):
         if method == 'nelder-mead':
-            self.algorithm = ModifiedNelderMead(max_iterations)
+            self.algorithm = ModifiedNelderMead()
 
         elif method == 'SNOBFIT':
-            self.algorithm = SNOBFIT(max_iterations)
+            self.algorithm = SNOBFIT()
 
         else:
-            self.algorithm = Random_(max_iterations)
+            self.algorithm = Random_()
 
     def load_input(self, data, result):
         """Loads the experimental data dictionary.

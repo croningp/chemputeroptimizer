@@ -13,9 +13,8 @@ class AbstractAlgorithm(ABC):
         max_iterations (int): Maximum number of iterations.
     """
 
-    def __init__(self, max_iterations):
-
-        self.max_iterations = max_iterations
+    def __init__(self):
+        pass
 
     @abstractmethod
     def optimize(self, parameters, results, constraints=None):

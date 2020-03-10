@@ -7,8 +7,8 @@ import numpy as np
 from ..algorithms import AbstractAlgorithm
 
 class Random_(AbstractAlgorithm):
-    def __init__(self, max_iterations):
-        super().__init__(max_iterations)
+    def __init__(self):
+        super().__init__()
 
     def optimize(self, parameters, results, constraints=None):
 
