@@ -36,7 +36,7 @@ class Monitor(AbstractDynamicStep):
     ):
         super().__init__(locals())
 
-        self.analyzer = SpectraAnalyzer(10, 'data_path')
+        #self.analyzer = SpectraAnalyzer(10, 'data_path')
 
         # Check there is only one child step.
         if len(children) > 1:

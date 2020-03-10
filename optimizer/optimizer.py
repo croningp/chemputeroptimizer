@@ -6,8 +6,8 @@ import logging
 
 from xdl import XDL
 
-from .steps import Optimize, OptimizeStep
 from .platform import OptimizerPlatform
+from .platform.steps import Optimize, OptimizeStep
 from .constants import (SUPPORTED_STEPS_PARAMETERS)
 from .utils.errors import OptimizerError, ParameterError
 
