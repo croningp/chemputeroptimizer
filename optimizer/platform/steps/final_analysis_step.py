@@ -1,12 +1,10 @@
-import random
-import time
-import json
-import logging
 from typing import List, Callable, Optional, Dict, Any
+
+from networkx import MultiDiGraph
 
 from xdl import xdl_copy, XDL
 from xdl.utils.errors import XDLError
-from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
+from xdl.steps.base_steps import AbstractStep, Step
 from chemputerxdl.steps import (
     HeatChill,
     HeatChillToTemp,
@@ -14,17 +12,29 @@ from chemputerxdl.steps import (
     StopHeatChill,
     Transfer,
     Dissolve,
-    Add,
     Stir,
 )
-#from xdl.steps.steps_analysis import RunNMR, RunRaman
 
-from ...utils import SpectraAnalyzer, Algorithm
+from ...utils import SpectraAnalyzer
 from ...utils.errors import OptimizerError
 from ...constants import (
     SUPPORTED_ANALYTICAL_METHODS,
     SUPPORTED_FINAL_ANALYSIS_STEPS,
+    ANALYTICAL_INSTRUMENTS,
 )
+
+def find_instrument(graph: MultiDiGraph, method: str) -> str:
+    """Get the analytical instrument for the given method
+    
+    Args:
+        method (str): Name of the desired analytical method
+        
+    Returns:
+        str: ID of the analytical instrument on the supplied graph
+    """
+    for node, data in graph.nodes(data=True):
+        if data['class'] == ANALYTICAL_INSTRUMENTS[method]:
+            return node
 
 class FinalAnalysis(AbstractStep):
     """Wrapper for a step to obtain final yield and purity. Should be used
@@ -43,17 +53,30 @@ class FinalAnalysis(AbstractStep):
         method (str): Name of the analytical method for material analysis, e.g. Raman, NMR, HPLC, etc.
             Will determine necessary steps to obtain analytical data, e.g. if sampling is required.
     """
+
     PROP_TYPES = {
         'children': List,
         'method': List,
+        'sample_volume': int,
+        'instrument': str,
+        'on_finish': Any,
     }
+
+    INTERNAL_PROPS = [
+        'instrument',
+    ]
 
     def __init__(
             self,
             children: List[Step],
             method: str,
+            sample_volume: Optional[int] = None,
+            on_finish: Optional[Any] = None,
+
+            # Internal properties
+            instrument: Optional[str] = None,
             **kwargs
-        ):
+        ) -> None:
         super().__init__(locals())
 
         # check if method is valid
@@ -66,15 +89,15 @@ class FinalAnalysis(AbstractStep):
         self.step = children[0]
 
         # check if the supported step was wrapped
-        if self.step.name not in SUPPORTED_FINAL_ANALYSIS_STEPS:
+        if self.children[0].name not in SUPPORTED_FINAL_ANALYSIS_STEPS:
             raise OptimizerError(f'Substep {self.step.name} is not supported to run final analysis')
 
-    def get_steps(self):
-        # handling all methods separately
-        if self.method == 'Raman':
-            pass
-            # # TODO check for connection between vessel and Analytical instrument
-            
-            # # reaction is over 
-            # if self.step in [HeatChill, Wait, Stir]:
-            #     return self.children # + RunRaman
+    def on_prepare_for_execution(self, graph):
+        
+        self.instrument = find_instrument(graph, self.method)
+
+    def get_steps(self) -> List[Step]:
+        steps = []
+        steps.extend(self.children)
+
+        return steps

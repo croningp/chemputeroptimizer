@@ -32,4 +32,9 @@ SUPPORTED_FINAL_ANALYSIS_STEPS = [
     'Stir',
     'Wait',
     'HeatChill',
+    'HeatChillToTemp',
 ]
+
+ANALYTICAL_INSTRUMENTS = {
+    'Raman': 'OceanOpticsRaman',
+}
