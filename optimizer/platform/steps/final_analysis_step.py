@@ -15,6 +15,7 @@ from chemputerxdl.steps import (
     Stir,
 )
 
+from .steps_analysis import RunRaman
 from ...utils import SpectraAnalyzer
 from ...utils.errors import OptimizerError
 from ...constants import (
@@ -100,4 +101,37 @@ class FinalAnalysis(AbstractStep):
         steps = []
         steps.extend(self.children)
 
+        # reaction is complete and reaction product 
+        # remains in reaction vessel
+        if isinstance(self.children[0], (HeatChill, HeatChillToTemp, Wait, Stir)):
+            try:
+                if not 18 <= self.children[0].temp <= 30: # checking for steps temperature
+                    raise OptimizerError('Final analysis only supported for room temperature \
+                        reaction mixture!')
+            except AttributeError:
+                pass
+            
+            steps.extend(self._get_analytical_steps())
+
+        # TODO support other steps wrapped wiht FinalAnalysis, i.e. Filter, Dry
+        # required additional preparation of the sample, e.g. dissolution
+
         return steps
+
+    def _get_analytical_steps(self):
+        """Obtaining steps to perform analysis based on internal method attribute"""
+        
+        # Raman
+        # no special prepartion needed, just measure the spectrum
+        if self.method == 'Raman':
+            return [
+                RunRaman(
+                    raman=self.instrument,
+                    on_finish=self.on_finish,
+                )
+            ]
+
+        # TODO add implied steps for additional analytical methods
+        # HPLC, NMR, pH
+        
+        return []
