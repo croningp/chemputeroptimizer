@@ -17,3 +17,24 @@ SUPPORTED_STEPS_PARAMETERS = {
         "time",
     }
 }
+
+SUPPORTED_ANALYTICAL_METHODS = [
+    'HPLC',
+    'Raman',
+    'NMR',
+    'pH',
+]
+
+SUPPORTED_FINAL_ANALYSIS_STEPS = [
+    'Dry',
+    'Evaporate',
+    'Filter',
+    'Stir',
+    'Wait',
+    'HeatChill',
+    'HeatChillToTemp',
+]
+
+ANALYTICAL_INSTRUMENTS = {
+    'Raman': 'OceanOpticsRaman',
+}
