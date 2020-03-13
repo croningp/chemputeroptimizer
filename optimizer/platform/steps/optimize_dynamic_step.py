@@ -47,6 +47,7 @@ class Optimize(AbstractDynamicStep):
         'save_path': str,
         'optimize_steps': List,
         'reference': Any,
+        'algorithm': str,
     }
 
     def __init__(
@@ -55,25 +56,19 @@ class Optimize(AbstractDynamicStep):
             max_iterations: int,
             target: Dict,
             save_path: str,
+            algorithm: str,
             optimize_steps: List[Step] = None,
             reference: Any = None,
             **kwargs
         ):
         super().__init__(locals())
 
-        #self.steps = xdl_object.steps
-
-        self.parameters = None
-
-        self.tick = 0
-
         self.logger = logging.getLogger('dynamic optimize step')
 
-        self.algorithm = Algorithm()
-
-        self.analyzer = SpectraAnalyzer()
-
-        self._get_params_template()
+        if not hasattr(self, '_analyzer'): self._analyzer = SpectraAnalyzer()
+        if not hasattr(self, '_algorithm'): self._algorithm = Algorithm(algorithm)
+        if not hasattr(self, 'parameters'): self._get_params_template()
+        if not hasattr(self, 'tick'): self.tick = 0
 
     def _get_params_template(self) -> None:
         """Get dictionary of all parametrs to be optimized.
@@ -125,9 +120,9 @@ class Optimize(AbstractDynamicStep):
     def update_steps_parameters(self, result: Dict) -> None:
         """Updates the parameter template and corresponding procedure steps"""
 
-        self.algorithm.load_input(self.parameters, result)
+        self._algorithm.load_input(self.parameters, result)
 
-        new_setup = self.algorithm.optimize() # OrderedDict
+        new_setup = self._algorithm.optimize() # OrderedDict
         
         for step_id_param, step_id_param_value in new_setup.items():
 

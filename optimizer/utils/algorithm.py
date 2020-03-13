@@ -15,7 +15,7 @@ class Algorithm():
         method (str): Name of the chosen algorithm.
     """
 
-    def __init__(self, method=None):
+    def __init__(self, method='random'):
 
         # OrderedDict used to preserve the order when parsing to a np.array
         self.current_setup = OrderedDict() # current parameters setup
@@ -27,14 +27,14 @@ class Algorithm():
 
         self.load_method(method)
 
-    def load_method(self, method):
+    def load_method(self, method='random'):
         if method == 'nelder-mead':
             self.algorithm = ModifiedNelderMead()
 
         elif method == 'SNOBFIT':
             self.algorithm = SNOBFIT()
 
-        else:
+        elif method == 'random':
             self.algorithm = Random_()
 
     def load_input(self, data, result):

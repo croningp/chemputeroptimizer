@@ -53,4 +53,5 @@ DEFAULT_OPTIMIZATION_PARAMETERS = {
             'peak_area': 1000
             }
         },
+    'algorithm': 'random',
 }
