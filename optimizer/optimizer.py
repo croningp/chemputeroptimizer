@@ -24,58 +24,48 @@ class Optimizer(object):
         graph_file (str): Path to graph file (either .json or .graphml)
     """
 
-    def __init__(self, procedure, graph_file):
+    def __init__(self, procedure, graph_file, interactive=False, fake=True):
 
         self._original_procedure = procedure
         self.graph = graph_file
+        self.interactive = interactive
 
         self.optimizer = None
 
-        self.platform = OptimizerPlatform
-
-        self._xdl_object = XDL(procedure, platform=self.platform)
-
-        self._original_steps = self._xdl_object.steps
+        self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
 
         self._optimization_steps = {} # in form of {'Optimization step ID': <:obj: Optimization step instance>, ...}
 
         self.logger = logging.getLogger('optimizer')
 
-        self._fetch_optimize_steps()
+        self._check_otpimization_steps_and_parameters(fake)
 
-    def _fetch_optimize_steps(self):
-        """Fetches all OptimizeStep steps if present"""
-
-        for i, step in enumerate(self._xdl_object.steps):
-            if step.name == 'OptimizeStep':
-                self._optimization_steps.update(
-                    {
-                        f'{step.children[0].name}_{i}': step.optimize_properties
-                    }
-                )
-
-    def _check_otpimization_steps_and_parameters(self):
+    def _check_otpimization_steps_and_parameters(self, fake):
         """Get the optimization parameters and validate them if needed"""
 
-        if not self._optimization_steps:
-            for step in self._optimization_steps:
-                if step not in SUPPORTED_STEPS_PARAMETERS:
+        optimize_steps = []
+
+        for step in self._xdl_object.steps:
+            if step.name == 'OptimizeStep':
+                optimize_steps.append(step)
+                if step.children[0] not in SUPPORTED_STEPS_PARAMETERS:
                     raise OptimizerError(f'Step {step} is not supported for optimization')
 
-                for parameter in self._optimization_steps[step]:
+                for parameter in step.optimize_properties:
                     if parameter not in SUPPORTED_STEPS_PARAMETERS[step]:
                         raise ParameterError(f'Parameter {parameter} is not supported for step {step}')
-
-    def _get_optimization_steps(self, interactive=False):
-        """Get the optimization steps from the given procedure"""
-
-        if self._optimization_steps and not interactive:
-            return
-
-        if not self._optimization_steps:
+        
+        if not optimize_steps and not fake:
             for i, step in enumerate(self._xdl_object.steps):
                 if step.name in SUPPORTED_STEPS_PARAMETERS:
-                    self._optimization_steps.update(self._create_optimize_step(step, i))
+                    self._xdl_object.steps[i] = self._create_optimize_step(step, i)
+
+        if not optimize_steps and fake:
+            for i, step in enumerate(self._xdl_object.steps):
+                if step.name in SUPPORTED_STEPS_PARAMETERS:
+                    self._optimization_steps.update(
+                            {f'{step.name}_{i}': self._create_optimize_step(step, i)}
+                        )
 
     def _create_optimize_step(self, step, step_id):
         """Creates an OptimizeStep from supplied xdl step
@@ -103,12 +93,12 @@ class Optimizer(object):
             optimize_properties=params,
         )
 
-        return {f'{step.name}_{step_id}': optimize_step}
+        return optimize_step
 
     def prepare_for_optimization(self, interactive=False):
         """Get the Optimize step and the respective parameters"""
 
-        self._get_optimization_steps(interactive=interactive)
+        #self._get_optimization_steps(interactive=interactive)
 
         self.optimizer = Optimize(
             xdl_object=self._xdl_object,
