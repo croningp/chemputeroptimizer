@@ -44,3 +44,13 @@ TARGET_PARAMETERS = [
     'final_conversion', 
     'final_purity',
 ]
+
+DEFAULT_OPTIMIZATION_PARAMETERS = {
+    'max_iterations': 1,
+    'target': {
+        'spectrum': {
+            'peak_ID': 850,
+            'peak_area': 1000
+            }
+        },
+}

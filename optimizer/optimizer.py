@@ -8,7 +8,10 @@ from xdl import XDL
 
 from .platform import OptimizerPlatform
 from .platform.steps import Optimize, OptimizeStep
-from .constants import (SUPPORTED_STEPS_PARAMETERS)
+from .constants import (
+    SUPPORTED_STEPS_PARAMETERS,
+    DEFAULT_OPTIMIZATION_PARAMETERS,
+)
 from .utils.errors import OptimizerError, ParameterError
 
 class Optimizer(object):
@@ -21,16 +24,21 @@ class Optimizer(object):
 
     Attributes:
         procedure (str): Path to XDL file or XDL str.
-        graph_file (str): Path to graph file (either .json or .graphml)
+        graph_file (str): Path to graph file (either .json or .graphml).
+        interactive (bool, optional): User input for OptimizeStep parameters.
+        fake (bool, optional): If the fake OptimizeSteps created.
+        opt_params (Dict, optional): Dictionary with optimization parameters,
+            e.g. number of iterations, optimization algorithm, target parameter
+            and its value.
     """
 
-    def __init__(self, procedure, graph_file, interactive=False, fake=True):
+    def __init__(self, procedure, graph_file, interactive=False, fake=True, opt_params=None):
 
         self._original_procedure = procedure
         self.graph = graph_file
         self.interactive = interactive
-
-        self.optimizer = None
+        if opt_params is None:
+            opt_params = DEFAULT_OPTIMIZATION_PARAMETERS
 
         self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
 
@@ -39,6 +47,18 @@ class Optimizer(object):
         self.logger = logging.getLogger('optimizer')
 
         self._check_otpimization_steps_and_parameters(fake)
+        
+        self._initalise_optimize_step(opt_params)
+
+    def _initalise_optimize_step(self, opt_params):
+        """Initialize Optimize Dynamic step with relevant optimization parameters"""
+        
+        self.optimizer = Optimize(
+            xdl_object=self._xdl_object,
+            save_path='here',
+            optimize_steps=self._optimization_steps,
+            **opt_params
+        )
 
     def _check_otpimization_steps_and_parameters(self, fake):
         """Get the optimization parameters and validate them if needed"""
@@ -98,15 +118,7 @@ class Optimizer(object):
     def prepare_for_optimization(self, interactive=False):
         """Get the Optimize step and the respective parameters"""
 
-        #self._get_optimization_steps(interactive=interactive)
 
-        self.optimizer = Optimize(
-            xdl_object=self._xdl_object,
-            max_iterations=1,
-            target={'final_yield': 0.95},
-            save_path='here',
-            optimize_steps=self._optimization_steps,
-        )
 
     def optimize(self, chempiler):
         """Execute the Optimize step and follow the optimization routine"""
