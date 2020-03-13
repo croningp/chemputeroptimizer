@@ -150,6 +150,7 @@ class Optimize(AbstractDynamicStep):
             try:
                 if self.optimize_steps:
                     new_xdl.steps[step_id].properties[param] = self.parameters[record]['current_value']
+                    self.optimize_steps[record[:record.index('-')]].children[0].properties[param] = self.parameters[record]['current_value']
                 else:
                     new_xdl.steps[step_id].children[0].properties[param] = self.parameters[record]['current_value']
             except KeyError:
