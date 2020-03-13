@@ -33,7 +33,7 @@ class Optimize(AbstractDynamicStep):
         children (List[Step]): List of steps to execute. Optionally contain some
             steps wrapped by OptimizeStep.
         max_iterations (int): Maximum number of iterations.
-        criteria (float): Target value.
+        target (Dict): Dictonary of target parameter, e.g. {'final_yield': 0.75}.
         save_path (str): Path to save results to.
         optimize_steps (List[Step], optional): List of optimization steps.
         reference (Any, optional): Optional reference for the target product,
@@ -43,7 +43,7 @@ class Optimize(AbstractDynamicStep):
     PROP_TYPES = {
         'xdl_object': XDL,
         'max_iterations': int,
-        'criteria': float,
+        'target': Dict,
         'save_path': str,
         'optimize_steps': List,
         'reference': Any,
@@ -53,7 +53,7 @@ class Optimize(AbstractDynamicStep):
             self,
             xdl_object: XDL,
             max_iterations: int,
-            criteria: float,
+            target: Dict,
             save_path: str,
             optimize_steps: List[Step] = None,
             reference: Any = None,
@@ -63,7 +63,6 @@ class Optimize(AbstractDynamicStep):
 
         #self.steps = xdl_object.steps
 
-        self.target = None
         self.parameters = None
 
         self.tick = 0
@@ -71,6 +70,8 @@ class Optimize(AbstractDynamicStep):
         self.logger = logging.getLogger('dynamic optimize step')
 
         self.algorithm = Algorithm()
+
+        self.analyzer = SpectraAnalyzer()
 
         self._get_params_template()
 
@@ -143,15 +144,8 @@ class Optimize(AbstractDynamicStep):
 
         self.xdl_object = new_xdl
 
-    def get_final_analysis_steps(self, method):
-        """Get all steps required to obtained analytical data for a given method
-
-        Args:
-            method (str): A given method for an analytical technique, e.g. Raman, NMR, HPLC
-
-        Returns:
-            (List): List of XDL steps required to obtain analytical data, i.e. sampling and analysis
-        """
+    def _update_final_analysis_steps(self):
+        """Updates the final analysis method according to target parameter"""
 
     def on_final_analysis(self, data, reference):
         """Callback function for when spectra has been recorded at end of

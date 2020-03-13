@@ -93,7 +93,7 @@ class FinalAnalysis(AbstractStep):
         if self.children[0].name not in SUPPORTED_FINAL_ANALYSIS_STEPS:
             raise OptimizerError(f'Substep {self.step.name} is not supported to run final analysis')
 
-    def on_prepare_for_execution(self, graph):
+    def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
         
         self.instrument = find_instrument(graph, self.method)
 
@@ -118,7 +118,7 @@ class FinalAnalysis(AbstractStep):
 
         return steps
 
-    def _get_analytical_steps(self):
+    def _get_analytical_steps(self) -> List:
         """Obtaining steps to perform analysis based on internal method attribute"""
         
         # Raman

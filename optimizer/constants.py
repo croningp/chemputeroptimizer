@@ -38,3 +38,9 @@ SUPPORTED_FINAL_ANALYSIS_STEPS = [
 ANALYTICAL_INSTRUMENTS = {
     'Raman': 'OceanOpticsRaman',
 }
+
+TARGET_PARAMETERS = [
+    'final_yield',
+    'final_conversion', 
+    'final_purity',
+]

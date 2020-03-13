@@ -31,7 +31,9 @@ class Optimizer(object):
 
         self.optimizer = None
 
-        self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
+        self.platform = OptimizerPlatform
+
+        self._xdl_object = XDL(procedure, platform=self.platform)
 
         self._original_steps = self._xdl_object.steps
 
@@ -111,7 +113,7 @@ class Optimizer(object):
         self.optimizer = Optimize(
             xdl_object=self._xdl_object,
             max_iterations=1,
-            criteria=0.95,
+            target={'final_yield': 0.95},
             save_path='here',
             optimize_steps=self._optimization_steps,
         )

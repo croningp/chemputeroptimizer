@@ -15,7 +15,7 @@ class SpectraAnalyzer():
         data_path (str): Valid path to load spectra from.
     """
 
-    def __init__(self, max_spectra, data_path):
+    def __init__(self, max_spectra=None, data_path=None):
         
         self.max_spectra = max_spectra
         self.data_path = data_path
