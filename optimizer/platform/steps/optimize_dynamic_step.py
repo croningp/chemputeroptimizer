@@ -99,15 +99,27 @@ class Optimize(AbstractDynamicStep):
         """
         param_template = {}
 
-        for optimize_step, optimize_step_instance in self.optimize_steps.items():
-            param_template.update({
-                f'{optimize_step}-{param}': {
-                    **optimize_step_instance.optimize_properties[param],
-                    'current_value': optimize_step_instance.children[0].properties[param]
-                }
-                for param in optimize_step_instance.optimize_properties
-            })
+        if self.optimize_steps:
+            for optimize_step, optimize_step_instance in self.optimize_steps.items():
+                param_template.update({
+                    f'{optimize_step}-{param}': {
+                        **optimize_step_instance.optimize_properties[param],
+                        'current_value': optimize_step_instance.children[0].properties[param]
+                    }
+                    for param in optimize_step_instance.optimize_properties
+                })
 
+        for i, step in enumerate(self.xdl_object.steps):
+            if step.name == 'OptimizeStep':
+                param_template.update(
+                    {
+                        f'{step.children[0].name}_{i}-{param}': {
+                            **step.optimize_properties[param],
+                            'current_value': step.children[0].properties[param]
+                        }
+                        for param in step.optimize_properties
+                    }
+                )
         self.parameters = param_template
 
     def update_steps_parameters(self, result: Dict) -> None:
@@ -136,7 +148,10 @@ class Optimize(AbstractDynamicStep):
             # slicing for the parameter name
             param = record[record.index('-')+1:]
             try:
-                new_xdl.steps[step_id].properties[param] = self.parameters[record]['current_value']
+                if self.optimize_steps:
+                    new_xdl.steps[step_id].properties[param] = self.parameters[record]['current_value']
+                else:
+                    new_xdl.steps[step_id].children[0].properties[param] = self.parameters[record]['current_value']
             except KeyError:
                 print('KeyError')
 
