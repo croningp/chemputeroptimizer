@@ -1,0 +1,45 @@
+<?xdl version="0.2.1" ?>
+
+<Synthesis>
+  <Hardware>
+    <Component
+      type="reactor"
+      id="reactor" />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      id="methanol" />
+    <Reagent
+      id="4-formylbenzonitrile" />
+    <Reagent
+      id="tosmic" />
+  </Reagents>
+
+  <Procedure>
+    <HeatChillToTemp
+      temp="25°C"
+      vessel="reactor" />
+    <Add
+      stir="True"
+      volume="4.5 mL"
+      vessel="reactor"
+      reagent="tosmic" />
+    <Add
+      stir="True"
+      volume="4.1 mL"
+      vessel="reactor"
+      reagent="4-formylbenzonitrile" />
+    <Add
+      stir="True"
+      volume="1.4 mL"
+      vessel="reactor"
+      reagent="methanol" />
+    <Stir
+      time="1.3333 hrs"
+      vessel="reactor" />
+    <StopHeatChill
+      vessel="reactor" />
+  </Procedure>
+
+</Synthesis>

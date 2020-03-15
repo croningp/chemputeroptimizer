@@ -1,0 +1,504 @@
+<?xdl version="0.3.0" ?>
+
+<Synthesis
+  graph_sha256="e05eec4412f5460293810f5f8db3f955021011b72a25f59b9ac0f1c9fcbdd567"
+>
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor" />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      id="methanol" />
+    <Reagent
+      id="4-formylbenzonitrile" />
+    <Reagent
+      id="tosmic" />
+  </Reagents>
+
+  <Procedure>
+    <CSetStirRate
+      vessel="reactor"
+      stir_speed="250 RPM" />
+    <CleanBackbone
+      solvent="methanol"
+      waste_vessels="waste_1 waste_2 waste_3"
+      solvent_vessel="flask_methanol">
+      <CMove
+        from_vessel="flask_methanol"
+        to_vessel="waste_1"
+        volume="3 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+      <CMove
+        from_vessel="flask_methanol"
+        to_vessel="waste_2"
+        volume="3 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+      <CMove
+        from_vessel="flask_methanol"
+        to_vessel="waste_3"
+        volume="3 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+    </CleanBackbone>
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="25°C"
+      active="True"
+      continue_heatchill="True"
+      stir="True"
+      stir_speed="250 RPM"
+      vessel_type="reactor"
+      wait_recording_speed="2000"
+      after_recording_speed="14"
+      heater="hotplate"
+      chiller="None">
+      <StartStir
+        vessel="reactor"
+        stir_speed="250 RPM"
+        vessel_type="reactor">
+        <CStir
+          vessel="reactor" />
+        <CSetStirRate
+          vessel="reactor"
+          stir_speed="250 RPM" />
+      </StartStir>
+      <StartHeatChill
+        vessel="reactor"
+        temp="25°C"
+        vessel_type="reactor"
+        heater="hotplate"
+        chiller="None">
+        <CStirrerSetTemp
+          vessel="reactor"
+          temp="25°C" />
+        <CStirrerHeat
+          vessel="reactor" />
+      </StartHeatChill>
+      <CSetRecordingSpeed
+        recording_speed="2000" />
+      <CStirrerWaitForTemp
+        vessel="reactor" />
+      <CSetRecordingSpeed
+        recording_speed="14" />
+    </HeatChillToTemp>
+    <Add
+      reagent="tosmic"
+      vessel="reactor"
+      volume="4.5 mL"
+      mass="None"
+      port="0"
+      through="None"
+      move_speed="40"
+      aspiration_speed="10"
+      dispense_speed="40"
+      viscous="False"
+      time="None"
+      stir="True"
+      stir_speed="250 RPM"
+      anticlogging="False"
+      anticlogging_solvent="None"
+      anticlogging_solvent_volume="2 mL"
+      anticlogging_reagent_volume="10 mL"
+      through_cartridge="None"
+      reagent_vessel="tosmic"
+      waste_vessel="waste_2"
+      flush_tube_vessel="argon"
+      vessel_type="reactor"
+      anticlogging_solvent_vessel="None">
+      <StartStir
+        vessel="reactor"
+        stir_speed="250 RPM"
+        vessel_type="reactor">
+        <CStir
+          vessel="reactor" />
+        <CSetStirRate
+          vessel="reactor"
+          stir_speed="250 RPM" />
+      </StartStir>
+      <PrimePumpForAdd
+        reagent="tosmic"
+        volume="3 mL"
+        reagent_vessel="tosmic"
+        waste_vessel="waste_2">
+        <CMove
+          from_vessel="tosmic"
+          to_vessel="waste_2"
+          volume="3 mL"
+          move_speed="40"
+          aspiration_speed="10"
+          dispense_speed="40"
+          from_port="0"
+          to_port="0"
+          unique="False"
+          through=""
+          use_backbone="True" />
+      </PrimePumpForAdd>
+      <CMove
+        from_vessel="tosmic"
+        to_vessel="reactor"
+        volume="4.5 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through="None"
+        use_backbone="True" />
+      <Wait
+        time="10 secs"
+        wait_recording_speed="2000"
+        after_recording_speed="14">
+        <CSetRecordingSpeed
+          recording_speed="2000" />
+        <CWait
+          time="10 secs" />
+        <CSetRecordingSpeed
+          recording_speed="14" />
+      </Wait>
+      <CMove
+        from_vessel="argon"
+        to_vessel="reactor"
+        volume="5 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+    </Add>
+    <CleanBackbone
+      solvent="methanol"
+      waste_vessels="waste_1 waste_2 waste_3"
+      solvent_vessel="flask_methanol">
+      <CMove
+        from_vessel="flask_methanol"
+        to_vessel="waste_1"
+        volume="3 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+      <CMove
+        from_vessel="flask_methanol"
+        to_vessel="waste_2"
+        volume="3 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+      <CMove
+        from_vessel="flask_methanol"
+        to_vessel="waste_3"
+        volume="3 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+    </CleanBackbone>
+    <Add
+      reagent="4-formylbenzonitrile"
+      vessel="reactor"
+      volume="4.1 mL"
+      mass="None"
+      port="0"
+      through="None"
+      move_speed="40"
+      aspiration_speed="10"
+      dispense_speed="40"
+      viscous="False"
+      time="None"
+      stir="True"
+      stir_speed="250 RPM"
+      anticlogging="False"
+      anticlogging_solvent="None"
+      anticlogging_solvent_volume="2 mL"
+      anticlogging_reagent_volume="10 mL"
+      through_cartridge="None"
+      reagent_vessel="4-formylbenzonitrile"
+      waste_vessel="waste_2"
+      flush_tube_vessel="argon"
+      vessel_type="reactor"
+      anticlogging_solvent_vessel="None">
+      <StartStir
+        vessel="reactor"
+        stir_speed="250 RPM"
+        vessel_type="reactor">
+        <CStir
+          vessel="reactor" />
+        <CSetStirRate
+          vessel="reactor"
+          stir_speed="250 RPM" />
+      </StartStir>
+      <PrimePumpForAdd
+        reagent="4-formylbenzonitrile"
+        volume="3 mL"
+        reagent_vessel="4-formylbenzonitrile"
+        waste_vessel="waste_2">
+        <CMove
+          from_vessel="4-formylbenzonitrile"
+          to_vessel="waste_2"
+          volume="3 mL"
+          move_speed="40"
+          aspiration_speed="10"
+          dispense_speed="40"
+          from_port="0"
+          to_port="0"
+          unique="False"
+          through=""
+          use_backbone="True" />
+      </PrimePumpForAdd>
+      <CMove
+        from_vessel="4-formylbenzonitrile"
+        to_vessel="reactor"
+        volume="4.1 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through="None"
+        use_backbone="True" />
+      <Wait
+        time="10 secs"
+        wait_recording_speed="2000"
+        after_recording_speed="14">
+        <CSetRecordingSpeed
+          recording_speed="2000" />
+        <CWait
+          time="10 secs" />
+        <CSetRecordingSpeed
+          recording_speed="14" />
+      </Wait>
+      <CMove
+        from_vessel="argon"
+        to_vessel="reactor"
+        volume="5 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+    </Add>
+    <CleanBackbone
+      solvent="methanol"
+      waste_vessels="waste_1 waste_2 waste_3"
+      solvent_vessel="flask_methanol">
+      <CMove
+        from_vessel="flask_methanol"
+        to_vessel="waste_1"
+        volume="3 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+      <CMove
+        from_vessel="flask_methanol"
+        to_vessel="waste_2"
+        volume="3 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+      <CMove
+        from_vessel="flask_methanol"
+        to_vessel="waste_3"
+        volume="3 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+    </CleanBackbone>
+    <Add
+      reagent="methanol"
+      vessel="reactor"
+      volume="1.4 mL"
+      mass="None"
+      port="0"
+      through="None"
+      move_speed="40"
+      aspiration_speed="10"
+      dispense_speed="40"
+      viscous="False"
+      time="None"
+      stir="True"
+      stir_speed="250 RPM"
+      anticlogging="False"
+      anticlogging_solvent="None"
+      anticlogging_solvent_volume="2 mL"
+      anticlogging_reagent_volume="10 mL"
+      through_cartridge="None"
+      reagent_vessel="flask_methanol"
+      waste_vessel="waste_2"
+      flush_tube_vessel="argon"
+      vessel_type="reactor"
+      anticlogging_solvent_vessel="None">
+      <StartStir
+        vessel="reactor"
+        stir_speed="250 RPM"
+        vessel_type="reactor">
+        <CStir
+          vessel="reactor" />
+        <CSetStirRate
+          vessel="reactor"
+          stir_speed="250 RPM" />
+      </StartStir>
+      <PrimePumpForAdd
+        reagent="methanol"
+        volume="3 mL"
+        reagent_vessel="flask_methanol"
+        waste_vessel="waste_2">
+        <CMove
+          from_vessel="flask_methanol"
+          to_vessel="waste_2"
+          volume="3 mL"
+          move_speed="40"
+          aspiration_speed="10"
+          dispense_speed="40"
+          from_port="0"
+          to_port="0"
+          unique="False"
+          through=""
+          use_backbone="True" />
+      </PrimePumpForAdd>
+      <CMove
+        from_vessel="flask_methanol"
+        to_vessel="reactor"
+        volume="1.4 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through="None"
+        use_backbone="True" />
+      <Wait
+        time="10 secs"
+        wait_recording_speed="2000"
+        after_recording_speed="14">
+        <CSetRecordingSpeed
+          recording_speed="2000" />
+        <CWait
+          time="10 secs" />
+        <CSetRecordingSpeed
+          recording_speed="14" />
+      </Wait>
+      <CMove
+        from_vessel="argon"
+        to_vessel="reactor"
+        volume="5 mL"
+        move_speed="40"
+        aspiration_speed="10"
+        dispense_speed="40"
+        from_port="0"
+        to_port="0"
+        unique="False"
+        through=""
+        use_backbone="True" />
+    </Add>
+    <Stir
+      vessel="reactor"
+      time="1.3333 hrs"
+      continue_stirring="False"
+      stir_speed="250 RPM"
+      vessel_type="reactor">
+      <StartStir
+        vessel="reactor"
+        stir_speed="250 RPM"
+        vessel_type="reactor">
+        <CStir
+          vessel="reactor" />
+        <CSetStirRate
+          vessel="reactor"
+          stir_speed="250 RPM" />
+      </StartStir>
+      <Wait
+        time="1.3333 hrs"
+        wait_recording_speed="2000"
+        after_recording_speed="14">
+        <CSetRecordingSpeed
+          recording_speed="2000" />
+        <CWait
+          time="1.3333 hrs" />
+        <CSetRecordingSpeed
+          recording_speed="14" />
+      </Wait>
+      <StopStir
+        vessel="reactor"
+        vessel_type="reactor"
+        vessel_has_stirrer="False" />
+    </Stir>
+    <StopHeatChill
+      vessel="reactor"
+      vessel_type="reactor"
+      heater="hotplate"
+      chiller="None">
+      <CStopHeat
+        vessel="reactor" />
+    </StopHeatChill>
+    <Shutdown
+      vacuums=""
+      heaters="reactor"
+      stirrers=""
+      rotavaps=""
+      chillers="">
+      <CStopHeat
+        vessel="reactor" />
+    </Shutdown>
+  </Procedure>
+
+</Synthesis>
