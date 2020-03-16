@@ -127,6 +127,12 @@ class Optimize(AbstractDynamicStep):
 
         self._update_xdl()
 
+    def _update_state(self):
+        """Updates state attribute when procedure is over"""
+
+        self.state['iterations'] += 1
+        self.state['updated'] = True
+
     def _update_xdl(self):
         """Creates a new copy of xdl procedure with updated parameters and saves the .xdl file"""
 
@@ -151,9 +157,9 @@ class Optimize(AbstractDynamicStep):
         new_xdl.save('new_xdl.xdl')
 
         self.working_xdl_copy = new_xdl
+
         self.working_xdl_copy.prepare_for_execution(self._graph, interactive=False)
         self._update_final_analysis_steps()
-        self.state['updated'] = True
 
     def on_prepare_for_execution(self, graph):
         """Additional preparations before execution"""
@@ -165,6 +171,7 @@ class Optimize(AbstractDynamicStep):
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
         self.working_xdl_copy.prepare_for_execution(graph, interactive=False)
+        self._update_final_analysis_steps()
         
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
@@ -229,6 +236,7 @@ class Optimize(AbstractDynamicStep):
             self.update_steps_parameters(
                 self.state['current_result']
             )
+            self._update_state()
         
         return self.working_xdl_copy.steps
 
