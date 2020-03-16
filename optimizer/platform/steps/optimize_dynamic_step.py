@@ -68,9 +68,10 @@ class Optimize(AbstractDynamicStep):
         if not hasattr(self, '_analyzer'): self._analyzer = SpectraAnalyzer()
         if not hasattr(self, '_algorithm'): self._algorithm = Algorithm(algorithm)
         if not hasattr(self, 'parameters'): self._get_params_template()
-        if not hasattr(self, 'state'): self.state = {
+        if not self.state: self.state = {
             'iterations': 0,
             'current_result': 0,
+            'done': False,
         }
 
     def _get_params_template(self) -> None:
@@ -192,14 +193,29 @@ class Optimize(AbstractDynamicStep):
 
             self.state['current_result'] = result
 
+    def _check_termination(self):
+
+        if self.state['iterations'] >= self.max_iterations:
+            return True
+
+        if 'spectrum' in self.target:
+            if self.state['current_result'] >= self.target['spectrum']['peak_area']:
+                return True
+
+        else:
+            return False
+
     def on_start(self):
-        pass
+        return []
 
     def on_continue(self):
-        pass
+        if self._check_termination():
+            return []
+        
+        return self.xdl_object.steps
 
     def on_finish(self):
-        pass
+        return []
 
     def cleaning_steps(self):
         pass
