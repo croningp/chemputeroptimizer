@@ -68,7 +68,10 @@ class Optimize(AbstractDynamicStep):
         if not hasattr(self, '_analyzer'): self._analyzer = SpectraAnalyzer()
         if not hasattr(self, '_algorithm'): self._algorithm = Algorithm(algorithm)
         if not hasattr(self, 'parameters'): self._get_params_template()
-        if not hasattr(self, 'tick'): self.tick = 0
+        if not hasattr(self, 'state'): self.state = {
+            'iterations': 0,
+            'current_result': 0,
+        }
 
     def _get_params_template(self) -> None:
         """Get dictionary of all parametrs to be optimized.
@@ -158,15 +161,28 @@ class Optimize(AbstractDynamicStep):
     def _update_final_analysis_steps(self):
         """Updates the final analysis method according to target parameter"""
 
-    def on_final_analysis(self, data, reference):
+        for step in self.xdl_object.steps:
+            if step.name == 'FinalAnalysis':
+                step.on_finish = self.on_final_analysis
+
+    def on_final_analysis(self, data):
         """Callback function for when spectra has been recorded at end of
         procedure. Updates the target parameter.
 
         Args:
             data (Any): Spectral data (e.g. NMR) of the final product
-            reference (Any): A reference spectral data (e.g. peak_ID or full spectra) to
-                obtain quantitative yield and purity
         """
+
+        self._analyzer.load_spectrum(data)
+
+        # if looking for specific parameters in a final spectrum:
+        if 'spectrum' in self.target:
+            result = self._analyzer.final_analysis(
+                reference=self.reference,
+                target=self.target,
+            )
+
+            self.state['current_result'] = result
 
     def on_start(self):
         pass
