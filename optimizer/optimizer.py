@@ -118,7 +118,7 @@ class Optimizer(object):
     def prepare_for_optimization(self, interactive=False):
         """Get the Optimize step and the respective parameters"""
 
-
+        self.optimizer.prepare_for_execution(self.graph, self._xdl_object.executor)
 
     def optimize(self, chempiler):
         """Execute the Optimize step and follow the optimization routine"""

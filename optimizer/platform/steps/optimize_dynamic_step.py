@@ -157,6 +157,13 @@ class Optimize(AbstractDynamicStep):
         new_xdl.save('new_xdl.xdl')
 
         self.xdl_object = new_xdl
+        self.on_prepare_for_execution(self._graph)
+
+    def on_prepare_for_execution(self, graph):
+        
+        self._graph = graph
+        self.xdl_object.prepare_for_execution(graph, interactive=False)
+        self._update_final_analysis_steps()
 
     def _update_final_analysis_steps(self):
         """Updates the final analysis method according to target parameter"""
