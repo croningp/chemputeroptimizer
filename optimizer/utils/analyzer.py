@@ -1,6 +1,10 @@
 """
 Module for comparing several spectra.
 """
+from typing import Dict
+
+import numpy as np
+
 
 class SpectraAnalyzer():
     """General class for analyzing spectra differences.
@@ -15,22 +19,22 @@ class SpectraAnalyzer():
         data_path (str): Valid path to load spectra from.
     """
 
-    def __init__(self, max_spectra=None, data_path=None):
+    def __init__(self, max_spectra=5, data_path=None):
         
         self.max_spectra = max_spectra
         self.data_path = data_path
 
         # Variables to store spectral data
-        self.current_spectrum = None
-        self.last_spectrum = None
-        self.spectra = None
+        self.current_spectrum = {}
+        self.last_spectrum = {}
+        self.spectra = {}
 
         # Future arguments for peaks classification
         self.starting_material = None
         self.intermediate = None
         self.final_product = None
     
-    def load_spectrum(self, spectrum):
+    def load_spectrum(self, spectrum: Dict):
         """Loads the spectrum and stores and as current_spectrum.
         
         Args:
@@ -49,6 +53,8 @@ class SpectraAnalyzer():
                 }
             }
         """
+
+        self.current_spectrum = spectrum
 
     def add_spectrum(self, spectrum):
         """Updates the latest spectrum.
@@ -70,16 +76,47 @@ class SpectraAnalyzer():
             (float): An average difference between spectra.
         """
 
-    def final_analysis(self, reference, target=None):
+    def final_analysis(self, reference=None, target=None):
         """Analyses the spectrum relative to provided reference.
+
+        Returns:
+            (Dict): A dictionary containing final analysis data.
         
         Args:
-            reference (Any): A peak position (e.g. x coordinate) of the
+            reference (Any, optional): A peak position (e.g. x coordinate) of the
                 reference substance to compare to.
             target (Any, optional): A peak position of the target compound
                 (i.e. product). If not supplied, the target will be selected automatically
                 from peak classification.
+
+        Example:
+            - if neither reference nor target are provided will return a dictionary with
+                peaks parameters of the final product spectrum 
+
+            - if no reference is provided will return dictionary of peak area for
+                peak_ID corresponding to the product spectrum, obtained either 
+                internally (from self.final_product) or from target attribute
+            
+            - if both reference and target attributes are provided will return a
+                dictionary of final concentration of a given sample
         """
+
+        if target is not None and reference is not None:
+            return {'product_spectrum': self.final_product}
+
+        if target is not None and reference is None:
+            try:
+                peak_area = self.last_spectrum['peaks'][target['peak_ID']]['area']
+            except KeyError:
+                raise KeyError(f"Target peak {target['peak_ID']}was not found on measured spectrum. \
+                    Please see the list of all peaks below\n\
+                    {[peak['peak_ID'] for peak in self.last_spectrum['peaks']]}")
+            return {'peak_area': peak_area}
+
+        if target is None and reference is None:
+            return {'product_concentration': None}
+
+        return {'product_concentration': None}
         
     def get_yield(self, params):
         """Calculates yield of the final product.

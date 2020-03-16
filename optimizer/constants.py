@@ -54,4 +54,5 @@ DEFAULT_OPTIMIZATION_PARAMETERS = {
             }
         },
     'algorithm': 'random',
+    'reference': None,
 }
