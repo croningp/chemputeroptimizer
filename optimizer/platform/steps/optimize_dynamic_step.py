@@ -138,7 +138,7 @@ class Optimize(AbstractDynamicStep):
     def _update_xdl(self):
         """Creates a new copy of xdl procedure with updated parameters and saves the .xdl file"""
 
-        new_xdl = xdl_copy(self.xdl_object)
+        new_xdl = xdl_copy(self._raw_xdl)
 
         for record in self.parameters:
             # slicing the parameter name for step id:
@@ -157,6 +157,14 @@ class Optimize(AbstractDynamicStep):
         new_xdl.save('new_xdl.xdl')
 
         self.xdl_object = new_xdl
+        self.on_prepare_for_execution(self._graph)
+
+    def on_prepare_for_execution(self, graph):
+        
+        self._graph = graph
+        self._raw_xdl = xdl_copy(self.xdl_object)
+        self.xdl_object.prepare_for_execution(graph, interactive=False)
+        self._update_final_analysis_steps()
 
     def _update_final_analysis_steps(self):
         """Updates the final analysis method according to target parameter"""
