@@ -53,8 +53,7 @@ class SpectraAnalyzer():
                 }
             }
         """
-
-        self.current_spectrum = spectrum
+        self.last_spectrum = spectrum
 
     def add_spectrum(self, spectrum):
         """Updates the latest spectrum.
@@ -108,9 +107,9 @@ class SpectraAnalyzer():
             try:
                 peak_area = self.last_spectrum['peaks'][target['peak_ID']]['area']
             except KeyError:
-                raise KeyError(f"Target peak {target['peak_ID']}was not found on measured spectrum. \
-                    Please see the list of all peaks below\n\
-                    {[peak['peak_ID'] for peak in self.last_spectrum['peaks']]}")
+                raise KeyError(f"Target peak {target['peak_ID']} was not found on measured spectrum. \
+                    Please see the list of all peaks: \
+                    {str([peak for peak in self.last_spectrum['peaks']])}") from None
             return {'peak_area': peak_area}
 
         if target is None and reference is None:

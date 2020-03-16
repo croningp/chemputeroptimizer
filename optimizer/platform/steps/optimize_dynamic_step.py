@@ -179,7 +179,7 @@ class Optimize(AbstractDynamicStep):
         if 'spectrum' in self.target:
             result = self._analyzer.final_analysis(
                 reference=self.reference,
-                target=self.target,
+                target=self.target['spectrum'],
             )
 
             self.state['current_result'] = result
