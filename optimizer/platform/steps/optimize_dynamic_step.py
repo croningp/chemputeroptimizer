@@ -153,6 +153,7 @@ class Optimize(AbstractDynamicStep):
         self.xdl_object = new_xdl
         self.xdl_object.prepare_for_execution(self._graph, interactive=False)
         self._update_final_analysis_steps()
+        self.state['updated'] = True
 
     def on_prepare_for_execution(self, graph):
         """Additional preparations before execution"""
@@ -168,6 +169,7 @@ class Optimize(AbstractDynamicStep):
         self.state = {
             'iterations': 0,
             'current_result': 0,
+            'updated': True,
             'done': False,
         }
 
@@ -197,6 +199,10 @@ class Optimize(AbstractDynamicStep):
 
             self.state['current_result'] = result
 
+        # setting the updated tag to false, to update the 
+        # procedure when finished
+        self.state['updated'] = False
+
     def _check_termination(self):
 
         if self.state['iterations'] >= self.max_iterations:
@@ -215,6 +221,11 @@ class Optimize(AbstractDynamicStep):
     def on_continue(self):
         if self._check_termination():
             return []
+
+        if not self.state['updated']:
+            self.update_steps_parameters(
+                self.state['current_result']
+            )
         
         return self.xdl_object.steps
 
