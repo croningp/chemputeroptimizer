@@ -41,7 +41,7 @@ class Optimize(AbstractDynamicStep):
     """
 
     PROP_TYPES = {
-        'xdl_object': XDL,
+        'original_xdl': XDL,
         'max_iterations': int,
         'target': Dict,
         'save_path': str,
@@ -52,7 +52,7 @@ class Optimize(AbstractDynamicStep):
 
     def __init__(
             self,
-            xdl_object: XDL,
+            original_xdl: XDL,
             max_iterations: int,
             target: Dict,
             save_path: str,
@@ -99,7 +99,7 @@ class Optimize(AbstractDynamicStep):
                     for param in optimize_step_instance.optimize_properties
                 })
 
-        for i, step in enumerate(self.xdl_object.steps):
+        for i, step in enumerate(self.original_xdl.steps):
             if step.name == 'OptimizeStep':
                 param_template.update(
                     {
@@ -132,7 +132,7 @@ class Optimize(AbstractDynamicStep):
 
         # making copy of the raw xdl before any preparations
         # to make future procedure updates possible
-        new_xdl = xdl_copy(self._raw_xdl)
+        new_xdl = xdl_copy(self.original_xdl)
 
         for record in self.parameters:
             # slicing the parameter name for step id:
@@ -150,18 +150,21 @@ class Optimize(AbstractDynamicStep):
 
         new_xdl.save('new_xdl.xdl')
 
-        self.xdl_object = new_xdl
-        self.xdl_object.prepare_for_execution(self._graph, interactive=False)
+        self.working_xdl_copy = new_xdl
+        self.working_xdl_copy.prepare_for_execution(self._graph, interactive=False)
         self._update_final_analysis_steps()
         self.state['updated'] = True
 
     def on_prepare_for_execution(self, graph):
         """Additional preparations before execution"""
         
-        self._graph = graph # saving grapf for future xdl updates
-        self._get_params_template() # getting parameters from the *raw* xdl
-        self._raw_xdl = xdl_copy(self.xdl_object) # save *raw* xdl for future updates
-        self.xdl_object.prepare_for_execution(graph, interactive=False)
+        # saving grapf for future xdl updates
+        self._graph = graph
+        # getting parameters from the *raw* xdl
+        self._get_params_template()
+        # working with _protected copy to avoid step reinstantiating
+        self.working_xdl_copy = xdl_copy(self.original_xdl)
+        self.working_xdl_copy.prepare_for_execution(graph, interactive=False)
         
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
@@ -176,7 +179,7 @@ class Optimize(AbstractDynamicStep):
     def _update_final_analysis_steps(self):
         """Updates the final analysis method according to target parameter"""
 
-        for step in self.xdl_object.steps:
+        for step in self.working_xdl_copy.steps:
             if step.name == 'FinalAnalysis':
                 step.on_finish = self.on_final_analysis
 
@@ -227,7 +230,7 @@ class Optimize(AbstractDynamicStep):
                 self.state['current_result']
             )
         
-        return self.xdl_object.steps
+        return self.working_xdl_copy.steps
 
     def on_finish(self):
         return []
