@@ -65,15 +65,6 @@ class Optimize(AbstractDynamicStep):
 
         self.logger = logging.getLogger('dynamic optimize step')
 
-        if not hasattr(self, '_analyzer'): self._analyzer = SpectraAnalyzer()
-        if not hasattr(self, '_algorithm'): self._algorithm = Algorithm(algorithm)
-        if not hasattr(self, 'parameters'): self._get_params_template()
-        if not self.state: self.state = {
-            'iterations': 0,
-            'current_result': 0,
-            'done': False,
-        }
-
     def _get_params_template(self) -> None:
         """Get dictionary of all parametrs to be optimized.
         
@@ -139,6 +130,8 @@ class Optimize(AbstractDynamicStep):
     def _update_xdl(self):
         """Creates a new copy of xdl procedure with updated parameters and saves the .xdl file"""
 
+        # making copy of the raw xdl before any preparations
+        # to make future procedure updates possible
         new_xdl = xdl_copy(self._raw_xdl)
 
         for record in self.parameters:
@@ -158,14 +151,25 @@ class Optimize(AbstractDynamicStep):
         new_xdl.save('new_xdl.xdl')
 
         self.xdl_object = new_xdl
-        self.on_prepare_for_execution(self._graph)
+        self.xdl_object.prepare_for_execution(self._graph, interactive=False)
+        self._update_final_analysis_steps()
 
     def on_prepare_for_execution(self, graph):
+        """Additional preparations before execution"""
         
-        self._graph = graph
-        self._raw_xdl = xdl_copy(self.xdl_object)
+        self._graph = graph # saving grapf for future xdl updates
+        self._get_params_template() # getting parameters from the *raw* xdl
+        self._raw_xdl = xdl_copy(self.xdl_object) # save *raw* xdl for future updates
         self.xdl_object.prepare_for_execution(graph, interactive=False)
-        self._update_final_analysis_steps()
+        
+        # load necessary tools
+        self._analyzer = SpectraAnalyzer()
+        self._algorithm = Algorithm(self.algorithm)
+        self.state = {
+            'iterations': 0,
+            'current_result': 0,
+            'done': False,
+        }
 
     def _update_final_analysis_steps(self):
         """Updates the final analysis method according to target parameter"""
