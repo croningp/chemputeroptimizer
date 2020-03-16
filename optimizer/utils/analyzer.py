@@ -88,6 +88,17 @@ class SpectraAnalyzer():
             target (Any, optional): A peak position of the target compound
                 (i.e. product). If not supplied, the target will be selected automatically
                 from peak classification.
+
+        Example:
+            - if neither reference nor target are provided will return a dictionary with
+                peaks parameters of the final product spectrum 
+
+            - if no reference is provided will return dictionary of peak area for
+                peak_ID corresponding to the product spectrum, obtained either 
+                internally (from self.final_product) or from target attribute
+            
+            - if both reference and target attributes are provided will return a
+                dictionary of final concentration of a given sample
         """
 
         if target is not None and reference is not None:
