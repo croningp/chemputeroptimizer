@@ -54,7 +54,7 @@ class Optimizer(object):
         """Initialize Optimize Dynamic step with relevant optimization parameters"""
         
         self.optimizer = Optimize(
-            xdl_object=self._xdl_object,
+            original_xdl=self._xdl_object,
             save_path='here',
             optimize_steps=self._optimization_steps,
             **opt_params

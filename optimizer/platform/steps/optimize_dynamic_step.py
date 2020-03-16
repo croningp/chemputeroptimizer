@@ -41,7 +41,7 @@ class Optimize(AbstractDynamicStep):
     """
 
     PROP_TYPES = {
-        'xdl_object': XDL,
+        'original_xdl': XDL,
         'max_iterations': int,
         'target': Dict,
         'save_path': str,
@@ -52,7 +52,7 @@ class Optimize(AbstractDynamicStep):
 
     def __init__(
             self,
-            xdl_object: XDL,
+            original_xdl: XDL,
             max_iterations: int,
             target: Dict,
             save_path: str,
@@ -64,14 +64,6 @@ class Optimize(AbstractDynamicStep):
         super().__init__(locals())
 
         self.logger = logging.getLogger('dynamic optimize step')
-
-        if not hasattr(self, '_analyzer'): self._analyzer = SpectraAnalyzer()
-        if not hasattr(self, '_algorithm'): self._algorithm = Algorithm(algorithm)
-        if not hasattr(self, 'parameters'): self._get_params_template()
-        if not hasattr(self, 'state'): self.state = {
-            'iterations': 0,
-            'current_result': 0,
-        }
 
     def _get_params_template(self) -> None:
         """Get dictionary of all parametrs to be optimized.
@@ -107,7 +99,7 @@ class Optimize(AbstractDynamicStep):
                     for param in optimize_step_instance.optimize_properties
                 })
 
-        for i, step in enumerate(self.xdl_object.steps):
+        for i, step in enumerate(self.original_xdl.steps):
             if step.name == 'OptimizeStep':
                 param_template.update(
                     {
@@ -135,10 +127,18 @@ class Optimize(AbstractDynamicStep):
 
         self._update_xdl()
 
+    def _update_state(self):
+        """Updates state attribute when procedure is over"""
+
+        self.state['iterations'] += 1
+        self.state['updated'] = True
+
     def _update_xdl(self):
         """Creates a new copy of xdl procedure with updated parameters and saves the .xdl file"""
 
-        new_xdl = xdl_copy(self._raw_xdl)
+        # making copy of the raw xdl before any preparations
+        # to make future procedure updates possible
+        new_xdl = xdl_copy(self.original_xdl)
 
         for record in self.parameters:
             # slicing the parameter name for step id:
@@ -156,20 +156,37 @@ class Optimize(AbstractDynamicStep):
 
         new_xdl.save('new_xdl.xdl')
 
-        self.xdl_object = new_xdl
-        self.on_prepare_for_execution(self._graph)
+        self.working_xdl_copy = new_xdl
+
+        self.working_xdl_copy.prepare_for_execution(self._graph, interactive=False)
+        self._update_final_analysis_steps()
 
     def on_prepare_for_execution(self, graph):
+        """Additional preparations before execution"""
         
+        # saving grapf for future xdl updates
         self._graph = graph
-        self._raw_xdl = xdl_copy(self.xdl_object)
-        self.xdl_object.prepare_for_execution(graph, interactive=False)
+        # getting parameters from the *raw* xdl
+        self._get_params_template()
+        # working with _protected copy to avoid step reinstantiating
+        self.working_xdl_copy = xdl_copy(self.original_xdl)
+        self.working_xdl_copy.prepare_for_execution(graph, interactive=False)
         self._update_final_analysis_steps()
+        
+        # load necessary tools
+        self._analyzer = SpectraAnalyzer()
+        self._algorithm = Algorithm(self.algorithm)
+        self.state = {
+            'iterations': 0,
+            'current_result': 0,
+            'updated': True,
+            'done': False,
+        }
 
     def _update_final_analysis_steps(self):
         """Updates the final analysis method according to target parameter"""
 
-        for step in self.xdl_object.steps:
+        for step in self.working_xdl_copy.steps:
             if step.name == 'FinalAnalysis':
                 step.on_finish = self.on_final_analysis
 
@@ -192,14 +209,39 @@ class Optimize(AbstractDynamicStep):
 
             self.state['current_result'] = result
 
+        # setting the updated tag to false, to update the 
+        # procedure when finished
+        self.state['updated'] = False
+
+    def _check_termination(self):
+
+        if self.state['iterations'] >= self.max_iterations:
+            return True
+
+        if 'spectrum' in self.target:
+            if self.state['current_result'] >= self.target['spectrum']['peak_area']:
+                return True
+
+        else:
+            return False
+
     def on_start(self):
-        pass
+        return []
 
     def on_continue(self):
-        pass
+        if self._check_termination():
+            return []
+
+        if not self.state['updated']:
+            self.update_steps_parameters(
+                self.state['current_result']
+            )
+            self._update_state()
+        
+        return self.working_xdl_copy.steps
 
     def on_finish(self):
-        pass
+        return []
 
     def cleaning_steps(self):
         pass
