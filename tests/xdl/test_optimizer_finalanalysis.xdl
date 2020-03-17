@@ -33,38 +33,26 @@
       vessel="filter"
       volume="40 mL"
       stir="False" />
-    <OptimizeStep>
-      <volume>
-        <max_value>12</max_value>
-        <min_value>7</min_value>
-      </volume>
-      <time>
-        <max_value>120 secs</max_value>
-        <min_value>30 secs</min_value>
-      </time>
-      <children>
-        <Add
-          reagent="propiolic acid"
-          vessel="filter"
-          volume="10 mL"
-          time="60 secs"
-          stir="True" />
-      </children>
-    </OptimizeStep>
-    <OptimizeStep>
-      <HeatChill
-        vessel="filter"
-        temp="130°C"
-        time="30 mins" />
-    </OptimizeStep>
+    <Add
+      reagent="propiolic acid"
+      vessel="filter"
+      volume="10 mL"
+      time="60 secs"
+      stir="True" />
+    <HeatChill
+      vessel="filter"
+      temp="130°C"
+      time="30 mins" />
     <HeatChillToTemp
       vessel="filter"
       temp="28°C"
       active="False" />
-    <HeatChill
-      vessel="filter"
-      temp="25°C"
-      time="15 mins" />
+    <FinalAnalysis method="Raman">
+      <HeatChill
+        vessel="filter"
+        temp="25°C"
+        time="15 mins" />
+    </FinalAnalysis>
     <Filter
       filter_vessel="filter" />
     <WashSolid
