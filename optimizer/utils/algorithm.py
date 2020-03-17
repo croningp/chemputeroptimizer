@@ -157,3 +157,28 @@ class Algorithm():
         self._remap_data(self._calculated)
 
         return self.current_setup
+
+    def save(self, path):
+        """Saving full experiment matrix as csv table"""
+
+        full_matrix = np.hstack((self.parameter_matrix, self.result_matrix))
+
+        # check for a single column -> convert to single row
+        if full_matrix.ndim == 1:
+            full_matrix.shape = (1, full_matrix.shape[0])
+
+        header = ''
+
+        for key in self.current_setup:
+            header += f'{key}, '
+
+        for key in self.current_result:
+            header += f'{key}, '
+
+        np.savetxt(
+            path,
+            full_matrix,
+            fmt='%.02f',
+            delimiter=',',
+            header=header,
+        )
