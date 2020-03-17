@@ -1,4 +1,6 @@
 import logging
+import os
+import json
 
 from typing import List, Callable, Optional, Dict, Any
 
@@ -154,11 +156,12 @@ class Optimize(AbstractDynamicStep):
             except KeyError:
                 print('KeyError')
 
-        new_xdl.save('new_xdl.xdl')
 
         self.logger.debug('Created new xdl object (id %d)', id(self.working_xdl_copy))
 
         self.working_xdl_copy = new_xdl
+
+        self.save()
 
         self.working_xdl_copy.prepare_for_execution(self._graph, interactive=False)
         self._update_final_analysis_steps()
@@ -259,4 +262,36 @@ class Optimize(AbstractDynamicStep):
         pass
 
     def save(self):
-        pass
+        """Saves the data for the current iteration"""
+
+        current_path = os.path.join(
+            os.path.dirname(self.original_xdl._xdl_file),
+            'iterations',
+            str(self.state['iteration'])
+        )
+        os.makedirs(current_path, exist_ok=True)
+        
+        original_filename = os.path.basename(self.original_xdl._xdl_file)
+
+        # saving xdl
+        self.working_xdl_copy.save(
+            os.path.join(
+                current_path,
+                original_filename[:-4] + '_' + str(self.state['iteration']) + '.xdl',
+            )
+        )
+
+        # saving parameters
+        params_file = os.path.join(
+            current_path,
+            original_filename[:-4] + '_params.json',
+        )
+        with open(params_file, 'w') as f:
+            json.dump(self.parameters, f)
+
+        # saving algorithmic data
+        alg_file = os.path.join(
+            current_path,
+            original_filename[:-4] + '_data.csv',
+        )
+        self._algorithm.save(alg_file)
