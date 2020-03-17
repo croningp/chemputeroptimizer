@@ -13,6 +13,7 @@ from .constants import (
     DEFAULT_OPTIMIZATION_PARAMETERS,
 )
 from .utils.errors import OptimizerError, ParameterError
+from .utils import get_logger
 
 class Optimizer(object):
     """
@@ -34,6 +35,8 @@ class Optimizer(object):
 
     def __init__(self, procedure, graph_file, interactive=False, fake=True, opt_params=None):
 
+        self.logger = get_logger()
+
         self._original_procedure = procedure
         self.graph = graph_file
         self.interactive = interactive
@@ -41,10 +44,9 @@ class Optimizer(object):
             opt_params = DEFAULT_OPTIMIZATION_PARAMETERS
 
         self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
+        self.logger.debug('Initilaized xdl object (id %d).', id(self._xdl_object))
 
         self._optimization_steps = {} # in form of {'Optimization step ID': <:obj: Optimization step instance>, ...}
-
-        self.logger = logging.getLogger('optimizer')
 
         self._check_otpimization_steps_and_parameters(fake)
         
@@ -59,11 +61,13 @@ class Optimizer(object):
             optimize_steps=self._optimization_steps,
             **opt_params
         )
+        self.logger.debug('Initialized Optimize dynamic step.')
 
     def _check_otpimization_steps_and_parameters(self, fake):
         """Get the optimization parameters and validate them if needed"""
 
         optimize_steps = []
+        self.logger.debug('Probing for OptimizeStep steps in xdl object.')
 
         for step in self._xdl_object.steps:
             if step.name == 'OptimizeStep':
@@ -76,11 +80,13 @@ class Optimizer(object):
                         raise ParameterError(f'Parameter {parameter} is not supported for step {step}')
         
         if not optimize_steps and not fake:
+            self.logger.debug('OptimizeStep steps were not found, creating.')
             for i, step in enumerate(self._xdl_object.steps):
                 if step.name in SUPPORTED_STEPS_PARAMETERS:
                     self._xdl_object.steps[i] = self._create_optimize_step(step, i)
 
         if not optimize_steps and fake:
+            self.logger.debug('OptimizeStep steps were not found, creating fake steps.')
             for i, step in enumerate(self._xdl_object.steps):
                 if step.name in SUPPORTED_STEPS_PARAMETERS:
                     self._optimization_steps.update(
@@ -112,6 +118,8 @@ class Optimizer(object):
             children=[step],
             optimize_properties=params,
         )
+
+        self.logger.debug('Created OptimizeStep for <%s> with following parameters %s', step.name, params)
 
         return optimize_step
 

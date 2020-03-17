@@ -2,6 +2,8 @@
 Module for interfacing algorithms for optimisation.
 """
 
+import logging
+
 from collections import OrderedDict
 
 import numpy as np
@@ -16,6 +18,8 @@ class Algorithm():
     """
 
     def __init__(self, method='random'):
+
+        self.logger = logging.getLogger('optimizer.algorithm')
 
         # OrderedDict used to preserve the order when parsing to a np.array
         self.current_setup = OrderedDict() # current parameters setup
@@ -139,7 +143,7 @@ class Algorithm():
     def optimize(self):
         """Finds the next parameters set based on the experimental data"""
 
-        print('optimizing \n')
+        self.logger.info('Optimizing parameters.')
 
         self._calculated = self.algorithm.optimize(
             self.parameter_matrix,
@@ -147,7 +151,8 @@ class Algorithm():
             self.setup_constraints.values()
         )
 
-        print(f'finished optimizing: got the following -> {self._calculated} \n')
+        self.logger.info('Finished optimization, new parameters list in log file.')
+        self.logger.debug('Parameters array: %s', list(self._calculated))
 
         self._remap_data(self._calculated)
 

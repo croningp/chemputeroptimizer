@@ -23,6 +23,9 @@ x.log_human_readable()
 
 print('_______')
 
+while o.logger.handlers:
+    o.logger.removeHandler(o.logger.handlers[0])
+
 o = Optimizer(
     os.path.join(HERE, 'xdl', 'test_optimizer_finalanalysis.xdl'),
     os.path.join(HERE, 'graph', 'graph_raman.json'),

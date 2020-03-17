@@ -21,3 +21,6 @@ crash_dump/
 
 # temp xdl file for testing
 new_xdl.xdl
+
+# log files
+*.log

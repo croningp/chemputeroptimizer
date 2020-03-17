@@ -63,7 +63,7 @@ class Optimize(AbstractDynamicStep):
         ):
         super().__init__(locals())
 
-        self.logger = logging.getLogger('dynamic optimize step')
+        self.logger = logging.getLogger('optimizer.dynamic_step')
 
     def _get_params_template(self) -> None:
         """Get dictionary of all parametrs to be optimized.
@@ -123,14 +123,14 @@ class Optimize(AbstractDynamicStep):
 
             self.parameters[step_id_param].update({'current_value': step_id_param_value})
 
-        print('New parameters: ', self.parameters)
+        self.logger.debug('New parameters from algorithm:\n %s', dict(new_setup))
 
         self._update_xdl()
 
     def _update_state(self):
         """Updates state attribute when procedure is over"""
 
-        self.state['iterations'] += 1
+        self.state['iteration'] += 1
         self.state['updated'] = True
 
     def _update_xdl(self):
@@ -156,6 +156,8 @@ class Optimize(AbstractDynamicStep):
 
         new_xdl.save('new_xdl.xdl')
 
+        self.logger.debug('Created new xdl object (id %d)', id(self.working_xdl_copy))
+
         self.working_xdl_copy = new_xdl
 
         self.working_xdl_copy.prepare_for_execution(self._graph, interactive=False)
@@ -163,8 +165,10 @@ class Optimize(AbstractDynamicStep):
 
     def on_prepare_for_execution(self, graph):
         """Additional preparations before execution"""
+
+        self.logger.debug('Preparing Optimize dynamic step for execution.')
         
-        # saving grapf for future xdl updates
+        # saving graph for future xdl updates
         self._graph = graph
         # getting parameters from the *raw* xdl
         self._get_params_template()
@@ -177,7 +181,7 @@ class Optimize(AbstractDynamicStep):
         self._analyzer = SpectraAnalyzer()
         self._algorithm = Algorithm(self.algorithm)
         self.state = {
-            'iterations': 0,
+            'iteration': 1,
             'current_result': 0,
             'updated': True,
             'done': False,
@@ -215,7 +219,7 @@ class Optimize(AbstractDynamicStep):
 
     def _check_termination(self):
 
-        if self.state['iterations'] >= self.max_iterations:
+        if self.state['iteration'] >= self.max_iterations:
             return True
 
         if 'spectrum' in self.target:
@@ -226,9 +230,17 @@ class Optimize(AbstractDynamicStep):
             return False
 
     def on_start(self):
+
         return []
 
     def on_continue(self):
+
+        self.logger.info(
+            'Optimize Dynamic step running, current iteration: <%d>; current result: <%s>',
+            self.state['iteration'],
+            self.state['current_result']
+        )
+
         if self._check_termination():
             return []
 
