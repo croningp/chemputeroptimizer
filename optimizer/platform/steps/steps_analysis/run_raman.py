@@ -2,6 +2,7 @@ from typing import Callable, Any
 
 from xdl.steps.base_steps import AbstractBaseStep
 
+
 class RunRaman(AbstractBaseStep):
 
     PROP_TYPES = {
@@ -28,5 +29,6 @@ class RunRaman(AbstractBaseStep):
             raman.obtain_reference_spectrum()
         else:
             raman.get_spectrum()
-        spec = raman.spectrum.default_process(chempiler.output_dir)
+        spec = raman.spectrum.default_process()
         self.on_finish(spec)
+        return True

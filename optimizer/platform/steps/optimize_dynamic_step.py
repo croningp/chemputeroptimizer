@@ -19,7 +19,8 @@ from .steps_analysis import *
 from .utils import find_instrument
 from ...utils import SpectraAnalyzer, Algorithm
 
-class Optimize(AbstractDynamicStep):
+
+class OptimizeDynamicStep(AbstractDynamicStep):
     """Outer level wrapper for optimizing multiple parameters in an entire
     procedure.
 
@@ -121,13 +122,15 @@ class Optimize(AbstractDynamicStep):
 
         self._algorithm.load_input(self.parameters, result)
 
-        new_setup = self._algorithm.optimize() # OrderedDict
-        
+        new_setup = self._algorithm.optimize()  # OrderedDict
+
         for step_id_param, step_id_param_value in new_setup.items():
 
-            self.parameters[step_id_param].update({'current_value': step_id_param_value})
+            self.parameters[step_id_param].update(
+                {'current_value': step_id_param_value})
 
-        self.logger.debug('New parameters from algorithm:\n %s', dict(new_setup))
+        self.logger.debug('New parameters from algorithm:\n %s',
+                          dict(new_setup))
 
         self._update_xdl()
 
@@ -146,33 +149,40 @@ class Optimize(AbstractDynamicStep):
 
         for record in self.parameters:
             # slicing the parameter name for step id:
-            step_id = int(record[record.index('_')+1:record.index('-')])
+            step_id = int(record[record.index('_') + 1:record.index('-')])
             # slicing for the parameter name
-            param = record[record.index('-')+1:]
+            param = record[record.index('-') + 1:]
             try:
                 if self.optimize_steps:
-                    new_xdl.steps[step_id].properties[param] = self.parameters[record]['current_value']
-                    self.optimize_steps[record[:record.index('-')]].children[0].properties[param] = self.parameters[record]['current_value']
+                    new_xdl.steps[step_id].properties[param] = self.parameters[
+                        record]['current_value']
+                    self.optimize_steps[
+                        record[:record.index('-')]].children[0].properties[
+                            param] = self.parameters[record]['current_value']
                 else:
-                    new_xdl.steps[step_id].children[0].properties[param] = self.parameters[record]['current_value']
+                    new_xdl.steps[step_id].children[0].properties[
+                        param] = self.parameters[record]['current_value']
             except KeyError:
-                print('KeyError')
+                raise KeyError(
+                    f'Not found the following steps in parameters dictionary: {new_xdl.steps[step_id]}.'
+                ) from None
 
-
-        self.logger.debug('Created new xdl object (id %d)', id(self.working_xdl_copy))
+        self.logger.debug('Created new xdl object (id %d)',
+                          id(self.working_xdl_copy))
 
         self.working_xdl_copy = new_xdl
 
         self.save()
 
-        self.working_xdl_copy.prepare_for_execution(self._graph, interactive=False)
+        self.working_xdl_copy.prepare_for_execution(self._graph,
+                                                    interactive=False)
         self._update_analysis_steps()
 
     def on_prepare_for_execution(self, graph):
         """Additional preparations before execution"""
 
         self.logger.debug('Preparing Optimize dynamic step for execution.')
-        
+
         # saving graph for future xdl updates
         self._graph = graph
         # getting parameters from the *raw* xdl
@@ -181,7 +191,7 @@ class Optimize(AbstractDynamicStep):
         self.working_xdl_copy = xdl_copy(self.original_xdl)
         self.working_xdl_copy.prepare_for_execution(graph, interactive=False)
         self._update_analysis_steps()
-        
+
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
         self._algorithm = Algorithm(self.algorithm)
@@ -201,13 +211,13 @@ class Optimize(AbstractDynamicStep):
             if step.name == 'FinalAnalysis':
                 step.on_finish = self.on_final_analysis
                 analysis_method = step.method
-    
+
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
             return
-        
+
         self._get_blank_spectrum(self._graph, analysis_method)
-    
+
     def _get_blank_spectrum(self, graph, method):
         """Step to measure blank spectrum"""
 
@@ -234,16 +244,12 @@ class Optimize(AbstractDynamicStep):
 
         self._analyzer.load_spectrum(data)
 
-        # if looking for specific parameters in a final spectrum:
-        if 'spectrum' in self.target:
-            result = self._analyzer.final_analysis(
-                reference=self.reference,
-                target=self.target['spectrum'],
-            )
+        # final parsing occurs in SpectraAnalyzer.final_analysis
+        result = self._analyzer.final_analysis()
 
-            self.state['current_result'] = result
+        self.state['current_result'] = result
 
-        # setting the updated tag to false, to update the 
+        # setting the updated tag to false, to update the
         # procedure when finished
         self.state['updated'] = False
 
@@ -252,9 +258,9 @@ class Optimize(AbstractDynamicStep):
         if self.state['iteration'] >= self.max_iterations:
             return True
 
-        if 'spectrum' in self.target:
-            if self.state['current_result'] >= self.target['spectrum']['peak_area']:
-                return True
+        if self.state['current_result']['final_parameter'] >= self.target[
+                'final_parameter']:
+            return True
 
         else:
             return False
@@ -267,19 +273,15 @@ class Optimize(AbstractDynamicStep):
 
         self.logger.info(
             'Optimize Dynamic step running, current iteration: <%d>; current result: <%s>',
-            self.state['iteration'],
-            self.state['current_result']
-        )
+            self.state['iteration'], self.state['current_result'])
 
         if self._check_termination():
             return []
 
         if not self.state['updated']:
-            self.update_steps_parameters(
-                self.state['current_result']
-            )
+            self.update_steps_parameters(self.state['current_result'])
             self._update_state()
-        
+
         return self.working_xdl_copy.steps
 
     def on_finish(self):
@@ -297,16 +299,16 @@ class Optimize(AbstractDynamicStep):
             str(self.state['iteration'])
         )
         os.makedirs(current_path, exist_ok=True)
-        
+
         original_filename = os.path.basename(self.original_xdl._xdl_file)
 
         # saving xdl
         self.working_xdl_copy.save(
             os.path.join(
                 current_path,
-                original_filename[:-4] + '_' + str(self.state['iteration']) + '.xdl',
-            )
-        )
+                original_filename[:-4] + '_' + str(self.state['iteration']) +
+                '.xdl',
+            ))
 
         # saving parameters
         params_file = os.path.join(

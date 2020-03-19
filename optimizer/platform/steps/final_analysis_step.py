@@ -24,6 +24,7 @@ from ...constants import (
     SUPPORTED_FINAL_ANALYSIS_STEPS,
 )
 
+
 class FinalAnalysis(AbstractStep):
     """Wrapper for a step to obtain final yield and purity. Should be used
     to indicate the last step of the procedure where pure material is obtained.
@@ -78,26 +79,31 @@ class FinalAnalysis(AbstractStep):
 
         # check if the supported step was wrapped
         if self.children[0].name not in SUPPORTED_FINAL_ANALYSIS_STEPS:
-            raise OptimizerError(f'Substep {self.step.name} is not supported to run final analysis')
+            raise OptimizerError(
+                f'Substep {self.step.name} is not supported to run final analysis'
+            )
 
     def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
-        
+
         self.instrument = find_instrument(graph, self.method)
 
     def get_steps(self) -> List[Step]:
         steps = []
         steps.extend(self.children)
 
-        # reaction is complete and reaction product 
+        # reaction is complete and reaction product
         # remains in reaction vessel
-        if isinstance(self.children[0], (HeatChill, HeatChillToTemp, Wait, Stir)):
+        if isinstance(self.children[0],
+                      (HeatChill, HeatChillToTemp, Wait, Stir)):
             try:
-                if not 18 <= self.children[0].temp <= 30: # checking for steps temperature
-                    raise OptimizerError('Final analysis only supported for room temperature \
+                # checking for steps temperature
+                if not 18 <= self.children[0].temp <= 30:
+                    raise OptimizerError(
+                        'Final analysis only supported for room temperature \
                         reaction mixture!')
             except AttributeError:
                 pass
-            
+
             steps.extend(self._get_analytical_steps())
 
         # TODO support other steps wrapped wiht FinalAnalysis, i.e. Filter, Dry
@@ -107,7 +113,7 @@ class FinalAnalysis(AbstractStep):
 
     def _get_analytical_steps(self) -> List:
         """Obtaining steps to perform analysis based on internal method attribute"""
-        
+
         # Raman
         # no special prepartion needed, just measure the spectrum
         if self.method == 'Raman':
@@ -120,5 +126,5 @@ class FinalAnalysis(AbstractStep):
 
         # TODO add implied steps for additional analytical methods
         # HPLC, NMR, pH
-        
+
         return []

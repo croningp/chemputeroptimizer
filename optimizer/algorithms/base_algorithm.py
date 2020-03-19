@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 
+
 class AbstractAlgorithm(ABC):
     """Default constructor for algorithmic optimisation.
     
@@ -12,7 +13,6 @@ class AbstractAlgorithm(ABC):
     Attributes:
         max_iterations (int): Maximum number of iterations.
     """
-
     def __init__(self):
         pass
 
