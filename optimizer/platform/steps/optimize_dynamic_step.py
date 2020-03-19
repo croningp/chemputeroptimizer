@@ -15,6 +15,8 @@ from chemputerxdl.steps import (
     Transfer,
 )
 
+from .steps_analysis import *
+from .utils import find_instrument
 from ...utils import SpectraAnalyzer, Algorithm
 
 class Optimize(AbstractDynamicStep):
@@ -164,7 +166,7 @@ class Optimize(AbstractDynamicStep):
         self.save()
 
         self.working_xdl_copy.prepare_for_execution(self._graph, interactive=False)
-        self._update_final_analysis_steps()
+        self._update_analysis_steps()
 
     def on_prepare_for_execution(self, graph):
         """Additional preparations before execution"""
@@ -178,7 +180,7 @@ class Optimize(AbstractDynamicStep):
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
         self.working_xdl_copy.prepare_for_execution(graph, interactive=False)
-        self._update_final_analysis_steps()
+        self._update_analysis_steps()
         
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
@@ -190,12 +192,37 @@ class Optimize(AbstractDynamicStep):
             'done': False,
         }
 
-    def _update_final_analysis_steps(self):
-        """Updates the final analysis method according to target parameter"""
+    def _update_analysis_steps(self):
+        """Updates the analysis steps"""
+
+        analysis_method = None
 
         for step in self.working_xdl_copy.steps:
             if step.name == 'FinalAnalysis':
                 step.on_finish = self.on_final_analysis
+                analysis_method = step.method
+    
+        if analysis_method is None:
+            self.logger.info('No analysis steps found!')
+            return
+        
+        self._get_blank_spectrum(self._graph, analysis_method)
+    
+    def _get_blank_spectrum(self, graph, method):
+        """Step to measure blank spectrum"""
+
+        instrument = find_instrument(graph, method)
+
+        if method == 'Raman':
+            self.working_xdl_copy.steps.insert(
+                0,
+                RunRaman(
+                    raman=instrument,
+                    on_finish=lambda spec: None,
+                    blank=True
+                )
+            )
+            self.logger.debug('Added extra RunRaman blank step.')
 
     def on_final_analysis(self, data):
         """Callback function for when spectra has been recorded at end of
