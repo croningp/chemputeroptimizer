@@ -16,26 +16,13 @@ from chemputerxdl.steps import (
 )
 
 from .steps_analysis import RunRaman
+from .utils import find_instrument
 from ...utils import SpectraAnalyzer
 from ...utils.errors import OptimizerError
 from ...constants import (
     SUPPORTED_ANALYTICAL_METHODS,
     SUPPORTED_FINAL_ANALYSIS_STEPS,
-    ANALYTICAL_INSTRUMENTS,
 )
-
-def find_instrument(graph: MultiDiGraph, method: str) -> str:
-    """Get the analytical instrument for the given method
-    
-    Args:
-        method (str): Name of the desired analytical method
-        
-    Returns:
-        str: ID of the analytical instrument on the supplied graph
-    """
-    for node, data in graph.nodes(data=True):
-        if data['class'] == ANALYTICAL_INSTRUMENTS[method]:
-            return node
 
 class FinalAnalysis(AbstractStep):
     """Wrapper for a step to obtain final yield and purity. Should be used
