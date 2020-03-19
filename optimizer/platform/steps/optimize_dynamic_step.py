@@ -15,6 +15,8 @@ from chemputerxdl.steps import (
     Transfer,
 )
 
+from .steps_analysis import *
+from .utils import find_instrument
 from ...utils import SpectraAnalyzer, Algorithm
 
 class Optimize(AbstractDynamicStep):
@@ -196,6 +198,22 @@ class Optimize(AbstractDynamicStep):
         for step in self.working_xdl_copy.steps:
             if step.name == 'FinalAnalysis':
                 step.on_finish = self.on_final_analysis
+    def _get_blank_spectrum(self, graph, method):
+        """Step to measure blank spectrum"""
+
+        instrument = find_instrument(graph, method)
+
+        if method == 'Raman':
+            self.working_xdl_copy.steps.insert(
+                0,
+                RunRaman(
+                    raman=instrument,
+                    on_finish=lambda spec: None,
+                    blank=True
+                )
+            )
+            self.logger.debug('Added extra RunRaman blank step.')
+                
 
     def on_final_analysis(self, data):
         """Callback function for when spectra has been recorded at end of
