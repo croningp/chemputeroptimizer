@@ -10,7 +10,7 @@ o = Optimizer(
 )
 
 o.prepare_for_optimization()
-print('Otpimization steps: ', o._optimization_steps, '\n')
+print('Optimization steps: ', o._optimization_steps, '\n')
 print('Optimization parameters: ', o.optimizer.parameters, '\n')
 
 o.optimizer.update_steps_parameters({'final_yield': 0.75})

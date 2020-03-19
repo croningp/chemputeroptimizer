@@ -16,7 +16,7 @@ class Random_(AbstractAlgorithm):
             'random optimizer for the following parameters: \n',
             f'parameters: {parameters} \n',
             f'results: {results} \n',
-            f'contstrains: {constraints} \n'
+            f'constraints: {constraints} \n'
         )
 
         return np.array(
