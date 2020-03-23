@@ -15,3 +15,12 @@ __pycache__/
 chempiler_output/
 logs/
 crash_dump/
+
+# xdl execution files
+*.xdlexe
+
+# temp xdl file for testing
+new_xdl.xdl
+
+# log files
+*.log
