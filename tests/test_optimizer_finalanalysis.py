@@ -1,6 +1,6 @@
 import os
 
-from optimizer import ChemputerOptimizer
+from chemputeroptimizer import ChemputerOptimizer
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
