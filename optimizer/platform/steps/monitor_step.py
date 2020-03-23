@@ -8,6 +8,7 @@ from chemputerxdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, 
 
 # from .utils import SpectraAnalyzer
 
+
 class Monitor(AbstractDynamicStep):
     """Wrapper for a step to run it and detect when the step is complete by an analysis step.
 
@@ -25,7 +26,6 @@ class Monitor(AbstractDynamicStep):
         threshold (float): Relative difference of analytical data (i.e. compound concentration)
             to determine reaction completion.
     """
-
     def __init__(
         self,
         children: List[Step],
@@ -76,7 +76,9 @@ class Monitor(AbstractDynamicStep):
         # HeatChill step, start heating/chilling and move onto on_continue loop.
         if type(self.step) == HeatChill:
             return [
-                HeatChillToTemp(self.step.vessel, self.step.temp, stir=self.step.stir)
+                HeatChillToTemp(self.step.vessel,
+                                self.step.temp,
+                                stir=self.step.stir)
             ]
 
         # Wait step, move straight onto on_continue loop.
@@ -96,7 +98,9 @@ class Monitor(AbstractDynamicStep):
         # Get start_t and continuously run NMR until rxn is complete.
         self.start_t = time.time()
 
-        analysis_steps = [self._get_analysis_steps(method) for method in self.methods]
+        analysis_steps = [
+            self._get_analysis_steps(method) for method in self.methods
+        ]
 
         return analysis_steps
 

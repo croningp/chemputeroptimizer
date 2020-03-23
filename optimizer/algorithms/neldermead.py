@@ -1,8 +1,8 @@
 from ..algorithms import AbstractAlgorithm
 
+
 class ModifiedNelderMead(AbstractAlgorithm):
     """The Nelder-Mead simplex optimization algorithm."""
-
     def initialise(self):
         pass
 

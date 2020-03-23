@@ -1,2 +1,2 @@
-from .optimizer import Optimizer
+from .optimizer import ChemputerOptimizer
 from .platform import OptimizerPlatform

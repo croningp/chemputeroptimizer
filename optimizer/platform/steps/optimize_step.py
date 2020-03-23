@@ -3,6 +3,7 @@ from typing import List, Callable, Optional, Dict, Any
 from xdl.utils.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, Step
 
+
 class OptimizeStep(AbstractStep):
     """Wrapper for a step to be optimised
 
@@ -47,7 +48,7 @@ class OptimizeStep(AbstractStep):
             **kwargs
         ):
         super().__init__(locals())
-        
+
         # Check there is only one child step.
         if len(children) > 1:
             raise XDLError('Only one step can be wrapped by OptimizeStep.')

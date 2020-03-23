@@ -10,13 +10,13 @@ import numpy as np
 
 from ..algorithms import ModifiedNelderMead, SNOBFIT, Random_
 
+
 class Algorithm():
     """General class to provide methods for parametric optimization.
     
     Arguments:
         method (str): Name of the chosen algorithm.
     """
-
     def __init__(self, method='random'):
 
         self.logger = logging.getLogger('optimizer.algorithm')
@@ -76,12 +76,13 @@ class Algorithm():
         # stripping input from parameter constraints
         for param, param_set in data.items():
             self.current_setup.update({param: param_set['current_value']})
-            
+
         # saving constraints
         if not self.setup_constraints:
             for param, param_set in data.items():
-                self.setup_constraints.update({param: (param_set['min_value'], param_set['max_value'])})
-        
+                self.setup_constraints.update(
+                    {param: (param_set['min_value'], param_set['max_value'])})
+
         # appending the final result
         self.current_result.update(result)
 
@@ -110,9 +111,9 @@ class Algorithm():
         if self.parameter_matrix is None and self.result_matrix is None:
             self.parameter_matrix = np.array(list(self.current_setup.values()))
             self.result_matrix = np.array(list(self.current_result.values()))
-        
+
         # stacking with previous results
-        else: 
+        else:
             self.parameter_matrix = np.vstack(
                 (
                     self.parameter_matrix,
@@ -151,7 +152,8 @@ class Algorithm():
             self.setup_constraints.values()
         )
 
-        self.logger.info('Finished optimization, new parameters list in log file.')
+        self.logger.info(
+            'Finished optimization, new parameters list in log file.')
         self.logger.debug('Parameters array: %s', list(self._calculated))
 
         self._remap_data(self._calculated)

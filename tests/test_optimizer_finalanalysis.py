@@ -1,10 +1,10 @@
 import os
 
-from optimizer import Optimizer
+from optimizer import ChemputerOptimizer
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-o = Optimizer(
+o = ChemputerOptimizer(
     os.path.join(HERE, 'xdl', 'test_optimizer_finalanalysis.xdl'),
     os.path.join(HERE, 'graph', 'graph_raman.json'),
     fake=True
@@ -26,7 +26,7 @@ print('_______')
 while o.logger.handlers:
     o.logger.removeHandler(o.logger.handlers[0])
 
-o = Optimizer(
+o = ChemputerOptimizer(
     os.path.join(HERE, 'xdl', 'test_optimizer_finalanalysis.xdl'),
     os.path.join(HERE, 'graph', 'graph_raman.json'),
     fake=False
