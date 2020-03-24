@@ -37,33 +37,18 @@ class OptimizeDynamicStep(AbstractDynamicStep):
     Args:
         children (List[Step]): List of steps to execute. Optionally contain some
             steps wrapped by OptimizeStep.
-        max_iterations (int): Maximum number of iterations.
-        target (Dict): Dictonary of target parameter, e.g. {'final_yield': 0.75}.
-        save_path (str): Path to save results to.
         optimize_steps (List[Step], optional): List of optimization steps.
-        reference (Any, optional): Optional reference for the target product,
-            may be supplied as :float: reference peak or :array: reference spectrum.
     """
 
     PROP_TYPES = {
         'original_xdl': XDL,
-        'max_iterations': int,
-        'target': Dict,
-        'save_path': str,
         'optimize_steps': List,
-        'reference': Any,
-        'algorithm': str,
     }
 
     def __init__(
             self,
             original_xdl: XDL,
-            max_iterations: int,
-            target: Dict,
-            save_path: str,
-            algorithm: str,
             optimize_steps: List[Step] = None,
-            reference: Any = None,
             **kwargs
         ):
         super().__init__(locals())
@@ -72,7 +57,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
     def _get_params_template(self) -> None:
         """Get dictionary of all parametrs to be optimized.
-        
+
         Updates parameters attribute in form:
             (Dict): Nested dictionary of optimizing steps and corresponding parameters of the form:
                 {
@@ -202,6 +187,10 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             'done': False,
         }
 
+    def load_config(self, **kwargs):
+        for k, v in kwargs.items():
+            self.__dict__[k] = v
+
     def _update_analysis_steps(self):
         """Updates the analysis steps"""
 
@@ -236,7 +225,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
     def on_final_analysis(self, data):
         """Callback function for when spectra has been recorded at end of
-        procedure. Updates the target parameter.
+        procedure. Updates the state (current result) parameter.
 
         Args:
             data (Any): Spectral data (e.g. NMR) of the final product

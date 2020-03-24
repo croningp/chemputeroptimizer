@@ -1,0 +1,8 @@
+{
+    "max_iterations": 10,
+    "target": {
+        "final_parameter": 1
+        },
+    "algorithm": "random",
+    "reference": null
+}

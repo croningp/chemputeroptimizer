@@ -3,6 +3,7 @@ Module to run chemical reaction optimization.
 """
 
 import logging
+import json
 
 from xdl import XDL
 
@@ -13,7 +14,7 @@ from .constants import (
     DEFAULT_OPTIMIZATION_PARAMETERS,
 )
 from .utils.errors import OptimizerError, ParameterError
-from .utils import get_logger
+from .utils import (get_logger, interactive_optimization_config)
 
 
 class ChemputerOptimizer(object):
@@ -37,36 +38,32 @@ class ChemputerOptimizer(object):
                  procedure,
                  graph_file,
                  interactive=False,
-                 fake=True,
-                 opt_params=None):
+                 fake=True):
 
         self.logger = get_logger()
 
         self._original_procedure = procedure
         self.graph = graph_file
         self.interactive = interactive
-        if opt_params is None:
-            opt_params = DEFAULT_OPTIMIZATION_PARAMETERS
 
         self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
         self.logger.debug('Initilaized xdl object (id %d).',
                           id(self._xdl_object))
 
-        self._optimization_steps = {
-        }  # in form of {'Optimization step ID': <:obj: Optimization step instance>, ...}
+        # in form of {'Optimization step ID': <:obj: Optimization step instance>, ...}
+        self._optimization_steps = {}
 
         self._check_optimization_steps_and_parameters(fake)
 
-        self._initalise_optimize_step(opt_params)
+        self._initalise_optimize_step()
 
-    def _initalise_optimize_step(self, opt_params):
+    def _initalise_optimize_step(self):
         """Initialize Optimize Dynamic step with relevant optimization parameters"""
 
         self.optimizer = OptimizeDynamicStep(
             original_xdl=self._xdl_object,
-            save_path='here',
             optimize_steps=self._optimization_steps,
-            **opt_params)
+            )
         self.logger.debug('Initialized Optimize dynamic step.')
 
     def _check_optimization_steps_and_parameters(self, fake):
@@ -107,11 +104,11 @@ class ChemputerOptimizer(object):
 
     def _create_optimize_step(self, step, step_id):
         """Creates an OptimizeStep from supplied xdl step
-        
+
         Args:
             step (Step): XDL step to be wrapped with OptimizeStep,
                 must be supported
-        
+
         Returns:
             dict: dictionary with OptimizeStepID as a key and OptimizeStep instance
                 as value.
@@ -138,9 +135,40 @@ class ChemputerOptimizer(object):
 
         return optimize_step
 
-    def prepare_for_optimization(self, interactive=False):
+    def prepare_for_optimization(self, opt_params=None, **kwargs):
         """Get the Optimize step and the respective parameters"""
 
+        if self.interactive:
+            opt_params = interactive_optimization_config()
+
+        if isinstance(opt_params, str):
+            if '.json' in opt_params:
+                self.logger.debug('Loading json configuration from %s', opt_params)
+                with open(opt_params, 'r') as f:
+                    opt_params = json.load(f)
+            else:
+                raise OptimizerError('Parameters must be .json file!')
+
+        if opt_params is not None and not isinstance(opt_params, dict):
+            raise OptimizerError('Parameters must be dictionary!')
+
+        if opt_params is None and kwargs:
+            opt_params = {}
+            for k, v in kwargs.items():
+                opt_params[k] = v
+
+        for k, v in opt_params.items():
+            if k not in DEFAULT_OPTIMIZATION_PARAMETERS:
+                raise OptimizerError(f'<{k}> not a valid optimization parameter!')
+
+        # loading missing default parameters
+        for k, v in DEFAULT_OPTIMIZATION_PARAMETERS.items():
+            if k not in opt_params:
+                opt_params[k] = v
+
+        self.logger.debug('Loaded the following parameter dict %s', opt_params)
+
+        self.optimizer.load_config(**opt_params)
         self.optimizer.prepare_for_execution(self.graph,
                                              self._xdl_object.executor)
 
