@@ -14,7 +14,11 @@ from .constants import (
     DEFAULT_OPTIMIZATION_PARAMETERS,
 )
 from .utils.errors import OptimizerError, ParameterError
-from .utils import (get_logger, interactive_optimization_config)
+from .utils import (
+    get_logger,
+    interactive_optimization_config,
+    interactive_optimization_steps,
+)
 
 
 class ChemputerOptimizer(object):
@@ -51,12 +55,15 @@ class ChemputerOptimizer(object):
                           id(self._xdl_object))
 
         if optimize_steps and isinstance(optimize_steps, str):
-            self.logger.debug('Found optimization steps config file %s, \
+            self.logger.debug(
+                'Found optimization steps config file %s, \
 loading.', optimize_steps)
             try:
-                self._optimization_steps = self._load_optimization_steps(optimize_steps)
+                self._optimization_steps = self._load_optimization_steps(
+                    optimize_steps)
             except FileNotFoundError:
-                raise FileNotFoundError(f'File "{optimize_steps}" not found!') from None
+                raise FileNotFoundError(
+                    f'File "{optimize_steps}" not found!') from None
         else:
             self._optimization_steps = {}
 
@@ -83,8 +90,10 @@ loading.', optimize_steps)
             step, sid = step_id.split('_')
 
             if step != self._xdl_object.steps[int(sid)].name:
-                raise OptimizerError(f'Step "{step}" does not match original procedure \
-at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].name}.')
+                raise OptimizerError(
+                    f'Step "{step}" does not match original procedure \
+at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].name}.'
+                )
 
         return optimization_steps
 
@@ -112,17 +121,22 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                 step, sid = optimization_step.split('_')
 
                 self._xdl_object.steps[int(sid)] = self._create_optimize_step(
-                    self._xdl_object.steps[int(sid)],
-                    int(sid),
-                    self._optimization_steps[optimization_step]
-                )
+                    self._xdl_object.steps[int(sid)], int(sid),
+                    self._optimization_steps[optimization_step])
 
         if not self._optimization_steps:
-            self.logger.debug('OptimizeStep steps were not found, creating.')
+            self.logger.info('OptimizeStep steps were not found, creating.')
             for i, step in enumerate(self._xdl_object.steps):
                 if step.name in SUPPORTED_STEPS_PARAMETERS:
+                    params = None
+                    if self.interactive:
+                        params = interactive_optimization_steps(
+                            step, i)
+                        if params is None:
+                            continue
+
                     self._xdl_object.steps[i] = self._create_optimize_step(
-                        step, i)
+                        step, i, params)
 
     def _create_optimize_step(self, step, step_id, params=None):
         """Creates an OptimizeStep from supplied xdl step
@@ -165,7 +179,8 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         elif isinstance(opt_params, str):
             if '.json' in opt_params:
-                self.logger.debug('Loading json configuration from %s', opt_params)
+                self.logger.debug('Loading json configuration from %s',
+                                  opt_params)
                 with open(opt_params, 'r') as f:
                     opt_params = json.load(f)
             else:
@@ -184,7 +199,8 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         for k, v in opt_params.items():
             if k not in DEFAULT_OPTIMIZATION_PARAMETERS:
-                raise OptimizerError(f'<{k}> not a valid optimization parameter!')
+                raise OptimizerError(
+                    f'<{k}> not a valid optimization parameter!')
 
         # loading missing default parameters
         for k, v in DEFAULT_OPTIMIZATION_PARAMETERS.items():
