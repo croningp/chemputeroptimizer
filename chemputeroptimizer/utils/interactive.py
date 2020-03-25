@@ -78,7 +78,7 @@ for the optimization:\n'
                     f'{param}': {'max_value': float(max_value),
                                 'min_value': float(min_value)}})
             except ValueError:
-                print('\n!!!Value must me float numbers. Try again!!!')
+                print('\n!!!Value must be float numbers. Try again!!!')
                 continue
             param = input('Any other parameters? ([n], y) ')
 

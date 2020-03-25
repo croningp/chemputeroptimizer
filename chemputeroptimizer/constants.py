@@ -23,6 +23,7 @@ SUPPORTED_ANALYTICAL_METHODS = [
     'Raman',
     'NMR',
     'pH',
+    'interactive',
 ]
 
 SUPPORTED_FINAL_ANALYSIS_STEPS = [
