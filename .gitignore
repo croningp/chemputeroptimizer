@@ -24,3 +24,4 @@ new_xdl.xdl
 
 # log files
 *.log
+tests/xdl/iterations
