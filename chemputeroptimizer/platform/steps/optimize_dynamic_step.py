@@ -204,6 +204,27 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             )
             self.logger.debug('Added extra RunRaman blank step.')
 
+    def interactive_final_analysis_callback(self):
+        """Callback function to promt user input for final analysis"""
+
+        msg = 'You are running FinalAnalysis step interactively.\n'
+        msg += f'Current procedure is running towards {self.target} parameters.\n'
+        msg += 'Please type the result of the analysis below\n'
+        msg += '(as <target_parameter>: <current_value>)\n'
+
+        while True:
+            answer = input(msg)
+            param, param_value = answer.split(':')
+
+            try:
+                self.state['current_result'][param] = float(param_value)
+            except ValueError:
+                key_error_msg = f'{param} is not valid target parameter\n'
+                key_error_msg += 'try one of the following:\n'
+                key_error_msg += '  '.join(self.target.keys())
+            else:
+                break
+
     def on_final_analysis(self, data):
         """Callback function for when spectra has been recorded at end of
         procedure. Updates the state (current result) parameter.
