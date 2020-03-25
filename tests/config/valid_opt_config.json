@@ -1,0 +1,10 @@
+{
+    "max_iterations": 10,
+    "target": {
+        "final_parameter": 1
+        },
+    "algorithm": {
+        "name": "random"
+        },
+    "reference": null
+}
