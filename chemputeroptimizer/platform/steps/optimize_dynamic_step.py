@@ -163,7 +163,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self._algorithm = Algorithm(self.algorithm)
         self.state = {
             'iteration': 1,
-            'current_result': 0,
+            'current_result': {key: -1 for key in self.target},
             'updated': True,
             'done': False,
         }
@@ -179,11 +179,17 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         for step in self.working_xdl_copy.steps:
             if step.name == 'FinalAnalysis':
-                step.on_finish = self.on_final_analysis
                 analysis_method = step.method
+                if analysis_method == 'interactive':
+                    continue
+                step.on_finish = self.on_final_analysis
 
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
+            return
+
+        if analysis_method == 'interactive':
+            self.logger.info('Running with interactive FinalAnalysis method')
             return
 
         self._get_blank_spectrum(self._graph, analysis_method)
@@ -203,6 +209,27 @@ class OptimizeDynamicStep(AbstractDynamicStep):
                 )
             )
             self.logger.debug('Added extra RunRaman blank step.')
+
+    def interactive_final_analysis_callback(self):
+        """Callback function to promt user input for final analysis"""
+
+        msg = 'You are running FinalAnalysis step interactively.\n'
+        msg += f'Current procedure is running towards {self.target} parameters.\n'
+        msg += 'Please type the result of the analysis below\n'
+        msg += '(as <target_parameter>: <current_value>)\n'
+
+        while True:
+            answer = input(msg)
+            param, param_value = answer.split(':')
+
+            try:
+                self.state['current_result'][param] = float(param_value)
+            except ValueError:
+                key_error_msg = f'{param} is not valid target parameter\n'
+                key_error_msg += 'try one of the following:\n'
+                key_error_msg += '  '.join(self.target.keys())
+            else:
+                break
 
     def on_final_analysis(self, data):
         """Callback function for when spectra has been recorded at end of
