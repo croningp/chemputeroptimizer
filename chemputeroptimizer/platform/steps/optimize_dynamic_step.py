@@ -42,13 +42,11 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
     PROP_TYPES = {
         'original_xdl': XDL,
-        'optimize_steps': List,
     }
 
     def __init__(
             self,
             original_xdl: XDL,
-            optimize_steps: List[Step] = None,
             **kwargs
         ):
         super().__init__(locals())
@@ -78,16 +76,6 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             }
         """
         param_template = {}
-
-        if self.optimize_steps:
-            for optimize_step, optimize_step_instance in self.optimize_steps.items():
-                param_template.update({
-                    f'{optimize_step}-{param}': {
-                        **optimize_step_instance.optimize_properties[param],
-                        'current_value': optimize_step_instance.children[0].properties[param]
-                    }
-                    for param in optimize_step_instance.optimize_properties
-                })
 
         for i, step in enumerate(self.original_xdl.steps):
             if step.name == 'OptimizeStep':
@@ -138,15 +126,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             # slicing for the parameter name
             param = record[record.index('-') + 1:]
             try:
-                if self.optimize_steps:
-                    new_xdl.steps[step_id].properties[param] = self.parameters[
-                        record]['current_value']
-                    self.optimize_steps[
-                        record[:record.index('-')]].children[0].properties[
-                            param] = self.parameters[record]['current_value']
-                else:
-                    new_xdl.steps[step_id].children[0].properties[
-                        param] = self.parameters[record]['current_value']
+                new_xdl.steps[step_id].children[0].properties[
+                    param] = self.parameters[record]['current_value']
             except KeyError:
                 raise KeyError(
                     f'Not found the following steps in parameters dictionary: {new_xdl.steps[step_id]}.'

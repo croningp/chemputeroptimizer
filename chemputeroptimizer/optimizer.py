@@ -38,7 +38,7 @@ class ChemputerOptimizer(object):
                  procedure,
                  graph_file,
                  interactive=False,
-                 fake=True):
+                 optimize_steps=None):
 
         self.logger = get_logger()
 
@@ -50,10 +50,17 @@ class ChemputerOptimizer(object):
         self.logger.debug('Initilaized xdl object (id %d).',
                           id(self._xdl_object))
 
-        # in form of {'Optimization step ID': <:obj: Optimization step instance>, ...}
-        self._optimization_steps = {}
+        if optimize_steps and isinstance(optimize_steps, str):
+            self.logger.debug('Found optimization steps config file %s, \
+loading.', optimize_steps)
+            try:
+                self._optimization_steps = self._load_optimization_steps(optimize_steps)
+            except FileNotFoundError:
+                raise FileNotFoundError(f'File "{optimize_steps}" not found!') from None
+        else:
+            self._optimization_steps = {}
 
-        self._check_optimization_steps_and_parameters(fake)
+        self._check_optimization_steps_and_parameters()
 
         self._initalise_optimize_step()
 
@@ -62,19 +69,33 @@ class ChemputerOptimizer(object):
 
         self.optimizer = OptimizeDynamicStep(
             original_xdl=self._xdl_object,
-            optimize_steps=self._optimization_steps,
             )
         self.logger.debug('Initialized Optimize dynamic step.')
 
-    def _check_optimization_steps_and_parameters(self, fake):
+    def _load_optimization_steps(self, file):
+        """Loads optimization steps from .json config file"""
+        with open(file, 'r') as f:
+            optimization_steps = json.load(f)
+
+        # check for consistency vs xdl procedure
+        for step_id in optimization_steps:
+            # unpacking step data from "Step_ID"
+            step, sid = step_id.split('_')
+
+            if step != self._xdl_object.steps[int(sid)].name:
+                raise OptimizerError(f'Step "{step}" does not match original procedure \
+at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].name}.')
+
+        return optimization_steps
+
+    def _check_optimization_steps_and_parameters(self):
         """Get the optimization parameters and validate them if needed"""
 
-        optimize_steps = []
         self.logger.debug('Probing for OptimizeStep steps in xdl object.')
 
+        # checking procedure for consistency
         for step in self._xdl_object.steps:
             if step.name == 'OptimizeStep':
-                optimize_steps.append(step)
                 if step.children[0] not in SUPPORTED_STEPS_PARAMETERS:
                     raise OptimizerError(
                         f'Step {step} is not supported for optimization')
@@ -85,24 +106,25 @@ class ChemputerOptimizer(object):
                             f'Parameter {parameter} is not supported for step {step}'
                         )
 
-        if not optimize_steps and not fake:
+        if self._optimization_steps:
+            for optimization_step in self._optimization_steps:
+                # unpacking step data from "Step_ID"
+                step, sid = optimization_step.split('_')
+
+                self._xdl_object.steps[int(sid)] = self._create_optimize_step(
+                    self._xdl_object.steps[int(sid)],
+                    int(sid),
+                    self._optimization_steps[optimization_step]
+                )
+
+        if not self._optimization_steps:
             self.logger.debug('OptimizeStep steps were not found, creating.')
             for i, step in enumerate(self._xdl_object.steps):
                 if step.name in SUPPORTED_STEPS_PARAMETERS:
                     self._xdl_object.steps[i] = self._create_optimize_step(
                         step, i)
 
-        if not optimize_steps and fake:
-            self.logger.debug(
-                'OptimizeStep steps were not found, creating fake steps.')
-            for i, step in enumerate(self._xdl_object.steps):
-                if step.name in SUPPORTED_STEPS_PARAMETERS:
-                    self._optimization_steps.update({
-                        f'{step.name}_{i}':
-                        self._create_optimize_step(step, i)
-                    })
-
-    def _create_optimize_step(self, step, step_id):
+    def _create_optimize_step(self, step, step_id, params=None):
         """Creates an OptimizeStep from supplied xdl step
 
         Args:
@@ -113,15 +135,15 @@ class ChemputerOptimizer(object):
             dict: dictionary with OptimizeStepID as a key and OptimizeStep instance
                 as value.
         """
-
-        params = {
-            param: {
-                'max_value': float(step.properties[param]) * 1.2,
-                'min_value': float(step.properties[param]) * 0.8,
+        if params is None:
+            params = {
+                param: {
+                    'max_value': float(step.properties[param]) * 1.2,
+                    'min_value': float(step.properties[param]) * 0.8,
+                }
+                for param in SUPPORTED_STEPS_PARAMETERS[step.name]
+                if step.properties[param] is not None
             }
-            for param in SUPPORTED_STEPS_PARAMETERS[step.name]
-            if step.properties[param] is not None
-        }
 
         optimize_step = OptimizeStep(
             id=str(step_id),
@@ -130,8 +152,8 @@ class ChemputerOptimizer(object):
         )
 
         self.logger.debug(
-            'Created OptimizeStep for <%s> with following parameters %s',
-            step.name, params)
+            'Created OptimizeStep for <%s_%d> with following parameters %s',
+            step.name, step_id, params)
 
         return optimize_step
 
@@ -141,7 +163,7 @@ class ChemputerOptimizer(object):
         if self.interactive:
             opt_params = interactive_optimization_config()
 
-        if isinstance(opt_params, str):
+        elif isinstance(opt_params, str):
             if '.json' in opt_params:
                 self.logger.debug('Loading json configuration from %s', opt_params)
                 with open(opt_params, 'r') as f:
@@ -149,13 +171,16 @@ class ChemputerOptimizer(object):
             else:
                 raise OptimizerError('Parameters must be .json file!')
 
-        if opt_params is not None and not isinstance(opt_params, dict):
+        elif opt_params is not None and not isinstance(opt_params, dict):
             raise OptimizerError('Parameters must be dictionary!')
 
-        if opt_params is None and kwargs:
+        elif opt_params is None and kwargs:
             opt_params = {}
             for k, v in kwargs.items():
                 opt_params[k] = v
+
+        else:
+            opt_params = DEFAULT_OPTIMIZATION_PARAMETERS
 
         for k, v in opt_params.items():
             if k not in DEFAULT_OPTIMIZATION_PARAMETERS:
