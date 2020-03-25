@@ -26,7 +26,6 @@ o = ChemputerOptimizer(
     os.path.join(HERE, 'xdl', 'test_optimizer_finalanalysis.xdl'),
     os.path.join(HERE, 'graph', 'graph_raman.json'),
     interactive=args['interactive'],
-    fake=False
 )
 
 if args['config'] is not None:

@@ -37,8 +37,7 @@ class ChemputerOptimizer(object):
     def __init__(self,
                  procedure,
                  graph_file,
-                 interactive=False,
-                 fake=True):
+                 interactive=False):
 
         self.logger = get_logger()
 
@@ -53,7 +52,7 @@ class ChemputerOptimizer(object):
         # in form of {'Optimization step ID': <:obj: Optimization step instance>, ...}
         self._optimization_steps = {}
 
-        self._check_optimization_steps_and_parameters(fake)
+        self._check_optimization_steps_and_parameters()
 
         self._initalise_optimize_step()
 
@@ -62,11 +61,10 @@ class ChemputerOptimizer(object):
 
         self.optimizer = OptimizeDynamicStep(
             original_xdl=self._xdl_object,
-            optimize_steps=self._optimization_steps,
             )
         self.logger.debug('Initialized Optimize dynamic step.')
 
-    def _check_optimization_steps_and_parameters(self, fake):
+    def _check_optimization_steps_and_parameters(self):
         """Get the optimization parameters and validate them if needed"""
 
         optimize_steps = []
@@ -85,22 +83,12 @@ class ChemputerOptimizer(object):
                             f'Parameter {parameter} is not supported for step {step}'
                         )
 
-        if not optimize_steps and not fake:
+        if not optimize_steps:
             self.logger.debug('OptimizeStep steps were not found, creating.')
             for i, step in enumerate(self._xdl_object.steps):
                 if step.name in SUPPORTED_STEPS_PARAMETERS:
                     self._xdl_object.steps[i] = self._create_optimize_step(
                         step, i)
-
-        if not optimize_steps and fake:
-            self.logger.debug(
-                'OptimizeStep steps were not found, creating fake steps.')
-            for i, step in enumerate(self._xdl_object.steps):
-                if step.name in SUPPORTED_STEPS_PARAMETERS:
-                    self._optimization_steps.update({
-                        f'{step.name}_{i}':
-                        self._create_optimize_step(step, i)
-                    })
 
     def _create_optimize_step(self, step, step_id):
         """Creates an OptimizeStep from supplied xdl step
