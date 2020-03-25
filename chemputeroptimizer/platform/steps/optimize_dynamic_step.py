@@ -163,7 +163,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self._algorithm = Algorithm(self.algorithm)
         self.state = {
             'iteration': 1,
-            'current_result': 0,
+            'current_result': {key: -1 for key in self.target},
             'updated': True,
             'done': False,
         }
@@ -179,11 +179,17 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         for step in self.working_xdl_copy.steps:
             if step.name == 'FinalAnalysis':
-                step.on_finish = self.on_final_analysis
                 analysis_method = step.method
+                if analysis_method == 'interactive':
+                    continue
+                step.on_finish = self.on_final_analysis
 
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
+            return
+
+        if analysis_method == 'interactive':
+            self.logger.info('Running with interactive FinalAnalysis method')
             return
 
         self._get_blank_spectrum(self._graph, analysis_method)
