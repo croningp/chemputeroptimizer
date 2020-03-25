@@ -39,6 +39,8 @@ def interactive_optimization_config():
 
 def interactive_optimization_steps(step, step_n):
     msg = f'Found step "{step.name}" at position <{step_n}>,\n'
+    msg += 'with following properties: \n'
+    msg += f'-----\n{step.properties}\n-----\n'
     msg += 'Would you like to pick it for optimization? '
     msg += '[n], y\n'
 
@@ -50,19 +52,34 @@ def interactive_optimization_steps(step, step_n):
         if not answer or answer == 'n':
             return
 
-        param_msg = f'\n{step.name} step has the following parameters\n'
-        param_msg += 'for the optimization:\n'
-        param_msg += '  '.join(SUPPORTED_STEPS_PARAMETERS[step.name]) + '\n'
+        matching_parameters = [
+            param
+            for param in SUPPORTED_STEPS_PARAMETERS[step.name]
+            if step.properties[param] is not None
+        ]
+
+        param_msg = f'\n{step.name} step has the following parameters \
+for the optimization:\n'
+        param_msg += '>>> ' + '  '.join(matching_parameters) + '\n'
         param_msg += '\nPlease type one of them\n'
 
         param = None
         while param not in ['n', '']:
             param = input(param_msg)
+            try:
+                print(f'Current value for {param} is {step.properties[param]}')
+            except KeyError:
+                print(f'"{param}" is not a valid parameter for step {step.name}!')
+                continue
             max_value = input(f'Please type maximum value for "{param}": ')
             min_value = input(f'Please type minimum value for "{param}": ')
-            params.update({
-                f'{param}': {'max_value': int(max_value),
-                    'min_value': int(min_value)}})
+            try:
+                params.update({
+                    f'{param}': {'max_value': float(max_value),
+                                'min_value': float(min_value)}})
+            except ValueError:
+                print('\n!!!Value must me float numbers. Try again!!!')
+                continue
             param = input('Any other parameters? ([n], y) ')
 
     return params
