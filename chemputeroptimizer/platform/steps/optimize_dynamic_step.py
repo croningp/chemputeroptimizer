@@ -24,20 +24,9 @@ class OptimizeDynamicStep(AbstractDynamicStep):
     """Outer level wrapper for optimizing multiple parameters in an entire
     procedure.
 
-    e.g.
-    <Optimize>
-        <Add  ... />
-        <OptimizeStep ... >
-            <HeatChill ... />
-        </OptimizeStep>
-        <Filter />
-        ...
-    </Optimize>
-
     Args:
-        children (List[Step]): List of steps to execute. Optionally contain some
-            steps wrapped by OptimizeStep.
-        optimize_steps (List[Step], optional): List of optimization steps.
+        original_xdl (:obj: XDL): Full XDL procedure to be optimized. Must contain
+            some steps wrapped with OptimizeStep steps.
     """
 
     PROP_TYPES = {
@@ -93,9 +82,9 @@ class OptimizeDynamicStep(AbstractDynamicStep):
     def update_steps_parameters(self, result: Dict) -> None:
         """Updates the parameter template and corresponding procedure steps"""
 
-        self._algorithm.load_input(self.parameters, result)
+        self.algorithm_class.load_input(self.parameters, result)
 
-        new_setup = self._algorithm.optimize()  # OrderedDict
+        new_setup = self.algorithm_class.optimize()  # OrderedDict
 
         for step_id_param, step_id_param_value in new_setup.items():
 
@@ -130,7 +119,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
                     param] = self.parameters[record]['current_value']
             except KeyError:
                 raise KeyError(
-                    f'Not found the following steps in parameters dictionary: {new_xdl.steps[step_id]}.'
+                    f'Not found the following steps in parameters dictionary: \
+{new_xdl.steps[step_id]}.'
                 ) from None
 
         self.logger.debug('Created new xdl object (id %d)',
@@ -160,7 +150,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
-        self._algorithm = Algorithm(self.algorithm)
+        self.algorithm_class = Algorithm(self.algorithm)
         self.state = {
             'iteration': 1,
             'current_result': {key: -1 for key in self.target},
@@ -168,7 +158,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             'done': False,
         }
 
-    def load_config(self, **kwargs):
+    def load_optimization_config(self, **kwargs):
+        """Update the optimization configuration if required"""
         for k, v in kwargs.items():
             self.__dict__[k] = v
 
@@ -181,6 +172,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             if step.name == 'FinalAnalysis':
                 analysis_method = step.method
                 if analysis_method == 'interactive':
+                    step.on_finish = self.interactive_final_analysis_callback
                     continue
                 step.on_finish = self.on_final_analysis
 
@@ -214,22 +206,30 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         """Callback function to promt user input for final analysis"""
 
         msg = 'You are running FinalAnalysis step interactively.\n'
-        msg += f'Current procedure is running towards {self.target} parameters.\n'
+        msg += f'Current procedure is running towards >{self.target}< parameters.\n'
         msg += 'Please type the result of the analysis below\n'
-        msg += '(as <target_parameter>: <current_value>)\n'
+        msg += '***as <target_parameter>: <current_value>***\n'
 
         while True:
             answer = input(msg)
+            # TODO check with regex
             param, param_value = answer.split(':')
 
             try:
+                self.logger.info('Last value for %s is %.02f, updating.',
+                                 param, self.state['current_result'][param])
                 self.state['current_result'][param] = float(param_value)
-            except ValueError:
+            except KeyError:
                 key_error_msg = f'{param} is not valid target parameter\n'
                 key_error_msg += 'try one of the following:\n'
-                key_error_msg += '  '.join(self.target.keys())
+                key_error_msg += '>>>' + '  '.join(self.target.keys()) + '\n'
+                self.logger.warning(key_error_msg)
+            except ValueError:
+                self.logger.warning('Value must be float!')
             else:
                 break
+
+        self.state['updated'] = False
 
     def on_final_analysis(self, data):
         """Callback function for when spectra has been recorded at end of
@@ -252,11 +252,13 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
     def _check_termination(self):
 
-        if self.state['iteration'] >= self.max_iterations:
+        if self.state['iteration'] > self.max_iterations:
+            self.logger.info('Max iterations reached. Done.')
             return True
 
         if self.state['current_result']['final_parameter'] >= self.target[
                 'final_parameter']:
+            self.logger.info('Target parameter reached. Done.')
             return True
 
         else:
@@ -320,4 +322,4 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             current_path,
             original_filename[:-4] + '_data.csv',
         )
-        self._algorithm.save(alg_file)
+        self.algorithm_class.save(alg_file)

@@ -1,27 +1,77 @@
+""" Test functions for optimization problems."""
+
+from abc import ABC, abstractmethod
+
 import numpy as np
 
-""" Test functions for optimization problems.
-    Functions assume vector has min-max of [0, 1] """
 
+class AbstractTestFunction(ABC):
+    """Basic class for optimization test functions
 
-def sphere(vector):
+    Arguments:
+        dimension (int, optional): xi vector dimension
+    """
+
+    optimum = None
+    constraint = (None, None)
+    constraints = None
+    optimum_parameters = None
+
+    def __init__(self, dimension=2):
+
+        # setting class attributes according to dimension parameter
+        setattr(
+            self.__class__,
+            'constraints',
+            [self.__class__.constraint for _ in range(dimension)]
+        )
+
+        setattr(
+            self.__class__,
+            'optimum_parameters',
+            [self.__class__.optimum_parameters for _ in range(dimension)]
+        )
+
+    @abstractmethod
+    def __call__(self, vector):
+        """Defines functions behaviour
+
+        Args:
+            vector (Union[np.array, List]): xi vector of size
+                "dimension"
+        Returns:
+            int: function result
+        """
+
+class sphere(AbstractTestFunction):
     """
     Python implementation of sphere function. Dimensions: d
-    Input Domain: hypercube xi ∈ [-5.12, 5.12], for all i = 1, …, d. 
-    Global optimum: f(x*) = 0 for x* = (0.5,...,0.5)
+    Input Domain: hypercube xi ∈ [-5.12, 5.12], for all i = 1, …, d.
+    Global optimum: f(x*) = 0 for x* = (0,...,0)
     Details: https://www.sfu.ca/~ssurjano/spheref.html
     """
-    # rescale onto [-5, 5]
-    vector = 10 * vector - 5
-    result = np.sum(vector**2)
-    return round(result, 2)
 
+    optimum = 0.1 # some threshold here
+
+    constraint = (-5.12, 5.12)
+
+    constraints = None
+
+    optimum_parameters = 0
+
+    def __call__(self, vector):
+        # convert to np.array
+        if isinstance(vector, list):
+            vector = np.array(vector)
+
+        result = np.sum(vector**2)
+        return result
 
 def rosenbrock(vector):
     """
     Python implementation of rosenbrock function.
-    Dimensions: d. The function is unimodal, and the global minimum lies in 
-    a narrow, parabolic valley. Input Domain: hypercube xi ∈ [-5, 10], 
+    Dimensions: d. The function is unimodal, and the global minimum lies in
+    a narrow, parabolic valley. Input Domain: hypercube xi ∈ [-5, 10],
     for all i = 1, …, d, or xi ∈ [-2.048, 2.048], for all i = 1, …, d.
     Global Minimum: f(x*) = 0 for x* = (1,...,1)
     Details: https://en.wikipedia.org/wiki/Rosenbrock_function
@@ -37,7 +87,7 @@ def rosenbrock(vector):
 def styblinski_tank(vector):
     """
     Python implementation of Styblinski-Tank function.
-    Dimensions: d. The function is usually evaluated on the hypercube 
+    Dimensions: d. The function is usually evaluated on the hypercube
     xi ∈ [-5, 5],, for all i = 1, …, d. Global Minimum: 39.16 * d
     Details: https://www.sfu.ca/~ssurjano/stybtang.html
     """
@@ -49,7 +99,7 @@ def styblinski_tank(vector):
 
 def himmelblau(vector):
     """
-    Python implementation of Himmelblau function. 
+    Python implementation of Himmelblau function.
     Details: https://en.wikipedia.org/wiki/Himmelblau%27s_function
     """
     assert len(vector) == 2, "Function only defined for 2 dimensions."

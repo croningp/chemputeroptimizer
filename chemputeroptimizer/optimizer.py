@@ -5,10 +5,17 @@ Module to run chemical reaction optimization.
 import logging
 import json
 
+from typing import Dict, Union
+
 from xdl import XDL
+from xdl.steps import Step
 
 from .platform import OptimizerPlatform
-from .platform.steps import OptimizeDynamicStep, OptimizeStep
+from .platform.steps import (
+    OptimizeDynamicStep,
+    OptimizeStep,
+    FinalAnalysis,
+)
 from .constants import (
     SUPPORTED_STEPS_PARAMETERS,
     DEFAULT_OPTIMIZATION_PARAMETERS,
@@ -33,16 +40,16 @@ class ChemputerOptimizer(object):
         procedure (str): Path to XDL file or XDL str.
         graph_file (str): Path to graph file (either .json or .graphml).
         interactive (bool, optional): User input for OptimizeStep parameters.
-        fake (bool, optional): If the fake OptimizeSteps created.
-        opt_params (Dict, optional): Dictionary with optimization parameters,
-            e.g. number of iterations, optimization algorithm, target parameter
-            and its value.
+        opt_params (str, optional): Path to .json config file containg
+            steps to optimize.
     """
-    def __init__(self,
-                 procedure,
-                 graph_file,
-                 interactive=False,
-                 optimize_steps=None):
+    def __init__(
+            self,
+            procedure: str,
+            graph_file: str,
+            optimize_steps: str = None,
+            interactive: bool = False,
+        ):
 
         self.logger = get_logger()
 
@@ -51,6 +58,7 @@ class ChemputerOptimizer(object):
         self.interactive = interactive
 
         self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
+        self._check_final_analysis_steps()
         self.logger.debug('Initilaized xdl object (id %d).',
                           id(self._xdl_object))
 
@@ -71,7 +79,42 @@ loading.', optimize_steps)
 
         self._initalise_optimize_step()
 
-    def _initalise_optimize_step(self):
+    def _check_final_analysis_steps(self) -> None:
+        """Checks for FinalAnalysis steps in the procedure
+
+        If no steps found - issue is raised. If running in interactive mode
+        will add an interactive FinalAnalysis method at the end of the
+        procedure.
+
+        Raises:
+            OptimizerError: If no FinalAnalysis found and ChemputerOptimizer
+                is instantiated in non-interactive mode.
+        """
+
+        final_analysis_steps = []
+
+        for step in self._xdl_object.steps:
+            if step.name == 'FinalAnalysis':
+                final_analysis_steps.append(step)
+
+        if not final_analysis_steps and not self.interactive:
+            raise OptimizerError('No FinalAnalysis steps found, please \
+add them to the procedure or run ChemputerOptimizer in interactive mode.')
+
+        if not final_analysis_steps and self.interactive:
+            self.logger.info('No FinalAnalysis steps found, will wrap \
+the last step in the procedure with an interactive one')
+            # wrapping is not very elegant, but FinalAnalysis should
+            # always have a child step. No reason to create a separate
+            # Callback step to mimic the functionality that's already
+            # inside FinalAnalysis if method='interactive'
+            last_step = self._xdl_object.steps[-1]
+            self._xdl_object.steps[-1] = FinalAnalysis(
+                children=[last_step],
+                method='interactive',
+            )
+
+    def _initalise_optimize_step(self) -> None:
         """Initialize Optimize Dynamic step with relevant optimization parameters"""
 
         self.optimizer = OptimizeDynamicStep(
@@ -79,8 +122,27 @@ loading.', optimize_steps)
             )
         self.logger.debug('Initialized Optimize dynamic step.')
 
-    def _load_optimization_steps(self, file):
-        """Loads optimization steps from .json config file"""
+    def _load_optimization_steps(self, file: str) -> Dict:
+        """Loads optimization steps from .json config file
+
+        Args:
+            file (str): Path to .json configuration for steps to Optimize,
+                see examples in /tests/config/
+        Returns:
+            Dict: Dictionary of steps to Optimize, following pattern -
+                {'StepName_StepID':
+                    {'param':
+                        {'min_value': value,
+                         'max_value': value,
+                        }
+                    }
+                }
+
+        Raises:
+            OptimizerError: If the 'StepName_StepID' pattern doesn't match
+                the original xdl procedure.
+        """
+
         with open(file, 'r') as f:
             optimization_steps = json.load(f)
 
@@ -97,8 +159,14 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         return optimization_steps
 
-    def _check_optimization_steps_and_parameters(self):
-        """Get the optimization parameters and validate them if needed"""
+    def _check_optimization_steps_and_parameters(self) -> None:
+        """Get the optimization parameters and validate them if needed.
+
+        Raises:
+            OptimizerError: If the step for the optimization is not supported.
+            ParameterError: If invalid parameter selected for the step to
+                optimize.
+        """
 
         self.logger.debug('Probing for OptimizeStep steps in xdl object.')
 
@@ -138,16 +206,27 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                     self._xdl_object.steps[i] = self._create_optimize_step(
                         step, i, params)
 
-    def _create_optimize_step(self, step, step_id, params=None):
+    def _create_optimize_step(
+            self,
+            step: Step,
+            step_id: int,
+            params: Dict = None,
+        ) -> Step:
         """Creates an OptimizeStep from supplied xdl step
 
         Args:
             step (Step): XDL step to be wrapped with OptimizeStep,
-                must be supported
+                must be supported.
+            step_id (int): Ordinal number of a step.
+            params (Dict, optional): Parameters for the OptimizeStep as
+                nested dictionary.
+
+        Example params:
+            {'<param>': {'max_value': <value>, 'min_value': <value>}}
 
         Returns:
-            dict: dictionary with OptimizeStepID as a key and OptimizeStep instance
-                as value.
+            :obj: XDL.Step: An OptimizeStep step wrapper for the
+                XDL step to be optimized.
         """
         if params is None:
             params = {
@@ -171,8 +250,24 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         return optimize_step
 
-    def prepare_for_optimization(self, opt_params=None, **kwargs):
-        """Get the Optimize step and the respective parameters"""
+    def prepare_for_optimization(
+            self,
+            opt_params=None,
+            **kwargs
+    ) -> None:
+        """Get the Optimize step and the respective parameters
+
+        Args:
+            opt_params (Union[str, Dict], Optional): Path to .json configuration,
+                or dictionary with optimization parameters. If omitted, will use
+                default. If running in interactive mode, will ask for user input.
+            kwarg in kwargs: Valid keyword arguments for optimization setup.
+
+        Raises:
+            OptimizerError: If invalid dictionary is provided for to load configuration
+                or invalid path to .json configuration.
+            ParameterError: If supplied parameter is not valid for the optimization.
+        """
 
         if self.interactive:
             opt_params = interactive_optimization_config()
@@ -199,7 +294,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         for k, v in opt_params.items():
             if k not in DEFAULT_OPTIMIZATION_PARAMETERS:
-                raise OptimizerError(
+                raise ParameterError(
                     f'<{k}> not a valid optimization parameter!')
 
         # loading missing default parameters
@@ -209,11 +304,11 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         self.logger.debug('Loaded the following parameter dict %s', opt_params)
 
-        self.optimizer.load_config(**opt_params)
+        self.optimizer.load_optimization_config(**opt_params)
         self.optimizer.prepare_for_execution(self.graph,
                                              self._xdl_object.executor)
 
     def optimize(self, chempiler):
         """Execute the Optimize step and follow the optimization routine"""
 
-        #self.optimizer.execute(chempiler)
+        self.optimizer.execute(chempiler)
