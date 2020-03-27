@@ -5,6 +5,7 @@ from networkx import MultiDiGraph
 from xdl import xdl_copy, XDL
 from xdl.utils.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, Step
+from xdl.steps.special_steps import Callback
 from chemputerxdl.steps import (
     HeatChill,
     HeatChillToTemp,
@@ -85,7 +86,8 @@ class FinalAnalysis(AbstractStep):
 
     def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
 
-        self.instrument = find_instrument(graph, self.method)
+        if self.method != 'interactive':
+            self.instrument = find_instrument(graph, self.method)
 
     def get_steps(self) -> List[Step]:
         steps = []
@@ -104,7 +106,7 @@ class FinalAnalysis(AbstractStep):
             except AttributeError:
                 pass
 
-            steps.extend(self._get_analytical_steps())
+        steps.extend(self._get_analytical_steps())
 
         # TODO support other steps wrapped wiht FinalAnalysis, i.e. Filter, Dry
         # required additional preparation of the sample, e.g. dissolution
@@ -121,6 +123,13 @@ class FinalAnalysis(AbstractStep):
                 RunRaman(
                     raman=self.instrument,
                     on_finish=self.on_finish,
+                )
+            ]
+
+        if self.method == 'interactive':
+            return [
+                Callback(
+                    fn=self.on_finish,
                 )
             ]
 

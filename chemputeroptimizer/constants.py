@@ -23,6 +23,7 @@ SUPPORTED_ANALYTICAL_METHODS = [
     'Raman',
     'NMR',
     'pH',
+    'interactive',
 ]
 
 SUPPORTED_FINAL_ANALYSIS_STEPS = [
@@ -41,8 +42,9 @@ ANALYTICAL_INSTRUMENTS = {
 
 TARGET_PARAMETERS = [
     'final_yield',
-    'final_conversion', 
+    'final_conversion',
     'final_purity',
+    'final_parameter',
 ]
 
 DEFAULT_OPTIMIZATION_PARAMETERS = {
