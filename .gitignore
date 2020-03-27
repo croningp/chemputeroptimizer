@@ -8,6 +8,7 @@ documentation/_build
 *.pyo
 __pycache__/
 *.egg-info
+.mypy_cache/
 
 
 # other shite

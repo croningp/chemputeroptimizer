@@ -33,10 +33,8 @@ class ChemputerOptimizer(object):
         procedure (str): Path to XDL file or XDL str.
         graph_file (str): Path to graph file (either .json or .graphml).
         interactive (bool, optional): User input for OptimizeStep parameters.
-        fake (bool, optional): If the fake OptimizeSteps created.
-        opt_params (Dict, optional): Dictionary with optimization parameters,
-            e.g. number of iterations, optimization algorithm, target parameter
-            and its value.
+        opt_params (str, optional): Path to .json config file containg
+            steps to optimize.
     """
     def __init__(self,
                  procedure,
@@ -143,11 +141,17 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         Args:
             step (Step): XDL step to be wrapped with OptimizeStep,
-                must be supported
+                must be supported.
+            step_id (int): Ordinal number of a step.
+            params (Dict, optional): Parameters for the OptimizeStep as
+                nested dictionary.
+
+        Example params:
+            {'<param>': {'max_value': <value>, 'min_value': <value>}}
 
         Returns:
-            dict: dictionary with OptimizeStepID as a key and OptimizeStep instance
-                as value.
+            :obj: XDL.Step: An OptimizeStep step wrapper for the
+                XDL step to be optimized.
         """
         if params is None:
             params = {
@@ -173,6 +177,14 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
     def prepare_for_optimization(self, opt_params=None, **kwargs):
         """Get the Optimize step and the respective parameters"""
+        """Get the Optimize step and the respective parameters
+
+        Args:
+            opt_params (Union[str, Dict], Optional): Path to .json configuration,
+                or dictionary with optimization parameters. If omitted, will use
+                default. If running in interactive mode, will ask for user input.
+            kwarg in kwargs: Valid keyword arguments for optimization setup.
+        """
 
         if self.interactive:
             opt_params = interactive_optimization_config()

@@ -24,20 +24,9 @@ class OptimizeDynamicStep(AbstractDynamicStep):
     """Outer level wrapper for optimizing multiple parameters in an entire
     procedure.
 
-    e.g.
-    <Optimize>
-        <Add  ... />
-        <OptimizeStep ... >
-            <HeatChill ... />
-        </OptimizeStep>
-        <Filter />
-        ...
-    </Optimize>
-
     Args:
-        children (List[Step]): List of steps to execute. Optionally contain some
-            steps wrapped by OptimizeStep.
-        optimize_steps (List[Step], optional): List of optimization steps.
+        original_xdl (:obj: XDL): Full XDL procedure to be optimized. Must contain
+            some steps wrapped with OptimizeStep steps.
     """
 
     PROP_TYPES = {
@@ -130,7 +119,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
                     param] = self.parameters[record]['current_value']
             except KeyError:
                 raise KeyError(
-                    f'Not found the following steps in parameters dictionary: {new_xdl.steps[step_id]}.'
+                    f'Not found the following steps in parameters dictionary: \
+{new_xdl.steps[step_id]}.'
                 ) from None
 
         self.logger.debug('Created new xdl object (id %d)',
