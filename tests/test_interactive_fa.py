@@ -7,7 +7,8 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 o = ChemputerOptimizer(
     os.path.join(HERE, 'xdl', 'test_interactive_fa.xdl'),
-    os.path.join(HERE, 'graph', 'graph_raman.json'),
+    os.path.join(HERE, 'graph', 'graph_1.json'),
+    interactive=True
 )
 
 print(o.__dict__)

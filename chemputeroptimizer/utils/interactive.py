@@ -23,6 +23,10 @@ def interactive_optimization_config():
             msg = f'\nPlease type the desired value for the \
 {parameter} parameter\n'
             value = input(msg)
+            try:
+                value = float(value)
+            except ValueError:
+                print(f'{parameter} value must be float, not {type(value)}')
 
             default['target'] = {parameter: value}
             continue
@@ -31,6 +35,13 @@ def interactive_optimization_config():
         msg += f'    Default [{default[param]}]\n\n'
 
         answer = input(msg)
+
+        try:
+            # for max_iterations and final_parameter
+            # TODO choice for algorithm by number
+            answer = float(answer)
+        except ValueError:
+            pass
 
         if answer:
             default[param] = answer

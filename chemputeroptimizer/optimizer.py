@@ -5,7 +5,10 @@ Module to run chemical reaction optimization.
 import logging
 import json
 
+from typing import Dict, Union
+
 from xdl import XDL
+from xdl.steps import Step
 
 from .platform import OptimizerPlatform
 from .platform.steps import (
@@ -40,11 +43,13 @@ class ChemputerOptimizer(object):
         opt_params (str, optional): Path to .json config file containg
             steps to optimize.
     """
-    def __init__(self,
-                 procedure,
-                 graph_file,
-                 interactive=False,
-                 optimize_steps=None):
+    def __init__(
+            self,
+            procedure: str,
+            graph_file: str,
+            optimize_steps: str = None,
+            interactive: bool = False,
+        ):
 
         self.logger = get_logger()
 
@@ -117,8 +122,27 @@ the last step in the procedure with an interactive one')
             )
         self.logger.debug('Initialized Optimize dynamic step.')
 
-    def _load_optimization_steps(self, file):
-        """Loads optimization steps from .json config file"""
+    def _load_optimization_steps(self, file: str) -> Dict:
+        """Loads optimization steps from .json config file
+
+        Args:
+            file (str): Path to .json configuration for steps to Optimize,
+                see examples in /tests/config/
+        Returns:
+            Dict: Dictionary of steps to Optimize, following pattern -
+                {'StepName_StepID':
+                    {'param':
+                        {'min_value': value,
+                         'max_value': value,
+                        }
+                    }
+                }
+
+        Raises:
+            OptimizerError: If the 'StepName_StepID' pattern doesn't match
+                the original xdl procedure.
+        """
+
         with open(file, 'r') as f:
             optimization_steps = json.load(f)
 
@@ -135,8 +159,14 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         return optimization_steps
 
-    def _check_optimization_steps_and_parameters(self):
-        """Get the optimization parameters and validate them if needed"""
+    def _check_optimization_steps_and_parameters(self) -> None:
+        """Get the optimization parameters and validate them if needed.
+
+        Raises:
+            OptimizerError: If the step for the optimization is not supported.
+            ParameterError: If invalid parameter selected for the step to
+                optimize.
+        """
 
         self.logger.debug('Probing for OptimizeStep steps in xdl object.')
 
@@ -176,7 +206,12 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                     self._xdl_object.steps[i] = self._create_optimize_step(
                         step, i, params)
 
-    def _create_optimize_step(self, step, step_id, params=None):
+    def _create_optimize_step(
+            self,
+            step: Step,
+            step_id: int,
+            params: Dict = None,
+        ) -> Step:
         """Creates an OptimizeStep from supplied xdl step
 
         Args:
@@ -215,7 +250,11 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         return optimize_step
 
-    def prepare_for_optimization(self, opt_params=None, **kwargs):
+    def prepare_for_optimization(
+            self,
+            opt_params=None,
+            **kwargs
+    ) -> None:
         """Get the Optimize step and the respective parameters
 
         Args:
@@ -223,6 +262,11 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                 or dictionary with optimization parameters. If omitted, will use
                 default. If running in interactive mode, will ask for user input.
             kwarg in kwargs: Valid keyword arguments for optimization setup.
+
+        Raises:
+            OptimizerError: If invalid dictionary is provided for to load configuration
+                or invalid path to .json configuration.
+            ParameterError: If supplied parameter is not valid for the optimization.
         """
 
         if self.interactive:
@@ -250,7 +294,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         for k, v in opt_params.items():
             if k not in DEFAULT_OPTIMIZATION_PARAMETERS:
-                raise OptimizerError(
+                raise ParameterError(
                     f'<{k}> not a valid optimization parameter!')
 
         # loading missing default parameters
@@ -267,4 +311,4 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
     def optimize(self, chempiler):
         """Execute the Optimize step and follow the optimization routine"""
 
-        #self.optimizer.execute(chempiler)
+        self.optimizer.execute(chempiler)
