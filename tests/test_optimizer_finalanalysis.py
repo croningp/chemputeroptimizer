@@ -7,7 +7,6 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 o = ChemputerOptimizer(
     os.path.join(HERE, 'xdl', 'test_optimizer_finalanalysis.xdl'),
     os.path.join(HERE, 'graph', 'graph_raman.json'),
-    fake=True
 )
 
 o.prepare_for_optimization()
@@ -29,7 +28,6 @@ while o.logger.handlers:
 o = ChemputerOptimizer(
     os.path.join(HERE, 'xdl', 'test_optimizer_finalanalysis.xdl'),
     os.path.join(HERE, 'graph', 'graph_raman.json'),
-    fake=False
 )
 
 o.prepare_for_optimization()
