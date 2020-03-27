@@ -8,7 +8,11 @@ import json
 from xdl import XDL
 
 from .platform import OptimizerPlatform
-from .platform.steps import OptimizeDynamicStep, OptimizeStep
+from .platform.steps import (
+    OptimizeDynamicStep,
+    OptimizeStep,
+    FinalAnalysis,
+)
 from .constants import (
     SUPPORTED_STEPS_PARAMETERS,
     DEFAULT_OPTIMIZATION_PARAMETERS,
@@ -49,6 +53,7 @@ class ChemputerOptimizer(object):
         self.interactive = interactive
 
         self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
+        self._check_final_analysis_steps()
         self.logger.debug('Initilaized xdl object (id %d).',
                           id(self._xdl_object))
 
@@ -69,7 +74,42 @@ loading.', optimize_steps)
 
         self._initalise_optimize_step()
 
-    def _initalise_optimize_step(self):
+    def _check_final_analysis_steps(self) -> None:
+        """Checks for FinalAnalysis steps in the procedure
+
+        If no steps found - issue is raised. If running in interactive mode
+        will add an interactive FinalAnalysis method at the end of the
+        procedure.
+
+        Raises:
+            OptimizerError: If no FinalAnalysis found and ChemputerOptimizer
+                is instantiated in non-interactive mode.
+        """
+
+        final_analysis_steps = []
+
+        for step in self._xdl_object.steps:
+            if step.name == 'FinalAnalysis':
+                final_analysis_steps.append(step)
+
+        if not final_analysis_steps and not self.interactive:
+            raise OptimizerError('No FinalAnalysis steps found, please \
+add them to the procedure or run ChemputerOptimizer in interactive mode.')
+
+        if not final_analysis_steps and self.interactive:
+            self.logger.info('No FinalAnalysis steps found, will wrap \
+the last step in the procedure with an interactive one')
+            # wrapping is not very elegant, but FinalAnalysis should
+            # always have a child step. No reason to create a separate
+            # Callback step to mimic the functionality that's already
+            # inside FinalAnalysis if method='interactive'
+            last_step = self._xdl_object.steps[-1]
+            self._xdl_object.steps[-1] = FinalAnalysis(
+                children=[last_step],
+                method='interactive',
+            )
+
+    def _initalise_optimize_step(self) -> None:
         """Initialize Optimize Dynamic step with relevant optimization parameters"""
 
         self.optimizer = OptimizeDynamicStep(
@@ -176,7 +216,6 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         return optimize_step
 
     def prepare_for_optimization(self, opt_params=None, **kwargs):
-        """Get the Optimize step and the respective parameters"""
         """Get the Optimize step and the respective parameters
 
         Args:

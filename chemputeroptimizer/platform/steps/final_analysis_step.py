@@ -106,7 +106,7 @@ class FinalAnalysis(AbstractStep):
             except AttributeError:
                 pass
 
-            steps.extend(self._get_analytical_steps())
+        steps.extend(self._get_analytical_steps())
 
         # TODO support other steps wrapped wiht FinalAnalysis, i.e. Filter, Dry
         # required additional preparation of the sample, e.g. dissolution
