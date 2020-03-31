@@ -82,9 +82,9 @@ class OptimizeDynamicStep(AbstractDynamicStep):
     def update_steps_parameters(self, result: Dict) -> None:
         """Updates the parameter template and corresponding procedure steps"""
 
-        self._algorithm.load_input(self.parameters, result)
+        self.algorithm_class.load_input(self.parameters, result)
 
-        new_setup = self._algorithm.optimize()  # OrderedDict
+        new_setup = self.algorithm_class.optimize()  # OrderedDict
 
         for step_id_param, step_id_param_value in new_setup.items():
 
@@ -150,7 +150,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
-        self._algorithm = Algorithm(self.algorithm)
+        self.algorithm_class = Algorithm(self.algorithm)
         self.state = {
             'iteration': 1,
             'current_result': {key: -1 for key in self.target},
@@ -158,7 +158,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             'done': False,
         }
 
-    def load_config(self, **kwargs):
+    def load_optimization_config(self, **kwargs):
         """Update the optimization configuration if required"""
         for k, v in kwargs.items():
             self.__dict__[k] = v
@@ -322,4 +322,4 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             current_path,
             original_filename[:-4] + '_data.csv',
         )
-        self._algorithm.save(alg_file)
+        self.algorithm_class.save(alg_file)

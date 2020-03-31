@@ -304,7 +304,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         self.logger.debug('Loaded the following parameter dict %s', opt_params)
 
-        self.optimizer.load_config(**opt_params)
+        self.optimizer.load_optimization_config(**opt_params)
         self.optimizer.prepare_for_execution(self.graph,
                                              self._xdl_object.executor)
 
