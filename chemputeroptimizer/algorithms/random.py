@@ -9,11 +9,14 @@ from ..algorithms import AbstractAlgorithm
 
 class Random_(AbstractAlgorithm):
 
-    def __init__(self):
+    def __init__(self, dimensions=None):
         self.name = 'random'
-        super().__init__()
+        super().__init__(dimensions)
 
     def optimize(self, parameters, results, constraints=None):
+
+        if constraints is None:
+            constraints = self.dimensions
 
         self.logger.debug('random optimizer for the following parameters: \n\
 parameters: %s\nresults: %s\nconstraints: %s\n',

@@ -13,7 +13,7 @@ from ..algorithms import ModifiedNelderMead, SNOBFIT, Random_
 
 class Algorithm():
     """General class to provide methods for parametric optimization.
-    
+
     Arguments:
         method (str): Name of the chosen algorithm.
     """
@@ -28,18 +28,18 @@ class Algorithm():
         self.parameter_matrix = None
         self.result_matrix = None
         self._calculated = None
-
-        self.load_method(method)
+        self.algorithm = None
+        self.method = method
 
     def load_method(self, method='random'):
         if method == 'nelder-mead':
-            self.algorithm = ModifiedNelderMead()
+            self.algorithm = ModifiedNelderMead(self.setup_constraints)
 
         elif method == 'SNOBFIT':
-            self.algorithm = SNOBFIT()
+            self.algorithm = SNOBFIT(self.setup_constraints)
 
         elif method == 'random':
-            self.algorithm = Random_()
+            self.algorithm = Random_(self.setup_constraints)
 
     def load_input(self, data, result):
         """Loads the experimental data dictionary.
@@ -50,7 +50,7 @@ class Algorithm():
                 setup ('param', (<min_value>, <max_value>))
             current_result (OrderedDict): current results of the experiment
                 ('result_param', <value>)
-        
+
         Args:
             data (Dict): Nested dictionary containing all input parameters.
             result (Dict): Nested dictionary containg all result parameters
@@ -86,16 +86,20 @@ class Algorithm():
         # appending the final result
         self.current_result.update(result)
 
+        # loading method when first input is recieved
+        if self.algorithm is None:
+            self.load_method(self.method)
+
         self._parse_data()
 
     def _parse_data(self):
         """Parse the experimental data.
-        
+
         Create the following arrays for the first experiment and add the subsequent data as rows:
             self.parameter_matrix: (n x i) size matrix where n is number of experiments and i
                 is number of experimental parameters;
             self.result_matrix: (n x j) size matrix where j is number of the target parameters;
-        
+
         Example:
             The experimental result:
                 {"Add_1_volume": 1.5,

@@ -13,11 +13,13 @@ class AbstractAlgorithm(ABC):
     the experimental parameters, save the iteration for further access.
 
     Attributes:
-        max_iterations (int): Maximum number of iterations.
+        dimensions (List[Tuple[int, int]], optinal): Search space dimensions,
+            list of (min, max) tuples for each input data point.
     """
-    def __init__(self):
+    def __init__(self, dimensions=None):
         if not hasattr(self, 'name'): self.name = self.__class__.__name__
         self.logger = logging.getLogger(f'optimizer.algorithm.{self.name}')
+        self.dimensions = dimensions
 
     @abstractmethod
     def optimize(self, parameters, results, constraints=None):
