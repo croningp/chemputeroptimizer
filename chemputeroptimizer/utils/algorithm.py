@@ -8,7 +8,11 @@ from collections import OrderedDict
 
 import numpy as np
 
-from ..algorithms import ModifiedNelderMead, SNOBFIT, Random_
+from ..algorithms import (
+    ModifiedNelderMead,
+    SNOBFIT,
+    Random_,
+)
 
 
 class Algorithm():
@@ -33,13 +37,13 @@ class Algorithm():
 
     def load_method(self, method='random'):
         if method == 'nelder-mead':
-            self.algorithm = ModifiedNelderMead(self.setup_constraints)
+            self.algorithm = ModifiedNelderMead(self.setup_constraints.values())
 
         elif method == 'SNOBFIT':
-            self.algorithm = SNOBFIT(self.setup_constraints)
+            self.algorithm = SNOBFIT(self.setup_constraints.values())
 
         elif method == 'random':
-            self.algorithm = Random_(self.setup_constraints)
+            self.algorithm = Random_(self.setup_constraints.values())
 
     def load_input(self, data, result):
         """Loads the experimental data dictionary.
@@ -113,8 +117,13 @@ class Algorithm():
 
         # loading first value
         if self.parameter_matrix is None and self.result_matrix is None:
-            self.parameter_matrix = np.array(list(self.current_setup.values()))
-            self.result_matrix = np.array(list(self.current_result.values()))
+            # experiments as rows, data points as columns
+            self.parameter_matrix = np.array(
+                list(self.current_setup.values()),
+                ndmin=2)
+            self.result_matrix = np.array(
+                list(self.current_result.values()),
+                ndmin=2)
 
         # stacking with previous results
         else:
@@ -168,10 +177,6 @@ class Algorithm():
         """Saving full experiment matrix as csv table"""
 
         full_matrix = np.hstack((self.parameter_matrix, self.result_matrix))
-
-        # check for a single column -> convert to single row
-        if full_matrix.ndim == 1:
-            full_matrix.shape = (1, full_matrix.shape[0])
 
         header = ''
 
