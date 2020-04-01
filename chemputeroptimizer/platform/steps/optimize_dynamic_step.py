@@ -31,11 +31,13 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
     PROP_TYPES = {
         'original_xdl': XDL,
+        'algorithm_class': Algorithm,
     }
 
     def __init__(
             self,
             original_xdl: XDL,
+            algorithm_class: Algorithm,
             **kwargs
         ):
         super().__init__(locals())
@@ -150,7 +152,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
-        self.algorithm_class = Algorithm(self.algorithm)
+        #self.algorithm_class = Algorithm(self.algorithm)
         self.state = {
             'iteration': 1,
             'current_result': {key: -1 for key in self.target},

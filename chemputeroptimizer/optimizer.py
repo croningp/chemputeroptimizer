@@ -25,6 +25,7 @@ from .utils import (
     get_logger,
     interactive_optimization_config,
     interactive_optimization_steps,
+    Algorithm,
 )
 
 
@@ -56,6 +57,8 @@ class ChemputerOptimizer(object):
         self._original_procedure = procedure
         self.graph = graph_file
         self.interactive = interactive
+
+        self.algorithm = Algorithm()
 
         self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
         self._check_final_analysis_steps()
@@ -119,6 +122,7 @@ the last step in the procedure with an interactive one')
 
         self.optimizer = OptimizeDynamicStep(
             original_xdl=self._xdl_object,
+            algorithm_class=self.algorithm,
             )
         self.logger.debug('Initialized Optimize dynamic step.')
 

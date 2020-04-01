@@ -193,7 +193,7 @@ class Algorithm():
         np.savetxt(
             path,
             full_matrix,
-            fmt='%.02f',
+            fmt='%.04f',
             delimiter=',',
             header=header,
         )
