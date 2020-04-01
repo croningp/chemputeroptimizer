@@ -1,6 +1,6 @@
 import numpy as np
-from optimizer.algorithms import Random_
-from optimizer.algorithms import SMBO
+from chemputeroptimizer.algorithms import Random_
+from chemputeroptimizer.algorithms import SMBO
 from test_functions import sphere as test_function
 
 np.random.seed(42)
