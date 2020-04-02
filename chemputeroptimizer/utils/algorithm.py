@@ -12,6 +12,7 @@ from ..algorithms import (
     ModifiedNelderMead,
     SNOBFIT,
     Random_,
+    SMBO,
 )
 
 
@@ -44,6 +45,9 @@ class Algorithm():
 
         elif method == 'random':
             self.algorithm = Random_(self.setup_constraints.values())
+
+        elif method == 'smbo':
+            self.algorithm = SMBO(self.setup_constraints.values())
 
     def load_input(self, data, result):
         """Loads the experimental data dictionary.
