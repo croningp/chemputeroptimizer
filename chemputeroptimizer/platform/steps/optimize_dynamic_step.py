@@ -17,7 +17,7 @@ from chemputerxdl.steps import (
 
 from .steps_analysis import *
 from .utils import find_instrument
-from ...utils import SpectraAnalyzer, Algorithm
+from ...utils import SpectraAnalyzer, AlgorithmAPI
 
 
 class OptimizeDynamicStep(AbstractDynamicStep):
@@ -31,13 +31,13 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
     PROP_TYPES = {
         'original_xdl': XDL,
-        'algorithm_class': Algorithm,
+        'algorithm_class': AlgorithmAPI,
     }
 
     def __init__(
             self,
             original_xdl: XDL,
-            algorithm_class: Algorithm,
+            algorithm_class: AlgorithmAPI,
             **kwargs
         ):
         super().__init__(locals())
@@ -86,10 +86,9 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         self.algorithm_class.load_input(self.parameters, result)
 
-        new_setup = self.algorithm_class.optimize()  # OrderedDict
+        new_setup = self.algorithm_class.get_next_setup()  # OrderedDict
 
         for step_id_param, step_id_param_value in new_setup.items():
-
             self.parameters[step_id_param].update(
                 {'current_value': step_id_param_value})
 
@@ -105,7 +104,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self.state['updated'] = True
 
     def _update_xdl(self):
-        """Creates a new copy of xdl procedure with updated parameters and saves the .xdl file"""
+        """Creates a new copy of xdl procedure with updated parameters and
+        saves the .xdl file"""
 
         # making copy of the raw xdl before any preparations
         # to make future procedure updates possible
@@ -145,6 +145,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self._graph = graph
         # getting parameters from the *raw* xdl
         self._get_params_template()
+        # initializing algorithm
+        self.algorithm_class.initialize(self.parameters)
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
         self.working_xdl_copy.prepare_for_execution(graph, interactive=False)
@@ -152,7 +154,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
-        #self.algorithm_class = Algorithm(self.algorithm)
+
         self.state = {
             'iteration': 1,
             'current_result': {key: -1 for key in self.target},
