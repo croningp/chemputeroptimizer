@@ -25,7 +25,7 @@ from .utils import (
     get_logger,
     interactive_optimization_config,
     interactive_optimization_steps,
-    Algorithm,
+    AlgorithmAPI,
 )
 
 
@@ -58,7 +58,7 @@ class ChemputerOptimizer(object):
         self.graph = graph_file
         self.interactive = interactive
 
-        self.algorithm = Algorithm()
+        self.algorithm = AlgorithmAPI()
 
         self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
         self._check_final_analysis_steps()
@@ -193,7 +193,8 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                 step, sid = optimization_step.split('_')
 
                 self._xdl_object.steps[int(sid)] = self._create_optimize_step(
-                    self._xdl_object.steps[int(sid)], int(sid),
+                    self._xdl_object.steps[int(sid)],
+                    int(sid),
                     self._optimization_steps[optimization_step])
 
         if not self._optimization_steps:
@@ -204,8 +205,6 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                     if self.interactive:
                         params = interactive_optimization_steps(
                             step, i)
-                        if params is None:
-                            continue
 
                     self._xdl_object.steps[i] = self._create_optimize_step(
                         step, i, params)
@@ -257,15 +256,12 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
     def prepare_for_optimization(
             self,
             opt_params=None,
-            **kwargs
     ) -> None:
         """Get the Optimize step and the respective parameters
 
         Args:
-            opt_params (Union[str, Dict], Optional): Path to .json configuration,
-                or dictionary with optimization parameters. If omitted, will use
-                default. If running in interactive mode, will ask for user input.
-            kwarg in kwargs: Valid keyword arguments for optimization setup.
+            opt_params (str, Optional): Path to .json configuration. If omitted,
+                will use default. If running in interactive mode, will ask for user input.
 
         Raises:
             OptimizerError: If invalid dictionary is provided for to load configuration
@@ -285,14 +281,6 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
             else:
                 raise OptimizerError('Parameters must be .json file!')
 
-        elif opt_params is not None and not isinstance(opt_params, dict):
-            raise OptimizerError('Parameters must be dictionary!')
-
-        elif opt_params is None and kwargs:
-            opt_params = {}
-            for k, v in kwargs.items():
-                opt_params[k] = v
-
         else:
             opt_params = DEFAULT_OPTIMIZATION_PARAMETERS
 
@@ -305,6 +293,12 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         for k, v in DEFAULT_OPTIMIZATION_PARAMETERS.items():
             if k not in opt_params:
                 opt_params[k] = v
+
+        # updating algorithmAPI
+        algorithm_parameters = opt_params.pop('algorithm')
+        algorithm_name = algorithm_parameters.pop('name')
+        self.algorithm.method_name = algorithm_name
+        self.algorithm.method_config = algorithm_parameters
 
         self.logger.debug('Loaded the following parameter dict %s', opt_params)
 

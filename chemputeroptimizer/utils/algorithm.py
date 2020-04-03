@@ -32,7 +32,7 @@ class AlgorithmAPI():
             attributes for the corresponding algorithm. If not given,
             default values are loaded.
     """
-    def __init__(self, method_name, method_config=None):
+    def __init__(self, method_name=None, method_config=None):
 
         self.logger = logging.getLogger('optimizer.algorithm')
 
@@ -44,6 +44,7 @@ class AlgorithmAPI():
         self.result_matrix = None
         self._calculated = None
         self.algorithm = None
+        # TODO wrap with @properties to check with setter method
         self.method_name = method_name
         self.method_config = method_config
 
@@ -76,7 +77,7 @@ class AlgorithmAPI():
         )
 
     def initialize(self, data):
-        """First call to initialize the optimization algorithm class"""
+        """First call to initialize the optimization algorithm class."""
 
         self.load_data(data)
 
