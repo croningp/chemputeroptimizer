@@ -9,11 +9,13 @@ from ..algorithms import AbstractAlgorithm
 
 class Random_(AbstractAlgorithm):
 
-    def __init__(self, dimensions=None):
-        self.name = 'random'
-        super().__init__(dimensions)
+    DEFAULT_CONFIG = {}
 
-    def optimize(self, parameters, results, constraints=None):
+    def __init__(self, dimensions=None, config=None):
+        self.name = 'random'
+        super().__init__(dimensions, config)
+
+    def suggest(self, parameters=None, results=None, constraints=None):
 
         if constraints is None:
             constraints = self.dimensions
@@ -22,15 +24,5 @@ class Random_(AbstractAlgorithm):
 parameters: %s\nresults: %s\nconstraints: %s\n',
                           parameters, results, constraints)
 
-        # print('random optimizer for the following parameters: \n',
-        #       f'parameters: {parameters} \n', f'results: {results} \n',
-        #       f'constraints: {constraints} \n')
-
         return np.array(
             [round(random.uniform(a, b), 2) for a, b in constraints])
-
-    def initialise(self):
-        pass
-
-    def _check_termination(self):
-        pass

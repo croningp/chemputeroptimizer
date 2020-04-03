@@ -3,6 +3,8 @@
     "target": {
         "final_parameter": 1
         },
-    "algorithm": "random",
+    "algorithm": {
+        "name": "random"
+        },
     "reference": null
 }

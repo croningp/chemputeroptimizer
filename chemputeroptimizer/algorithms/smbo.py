@@ -6,12 +6,6 @@ import numpy as np
 
 from ..algorithms import AbstractAlgorithm
 
-CONFIG = {
-    "base_estimator": "GP",
-    "acq_func": "EI",
-    "n_initial_points": 5,
-}
-
 
 class SMBO(AbstractAlgorithm):
     """
@@ -34,23 +28,33 @@ class SMBO(AbstractAlgorithm):
             initialization points before approximating it with `base_estimator`.
         acq_func (string): Function to minimize over the posterior distribution.
     """
-    def __init__(self, dimensions):
 
-        self.skopt_optimizer = Optimizer(dimensions=dimensions, **CONFIG)
-        super().__init__()
+    DEFAULT_CONFIG = {
+        "base_estimator": "GP",
+        "acq_func": "EI",
+        "n_initial_points": 5,
+    }
+
+    def __init__(self, dimensions, config=None):
+
+        super().__init__(dimensions=dimensions, config=config)
+
+        self.skopt_optimizer = Optimizer(dimensions=dimensions, **self.config)
 
     def initialise(self):
         pass
 
-    def optimize(self, parameters, results, constraints=None):
+    def suggest(self, parameters=None, results=None, constraints=None):
         # only last row is passed to skopt.Optimizer, since
         # all previous data is stored inside
-        parameters = parameters[-1].tolist()
-        results = results[-1].tolist()
-        if len(results) == 1:
-            self.skopt_optimizer.tell(parameters, results[0])
-        else:
-            raise ValueError('Only one result is supported for SMBO algorithm!')
+        if parameters is not None and parameters.size != 0:
+            parameters = parameters[-1].tolist()
+        if results is not None and results.size != 0:
+            results = results[-1].tolist()
+            if len(results) == 1:
+                self.skopt_optimizer.tell(parameters, results[0])
+            else:
+                raise ValueError('Only one result is supported for SMBO algorithm!')
         return np.array(self.skopt_optimizer.ask())
 
     def _check_termination(self):

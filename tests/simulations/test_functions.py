@@ -13,24 +13,16 @@ class AbstractTestFunction(ABC):
     """
 
     optimum = None
-    constraint = (None, None)
-    constraints = None
+    target = None
+    constraints = (None, None)
     optimum_parameters = None
 
     def __init__(self, dimension=2):
 
-        # setting class attributes according to dimension parameter
-        setattr(
-            self.__class__,
-            'constraints',
-            [self.__class__.constraint for _ in range(dimension)]
-        )
-
-        setattr(
-            self.__class__,
-            'optimum_parameters',
-            [self.__class__.optimum_parameters for _ in range(dimension)]
-        )
+        self.constraints = [self.constraints for _ in range(dimension)]
+        self.optimum_parameters = [self.optimum_parameters
+                                   for _ in range(dimension)]
+        self.dimension = dimension
 
     @abstractmethod
     def __call__(self, vector):
@@ -51,13 +43,11 @@ class sphere(AbstractTestFunction):
     Details: https://www.sfu.ca/~ssurjano/spheref.html
     """
 
-    optimum = 0.1 # some threshold here
-
-    constraint = (-5.12, 5.12)
-
-    constraints = None
-
+    optimum = 0
+    target = 1 # some threshold here
+    constraints = (-5.12, 5.12)
     optimum_parameters = 0
+
 
     def __call__(self, vector):
         # convert to np.array
@@ -67,7 +57,7 @@ class sphere(AbstractTestFunction):
         result = np.sum(vector**2)
         return result
 
-def rosenbrock(vector):
+class rosenbrock(AbstractTestFunction):
     """
     Python implementation of rosenbrock function.
     Dimensions: d. The function is unimodal, and the global minimum lies in
@@ -76,40 +66,48 @@ def rosenbrock(vector):
     Global Minimum: f(x*) = 0 for x* = (1,...,1)
     Details: https://en.wikipedia.org/wiki/Rosenbrock_function
     """
-    result = []
-    # rescale onto [-2, 2]
-    vector = 4 * vector - 2
-    for idx, v in enumerate(vector[:-1]):
-        result += 100 * (vector[idx + 1] - v**2) ** 2 + (1 - v) ** 2
-    return round(result, 2)
+    optimum = 0
+    target = 10 # some threshold here
+    constraints = (-2.048, 2.048)
+    optimum_parameters = 1
+
+    def __call__(self, vector):
+        # convert to np.array
+        if isinstance(vector, list):
+            vector = np.array(vector)
+        result = 0
+
+        for idx, v in enumerate(vector[:-1]):
+            result += 100 * (vector[idx + 1] - v**2) ** 2 + (1 - v) ** 2
+        return np.array(round(result, 2))
 
 
-def styblinski_tank(vector):
+class styblinski_tang(AbstractTestFunction):
     """
-    Python implementation of Styblinski-Tank function.
+    Python implementation of Styblinski-Tang function.
     Dimensions: d. The function is usually evaluated on the hypercube
     xi ∈ [-5, 5],, for all i = 1, …, d. Global Minimum: 39.16 * d
     Details: https://www.sfu.ca/~ssurjano/stybtang.html
     """
-    # rescale onto [-5, 5]
-    vector = 10 * vector - 5
-    result = 0.5 * np.sum(vector**4.0 - 16*vector**2.0 + 5.0*vector)
-    return round(result, 2)
+    optimum = -39.16
+    target = -38 # some threshold here
+    constraints = (-5., 5.)
+    optimum_parameters = 1
+
+    def __init__(self, dimension=2):
+        self.optimum = self.optimum * dimension
+        self.target = self.target * dimension
+        super().__init__(dimension=dimension)
+
+    def __call__(self, vector):
+        if isinstance(vector, list):
+            vector = np.array(vector)
+        result = 0
+        result = 0.5 * np.sum(vector**4.0 - 16*vector**2.0 + 5.0*vector)
+        return np.array(round(result, 2))
 
 
-def himmelblau(vector):
-    """
-    Python implementation of Himmelblau function.
-    Details: https://en.wikipedia.org/wiki/Himmelblau%27s_function
-    """
-    assert len(vector) == 2, "Function only defined for 2 dimensions."
-    # rescale onto [-5, 5]
-    vec = 10 * vector - 5
-    result = (vec[0]**2 + vec[1] - 11)**2 + (vec[0] + vec[1]**2 - 7)**2
-    return round(result, 2)
-
-
-def schwefel(vector):
+class schwefel(AbstractTestFunction):
     """
     Python implementation of Schwefel function.
     Dimensions: d. Complex, many local minima.
@@ -117,12 +115,20 @@ def schwefel(vector):
     Global Minimum: f(x*) = 0, for x* = (420.9687,...,420.9687
     Details: https://www.sfu.ca/~ssurjano/schwef.html
     """
-    # rescale onto [-500, 500]
-    vector = 1000 * vector - 500
-    dims = len(vector)
-    result = 418.9829 * dims - np.sum(vector*np.sin(np.sqrt(abs(vector))))
-    return round(result, 2)
+    optimum = 0
+    target = 10 # some threshold here
+    constraints = (-500., 500.)
+    optimum_parameters = 420.9687
 
+    def __call__(self, vector):
+        if isinstance(vector, list):
+            vector = np.array(vector)
+        result = 0
+        result = 418.9829 * self.dimension - np.sum(vector*np.sin(np.sqrt(abs(vector))))
+        return np.array(round(result, 2))
 
 def noise(factor):
+    """
+    Function to add random noise.
+    """
     return factor * np.random.randn()

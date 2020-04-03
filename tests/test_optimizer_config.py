@@ -8,7 +8,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config', metavar='N', type=int, choices=range(3),
                     help='config number, [0, 1, 2]')
 parser.add_argument('-i', '--interactive', action='store_true')
-parser.add_argument('--no-config', action='store_true')
 parser.add_argument('--string', action='store_true')
 
 args = vars(parser.parse_args())
@@ -31,9 +30,6 @@ if args['config'] is not None:
     config = os.path.join(CONFIG_PATH, CONFIGS[args['config']])
     print(config)
     o.prepare_for_optimization(config)
-
-elif args['no_config']:
-    o.prepare_for_optimization(max_iterations=15, algorithm='random')
 
 elif args['string']:
     o.prepare_for_optimization('hello')

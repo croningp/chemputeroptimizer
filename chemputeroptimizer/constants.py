@@ -52,6 +52,8 @@ DEFAULT_OPTIMIZATION_PARAMETERS = {
     'target': {
         'final_parameter': 1,
         },
-    'algorithm': 'random',
+    'algorithm': {
+        'name': 'random',
+        },
     'reference': None,
 }

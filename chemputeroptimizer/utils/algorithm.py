@@ -15,14 +15,18 @@ from ..algorithms import (
     SMBO,
 )
 
+ALGORITHMS = {
+    'nelder-mead': ModifiedNelderMead,
+    'snobfit': SNOBFIT,
+    'random': Random_,
+    'smbo': SMBO,
+}
 
-class Algorithm():
-    """General class to provide methods for parametric optimization.
 
-    Arguments:
-        method (str): Name of the chosen algorithm.
-    """
-    def __init__(self, method='random'):
+class AlgorithmAPI():
+    """General class to provide interface for algorithmic optimization."""
+
+    def __init__(self):
 
         self.logger = logging.getLogger('optimizer.algorithm')
 
@@ -34,22 +38,77 @@ class Algorithm():
         self.result_matrix = None
         self._calculated = None
         self.algorithm = None
-        self.method = method
 
-    def load_method(self, method='random'):
-        if method == 'nelder-mead':
-            self.algorithm = ModifiedNelderMead(self.setup_constraints.values())
+        self._method_name = None
+        self._method_config = None
 
-        elif method == 'SNOBFIT':
-            self.algorithm = SNOBFIT(self.setup_constraints.values())
+    @property
+    def method_name(self):
+        """Name of the selected algorithm."""
+        return self._method_name
 
-        elif method == 'random':
-            self.algorithm = Random_(self.setup_constraints.values())
+    @method_name.setter
+    def method_name(self, method_name):
+        if method_name not in ALGORITHMS:
+            raise KeyError(f'{method_name} is not a valid algorithm name')
 
-        elif method == 'smbo':
-            self.algorithm = SMBO(self.setup_constraints.values())
+        self._method_name = method_name
 
-    def load_input(self, data, result):
+    @property
+    def method_config(self):
+        "Dictionary containing all neccessary configuration for an algorithm."
+        return self._method_config
+
+    @method_config.setter
+    def method_config(self, config):
+        try:
+            for param in config:
+                assert param in ALGORITHMS[self._method_name].DEFAULT_CONFIG
+        except AssertionError:
+            raise KeyError(f'{param} is not a valid parameter for \
+{self._method_name}')
+
+
+    def _load_method(self, method_name, config, constraints):
+        """Loads corresponding algorithm class.
+
+        Args:
+            method_name (str): Name of the chosen algorithm.
+            constraints (Iterable[Iterable[float, float]]: Nested list
+                of constraints, mapped by order to experimental
+                parameters.
+        """
+        try:
+            self.algorithm = ALGORITHMS[method_name](
+                constraints,
+                config)
+        except KeyError:
+            raise KeyError(f'Algorithm {method_name} not found.') from None
+
+    def switch_method(self, method_name, config=None, constraints=None):
+        """Public method for switching the algorithm."""
+
+        if not constraints:
+            constraints = self.setup_constraints
+
+        self._load_method(
+            method_name,
+            config,
+            constraints
+        )
+
+    def initialize(self, data):
+        """First call to initialize the optimization algorithm class."""
+
+        self.load_data(data)
+
+        self._load_method(
+            self.method_name,
+            self.method_config,
+            self.setup_constraints.values()
+        )
+
+    def load_data(self, data, result=None):
         """Loads the experimental data dictionary.
 
         Updates:
@@ -92,21 +151,20 @@ class Algorithm():
                     {param: (param_set['min_value'], param_set['max_value'])})
 
         # appending the final result
-        self.current_result.update(result)
-
-        # loading method when first input is recieved
-        if self.algorithm is None:
-            self.load_method(self.method)
-
-        self._parse_data()
+        if result:
+            self.current_result.update(result)
+            # parsing data only if result was supplied
+            self._parse_data()
 
     def _parse_data(self):
         """Parse the experimental data.
 
-        Create the following arrays for the first experiment and add the subsequent data as rows:
-            self.parameter_matrix: (n x i) size matrix where n is number of experiments and i
-                is number of experimental parameters;
-            self.result_matrix: (n x j) size matrix where j is number of the target parameters;
+        Create the following arrays for the first experiment and add the
+        subsequent data as rows:
+            self.parameter_matrix: (n x i) size matrix where n is number of
+                experiments and i is number of experimental parameters;
+            self.result_matrix: (n x j) size matrix where j is number of the
+                target parameters;
 
         Example:
             The experimental result:
@@ -158,12 +216,12 @@ class Algorithm():
             )
         )
 
-    def optimize(self):
+    def get_next_setup(self):
         """Finds the next parameters set based on the experimental data"""
 
         self.logger.info('Optimizing parameters.')
 
-        self._calculated = self.algorithm.optimize(
+        self._calculated = self.algorithm.suggest(
             self.parameter_matrix,
             self.result_matrix,
             self.setup_constraints.values()
@@ -173,6 +231,7 @@ class Algorithm():
             'Finished optimization, new parameters list in log file.')
         self.logger.debug('Parameters array: %s', list(self._calculated))
 
+        # updating the current setup attribute
         self._remap_data(self._calculated)
 
         return self.current_setup
@@ -193,7 +252,7 @@ class Algorithm():
         np.savetxt(
             path,
             full_matrix,
-            fmt='%.02f',
+            fmt='%.04f',
             delimiter=',',
             header=header,
         )
