@@ -51,8 +51,8 @@ def interactive_optimization_config():
 
             if answer == 'y':
                 for algorithm_param in algorithm_config:
-                    msg = f'Please type new value for {param} parameter\
-or press Enter to skip\n'
+                    msg = f'Please type new value for {algorithm_param} \
+parameter or press Enter to skip\n'
                     answer = input(msg)
                     if answer:
                         try:

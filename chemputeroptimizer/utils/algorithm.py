@@ -105,7 +105,7 @@ class AlgorithmAPI():
         self._load_method(
             self.method_name,
             self.method_config,
-            self.setup_constraints
+            self.setup_constraints.values()
         )
 
     def load_data(self, data, result=None):

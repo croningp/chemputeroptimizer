@@ -25,7 +25,10 @@ class AbstractAlgorithm(ABC):
     def __init__(self, dimensions=None, config=None):
         if not hasattr(self, 'name'): self.name = self.__class__.__name__
         self.logger = logging.getLogger(f'optimizer.algorithm.{self.name}')
-        self.dimensions = dimensions
+        try:
+            self.dimensions = list(dimensions)
+        except TypeError:
+            raise TypeError('Dimensions must be iterable!') from None
         self.config = self.DEFAULT_CONFIG.copy()
         if config:
             self.config.update(config)

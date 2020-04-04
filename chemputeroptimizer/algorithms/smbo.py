@@ -6,12 +6,6 @@ import numpy as np
 
 from ..algorithms import AbstractAlgorithm
 
-CONFIG = {
-    "base_estimator": "GP",
-    "acq_func": "EI",
-    "n_initial_points": 5,
-}
-
 
 class SMBO(AbstractAlgorithm):
     """
@@ -34,10 +28,18 @@ class SMBO(AbstractAlgorithm):
             initialization points before approximating it with `base_estimator`.
         acq_func (string): Function to minimize over the posterior distribution.
     """
-    def __init__(self, dimensions):
 
-        self.skopt_optimizer = Optimizer(dimensions=dimensions, **CONFIG)
-        super().__init__()
+    DEFAULT_CONFIG = {
+        "base_estimator": "GP",
+        "acq_func": "EI",
+        "n_initial_points": 5,
+    }
+
+    def __init__(self, dimensions, config=None):
+
+        super().__init__(dimensions=dimensions, config=config)
+
+        self.skopt_optimizer = Optimizer(dimensions=dimensions, **self.config)
 
     def initialise(self):
         pass
