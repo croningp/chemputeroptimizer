@@ -24,15 +24,9 @@ ALGORITHMS = {
 
 
 class AlgorithmAPI():
-    """General class to provide interface for algorithmic optimization.
+    """General class to provide interface for algorithmic optimization."""
 
-    Arguments:
-        method_name (str): Name of the chosen algorithm.
-        method_config (Dict): Dictionary, containing all necessary
-            attributes for the corresponding algorithm. If not given,
-            default values are loaded.
-    """
-    def __init__(self, method_name=None, method_config=None):
+    def __init__(self):
 
         self.logger = logging.getLogger('optimizer.algorithm')
 
@@ -44,9 +38,36 @@ class AlgorithmAPI():
         self.result_matrix = None
         self._calculated = None
         self.algorithm = None
-        # TODO wrap with @properties to check with setter method
-        self.method_name = method_name
-        self.method_config = method_config
+
+        self._method_name = None
+        self._method_config = None
+
+    @property
+    def method_name(self):
+        """Name of the selected algorithm."""
+        return self._method_name
+
+    @method_name.setter
+    def method_name(self, method_name):
+        if method_name not in ALGORITHMS:
+            raise KeyError(f'{method_name} is not a valid algorithm name')
+
+        self._method_name = method_name
+
+    @property
+    def method_config(self):
+        "Dictionary containing all neccessary configuration for an algorithm."
+        return self._method_config
+
+    @method_config.setter
+    def method_config(self, config):
+        try:
+            for param in config:
+                assert param in ALGORITHMS[self._method_name].DEFAULT_CONFIG
+        except AssertionError:
+            raise KeyError(f'{param} is not a valid parameter for \
+{self._method_name}')
+
 
     def _load_method(self, method_name, config, constraints):
         """Loads corresponding algorithm class.
@@ -83,8 +104,8 @@ class AlgorithmAPI():
 
         self._load_method(
             self.method_name,
-            self.setup_constraints,
-            self.method_config
+            self.method_config,
+            self.setup_constraints
         )
 
     def load_data(self, data, result=None):
