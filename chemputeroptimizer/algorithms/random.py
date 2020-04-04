@@ -15,7 +15,7 @@ class Random_(AbstractAlgorithm):
         self.name = 'random'
         super().__init__(dimensions, config)
 
-    def optimize(self, parameters=None, results=None, constraints=None):
+    def suggest(self, parameters=None, results=None, constraints=None):
 
         if constraints is None:
             constraints = self.dimensions

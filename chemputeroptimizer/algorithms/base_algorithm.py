@@ -31,7 +31,7 @@ class AbstractAlgorithm(ABC):
             self.config.update(config)
 
     @abstractmethod
-    def optimize(self, parameters=None, results=None, constraints=None):
+    def suggest(self, parameters=None, results=None, constraints=None):
         """Find the parameters for the next iteration.
 
         Uses the experimental matrixes to find new parameter set through

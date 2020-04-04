@@ -221,7 +221,7 @@ class AlgorithmAPI():
 
         self.logger.info('Optimizing parameters.')
 
-        self._calculated = self.algorithm.optimize(
+        self._calculated = self.algorithm.suggest(
             self.parameter_matrix,
             self.result_matrix,
             self.setup_constraints.values()

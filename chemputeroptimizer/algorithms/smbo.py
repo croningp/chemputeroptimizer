@@ -42,7 +42,7 @@ class SMBO(AbstractAlgorithm):
     def initialise(self):
         pass
 
-    def optimize(self, parameters=None, results=None, constraints=None):
+    def suggest(self, parameters=None, results=None, constraints=None):
         # only last row is passed to skopt.Optimizer, since
         # all previous data is stored inside
         if parameters is not None and parameters.size != 0:
