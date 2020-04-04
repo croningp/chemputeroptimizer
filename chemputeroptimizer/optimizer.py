@@ -282,7 +282,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                 raise OptimizerError('Parameters must be .json file!')
 
         else:
-            opt_params = DEFAULT_OPTIMIZATION_PARAMETERS
+            opt_params = DEFAULT_OPTIMIZATION_PARAMETERS.copy()
 
         for k, v in opt_params.items():
             if k not in DEFAULT_OPTIMIZATION_PARAMETERS:

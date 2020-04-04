@@ -84,7 +84,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
     def update_steps_parameters(self, result: Dict) -> None:
         """Updates the parameter template and corresponding procedure steps"""
 
-        self.algorithm_class.load_input(self.parameters, result)
+        self.algorithm_class.load_data(self.parameters, result)
 
         new_setup = self.algorithm_class.get_next_setup()  # OrderedDict
 
@@ -143,10 +143,13 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # saving graph for future xdl updates
         self._graph = graph
+
         # getting parameters from the *raw* xdl
         self._get_params_template()
+
         # initializing algorithm
         self.algorithm_class.initialize(self.parameters)
+
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
         self.working_xdl_copy.prepare_for_execution(graph, interactive=False)
