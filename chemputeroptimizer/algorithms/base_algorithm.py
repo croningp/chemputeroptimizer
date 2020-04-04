@@ -31,7 +31,7 @@ class AbstractAlgorithm(ABC):
             self.config.update(config)
 
     @abstractmethod
-    def optimize(self, parameters, results, constraints=None):
+    def optimize(self, parameters=None, results=None, constraints=None):
         """Find the parameters for the next iteration.
 
         Uses the experimental matrixes to find new parameter set through
@@ -40,11 +40,13 @@ class AbstractAlgorithm(ABC):
         This method has to be redefined in ancestor classes.
 
         Args:
-            parameters (:obj: np.array): (n x i) size matrix where n is number
-                of experiments and i is number of experimental parameters.
-            results (:obj: np.array): (n x j) size matrix where j is number
-                of the target parameters.
-            constraints (Any): tuple with min/max values for the parameters
+            parameters (:obj: np.array, optional): (n x i) size matrix where n
+                is number of experiments and i is number of experimental
+                parameters.
+            results (:obj: np.array, optional): (n x j) size matrix where j is
+                number of the target parameters.
+            constraints (Any, optional): tuple with min/max values for the
+                parameters
 
         Returns:
             (np.array): An array with new set of experimental input parameters.
