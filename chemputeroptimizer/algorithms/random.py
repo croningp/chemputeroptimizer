@@ -15,7 +15,7 @@ class Random_(AbstractAlgorithm):
         self.name = 'random'
         super().__init__(dimensions, config)
 
-    def optimize(self, parameters, results, constraints=None):
+    def optimize(self, parameters=None, results=None, constraints=None):
 
         if constraints is None:
             constraints = self.dimensions
@@ -26,9 +26,3 @@ parameters: %s\nresults: %s\nconstraints: %s\n',
 
         return np.array(
             [round(random.uniform(a, b), 2) for a, b in constraints])
-
-    def initialise(self):
-        pass
-
-    def _check_termination(self):
-        pass

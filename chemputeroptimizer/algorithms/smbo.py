@@ -42,15 +42,16 @@ class SMBO(AbstractAlgorithm):
     def initialise(self):
         pass
 
-    def optimize(self, parameters, results, constraints=None):
+    def optimize(self, parameters=None, results=None, constraints=None):
         # only last row is passed to skopt.Optimizer, since
         # all previous data is stored inside
-        parameters = parameters[-1].tolist()
-        results = results[-1].tolist()
-        if len(results) == 1:
-            self.skopt_optimizer.tell(parameters, results[0])
-        else:
-            raise ValueError('Only one result is supported for SMBO algorithm!')
+        if parameters is not None and parameters.size != 0:
+            parameters = parameters[-1].tolist()
+            if results is not None and len(results) == 1:
+                results = results[-1].tolist()
+                self.skopt_optimizer.tell(parameters, results[0])
+            else:
+                raise ValueError('Only one result is supported for SMBO algorithm!')
         return np.array(self.skopt_optimizer.ask())
 
     def _check_termination(self):
