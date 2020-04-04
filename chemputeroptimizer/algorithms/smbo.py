@@ -47,8 +47,9 @@ class SMBO(AbstractAlgorithm):
         # all previous data is stored inside
         if parameters is not None and parameters.size != 0:
             parameters = parameters[-1].tolist()
-            if results is not None and len(results) == 1:
-                results = results[-1].tolist()
+        if results is not None:
+            results = results[-1].tolist()
+            if len(results) == 1:
                 self.skopt_optimizer.tell(parameters, results[0])
             else:
                 raise ValueError('Only one result is supported for SMBO algorithm!')
