@@ -4,6 +4,7 @@ Module to run chemical reaction optimization.
 
 import logging
 import json
+import os
 
 from typing import Dict, Union
 
@@ -293,6 +294,13 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         for k, v in DEFAULT_OPTIMIZATION_PARAMETERS.items():
             if k not in opt_params:
                 opt_params[k] = v
+
+        # saving updated config if running in interactive mode
+        if self.interactive:
+            here = os.path.dirname(self._original_procedure)
+            json_file = os.path.join(here, 'optimizer_config.json')
+            with open(json_file, 'w') as f:
+                json.dump(opt_params, f)
 
         # updating algorithmAPI
         algorithm_parameters = opt_params.pop('algorithm')
