@@ -206,6 +206,8 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                     if self.interactive:
                         params = interactive_optimization_steps(
                             step, i)
+                        if not params:
+                            continue
 
                     self._xdl_object.steps[i] = self._create_optimize_step(
                         step, i, params)
