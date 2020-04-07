@@ -49,7 +49,7 @@ class SMBO(AbstractAlgorithm):
         # all previous data is stored inside
         if parameters is not None and parameters.size != 0:
             parameters = parameters[-1].tolist()
-        if results is not None:
+        if results is not None and results.size != 0:
             results = results[-1].tolist()
             if len(results) == 1:
                 self.skopt_optimizer.tell(parameters, results[0])
