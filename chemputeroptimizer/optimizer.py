@@ -4,6 +4,7 @@ Module to run chemical reaction optimization.
 
 import logging
 import json
+import os
 
 from typing import Dict, Union
 
@@ -25,6 +26,7 @@ from .utils import (
     get_logger,
     interactive_optimization_config,
     interactive_optimization_steps,
+    AlgorithmAPI,
 )
 
 
@@ -56,6 +58,8 @@ class ChemputerOptimizer(object):
         self._original_procedure = procedure
         self.graph = graph_file
         self.interactive = interactive
+
+        self.algorithm = AlgorithmAPI()
 
         self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
         self._check_final_analysis_steps()
@@ -119,6 +123,7 @@ the last step in the procedure with an interactive one')
 
         self.optimizer = OptimizeDynamicStep(
             original_xdl=self._xdl_object,
+            algorithm_class=self.algorithm,
             )
         self.logger.debug('Initialized Optimize dynamic step.')
 
@@ -189,7 +194,8 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                 step, sid = optimization_step.split('_')
 
                 self._xdl_object.steps[int(sid)] = self._create_optimize_step(
-                    self._xdl_object.steps[int(sid)], int(sid),
+                    self._xdl_object.steps[int(sid)],
+                    int(sid),
                     self._optimization_steps[optimization_step])
 
         if not self._optimization_steps:
@@ -200,7 +206,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                     if self.interactive:
                         params = interactive_optimization_steps(
                             step, i)
-                        if params is None:
+                        if not params:
                             continue
 
                     self._xdl_object.steps[i] = self._create_optimize_step(
@@ -253,15 +259,12 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
     def prepare_for_optimization(
             self,
             opt_params=None,
-            **kwargs
     ) -> None:
         """Get the Optimize step and the respective parameters
 
         Args:
-            opt_params (Union[str, Dict], Optional): Path to .json configuration,
-                or dictionary with optimization parameters. If omitted, will use
-                default. If running in interactive mode, will ask for user input.
-            kwarg in kwargs: Valid keyword arguments for optimization setup.
+            opt_params (str, Optional): Path to .json configuration. If omitted,
+                will use default. If running in interactive mode, will ask for user input.
 
         Raises:
             OptimizerError: If invalid dictionary is provided for to load configuration
@@ -281,16 +284,8 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
             else:
                 raise OptimizerError('Parameters must be .json file!')
 
-        elif opt_params is not None and not isinstance(opt_params, dict):
-            raise OptimizerError('Parameters must be dictionary!')
-
-        elif opt_params is None and kwargs:
-            opt_params = {}
-            for k, v in kwargs.items():
-                opt_params[k] = v
-
         else:
-            opt_params = DEFAULT_OPTIMIZATION_PARAMETERS
+            opt_params = DEFAULT_OPTIMIZATION_PARAMETERS.copy()
 
         for k, v in opt_params.items():
             if k not in DEFAULT_OPTIMIZATION_PARAMETERS:
@@ -302,9 +297,22 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
             if k not in opt_params:
                 opt_params[k] = v
 
+        # saving updated config if running in interactive mode
+        if self.interactive:
+            here = os.path.dirname(self._original_procedure)
+            json_file = os.path.join(here, 'optimizer_config.json')
+            with open(json_file, 'w') as f:
+                json.dump(opt_params, f)
+
+        # updating algorithmAPI
+        algorithm_parameters = opt_params.pop('algorithm')
+        algorithm_name = algorithm_parameters.pop('name')
+        self.algorithm.method_name = algorithm_name
+        self.algorithm.method_config = algorithm_parameters
+
         self.logger.debug('Loaded the following parameter dict %s', opt_params)
 
-        self.optimizer.load_config(**opt_params)
+        self.optimizer.load_optimization_config(**opt_params)
         self.optimizer.prepare_for_execution(self.graph,
                                              self._xdl_object.executor)
 
