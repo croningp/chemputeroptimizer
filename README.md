@@ -36,20 +36,18 @@ Optionally some steps may be wrapped *FinalAnalysis* step with supported analyti
 ```
 Examples for `.json` config files are available for both [OptimizeStep config](/tests/config/valid_steps.json) and [optimization loop](/tests/config/valid_opt_config.json).
 
-**Note**  
+**Note**
 You can omit both OptimizeStep and FinalAnalysis wrappers and run optimization of any procedure interactively by instantiating *ChemputerOptimizer* with `interactive=True` attribute.
 
 ## Features
 
-### v0.1.1
+### v0.1.2
 
-* Loading `.json` configuration for optimization and steps to optimize.
+* Sequential Model Based Optimisation
 
-* Interactive input for optimization config, optimization steps and FinalAnalysis step.
-
-* No spectral data processing.
+* Optimization config files now support algorithm configuration.
 
 ## Development
 
-Please check the issue list for the relevant things to do.  
-If you want to add another algorithm for the optimization, please follow the AbstractAlgorithm class documentation.
+Please check the issue list for the relevant things to do.
+If you want to add another algorithm for the optimization, please follow the AbstractAlgorithm class documentation. Testing functions for algorithm evaluation can be found in [/simulation](/tests/simulations/).
