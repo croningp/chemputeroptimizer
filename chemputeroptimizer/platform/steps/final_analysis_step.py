@@ -3,7 +3,7 @@ from typing import List, Callable, Optional, Dict, Any
 from networkx import MultiDiGraph
 
 from xdl import xdl_copy, XDL
-from xdl.utils.errors import XDLError
+from xdl.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, Step
 from xdl.steps.special_steps import Callback
 from chemputerxdl.steps import (
@@ -108,7 +108,7 @@ class FinalAnalysis(AbstractStep):
 
         steps.extend(self._get_analytical_steps())
 
-        # TODO support other steps wrapped wiht FinalAnalysis, i.e. Filter, Dry
+        # TODO support other steps wrapped with FinalAnalysis, i.e. Filter, Dry
         # required additional preparation of the sample, e.g. dissolution
 
         return steps

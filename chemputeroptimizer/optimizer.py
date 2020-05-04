@@ -8,6 +8,8 @@ import os
 
 from typing import Dict, Union
 
+import AnalyticalLabware
+
 from xdl import XDL
 from xdl.steps import Step
 
@@ -314,7 +316,8 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         self.optimizer.load_optimization_config(**opt_params)
         self.optimizer.prepare_for_execution(self.graph,
-                                             self._xdl_object.executor)
+                                             self._xdl_object.executor,)
+                                             #device_modules=[AnalyticalLabware])
 
     def optimize(self, chempiler):
         """Execute the Optimize step and follow the optimization routine"""

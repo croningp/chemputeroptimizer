@@ -1,7 +1,7 @@
 import time
 from typing import List, Callable, Optional, Dict, Any
 
-from xdl.utils.errors import XDLError
+from xdl.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from chemputerxdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer, StartStir, Stir
 #from xdl.steps.steps_analysis import RunNMR
@@ -14,7 +14,7 @@ class Monitor(AbstractDynamicStep):
 
     Steps supported:
         HeatChill, Wait, Stir
-    
+
     Args:
         children (List): List of steps to monitor parameters for.
             Max length 1. Reason for using a list is for later integration into
@@ -118,7 +118,7 @@ class Monitor(AbstractDynamicStep):
             return [
                 StopHeatChill(vessel=self.step.vessel)
             ]
-        
+
         # No heating/chilling, just finish.
         else:
             return []

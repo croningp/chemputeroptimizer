@@ -4,8 +4,10 @@ import json
 
 from typing import List, Callable, Optional, Dict, Any
 
+import AnalyticalLabware
+
 from xdl import xdl_copy, XDL
-from xdl.utils.errors import XDLError
+from xdl.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from chemputerxdl.steps import (
     HeatChill,
@@ -131,9 +133,11 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self.working_xdl_copy = new_xdl
 
         self.save()
+        print('###', id(self._graph))
 
-        self.working_xdl_copy.prepare_for_execution(self._graph,
-                                                    interactive=False)
+        self.working_xdl_copy.prepare_for_execution(self.graph,
+                                                    interactive=False,
+                                                    device_modules=[AnalyticalLabware])
         self._update_analysis_steps()
 
     def on_prepare_for_execution(self, graph):
@@ -143,6 +147,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # saving graph for future xdl updates
         self._graph = graph
+        print('***', id(self._graph))
 
         # getting parameters from the *raw* xdl
         self._get_params_template()
@@ -152,7 +157,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
-        self.working_xdl_copy.prepare_for_execution(graph, interactive=False)
+        self.working_xdl_copy.prepare_for_execution(self.graph, interactive=False, device_modules=[AnalyticalLabware])
         self._update_analysis_steps()
 
         # load necessary tools
