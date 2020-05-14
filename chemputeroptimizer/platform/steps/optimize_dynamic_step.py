@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+import re
 
 from typing import List, Callable, Optional, Dict, Any
 
@@ -225,8 +226,14 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         while True:
             answer = input(msg)
-            # TODO check with regex
-            param, param_value = answer.split(':')
+            pattern = r'.*:.*'
+            match = re.fullmatch(pattern, answer)
+            if not match:
+                warning_msg = '\n### Please type "PARAMETER NAME": PARAMETER \
+VALUE ###\n'
+                self.logger.warning(warning_msg)
+                continue
+            param, param_value = match[0].split(':')
 
             try:
                 self.logger.info('Last value for %s is %.02f, updating.',
