@@ -2,7 +2,6 @@ from typing import List, Callable, Optional, Dict, Any
 
 from networkx import MultiDiGraph
 
-from xdl import xdl_copy, XDL
 from xdl.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, Step
 from xdl.steps.special_steps import Callback

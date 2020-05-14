@@ -6,8 +6,9 @@ from typing import List, Callable, Optional, Dict, Any
 
 import AnalyticalLabware
 
-from xdl import xdl_copy, XDL
+from xdl import XDL
 from xdl.errors import XDLError
+from xdl.utils.copy import xdl_copy
 from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from chemputerxdl.steps import (
     HeatChill,
