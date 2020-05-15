@@ -8,6 +8,8 @@ import os
 
 from typing import Dict, Union
 
+import AnalyticalLabware
+
 from xdl import XDL
 from xdl.steps import Step
 
@@ -42,7 +44,7 @@ class ChemputerOptimizer(object):
         procedure (str): Path to XDL file or XDL str.
         graph_file (str): Path to graph file (either .json or .graphml).
         interactive (bool, optional): User input for OptimizeStep parameters.
-        opt_params (str, optional): Path to .json config file containg
+        opt_params (str, optional): Path to .json config file contaning
             steps to optimize.
     """
     def __init__(
@@ -63,7 +65,7 @@ class ChemputerOptimizer(object):
 
         self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
         self._check_final_analysis_steps()
-        self.logger.debug('Initilaized xdl object (id %d).',
+        self.logger.debug('Initialized xdl object (id %d).',
                           id(self._xdl_object))
 
         if optimize_steps and isinstance(optimize_steps, str):
@@ -314,7 +316,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         self.optimizer.load_optimization_config(**opt_params)
         self.optimizer.prepare_for_execution(self.graph,
-                                             self._xdl_object.executor)
+                                             self._xdl_object.executor,)
 
     def optimize(self, chempiler):
         """Execute the Optimize step and follow the optimization routine"""
