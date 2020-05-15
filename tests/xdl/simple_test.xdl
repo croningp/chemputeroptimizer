@@ -23,6 +23,12 @@
       vessel="reactor"
       time="30 secs"
     />
+    <FinalAnalysis method="NMR" sample_volume="5">
+      <Stir
+        vessel="reactor"
+        time="5 secs"
+      />
+    </FinalAnalysis>
   </Procedure>
 
 </Synthesis>

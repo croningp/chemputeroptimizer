@@ -11,5 +11,6 @@ setup(
         "xdl @ git+ssh://git@gitlab.com/croningroup/chemputer/xdl.git",
         "numpy",
         "scikit-optimize",
+        "AnalyticalLabware @ git+ssh://git@gitlab.com/croningroup/chemputer/analyticallabware.git",
     ]
 )

@@ -13,6 +13,7 @@ from ..algorithms import (
     SNOBFIT,
     Random_,
     SMBO,
+    GA,
 )
 
 ALGORITHMS = {
@@ -20,6 +21,7 @@ ALGORITHMS = {
     'snobfit': SNOBFIT,
     'random': Random_,
     'smbo': SMBO,
+    'ga': GA,
 }
 
 

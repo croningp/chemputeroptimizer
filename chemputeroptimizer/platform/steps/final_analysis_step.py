@@ -13,10 +13,11 @@ from chemputerxdl.steps import (
     Transfer,
     Dissolve,
     Stir,
+    Add,
 )
 
-from .steps_analysis import RunRaman
-from .utils import find_instrument
+from .steps_analysis import RunRaman, RunNMR
+from .utils import find_instrument, find_nearest_waste
 from ...utils import SpectraAnalyzer
 from ...utils.errors import OptimizerError
 from ...constants import (
@@ -53,6 +54,8 @@ class FinalAnalysis(AbstractStep):
 
     INTERNAL_PROPS = [
         'instrument',
+        #'cleaning_solvent',
+        #'nearest_waste',
     ]
 
     def __init__(
@@ -64,6 +67,8 @@ class FinalAnalysis(AbstractStep):
 
             # Internal properties
             instrument: Optional[str] = None,
+            #cleaning_solvent: Optional[str] = None,
+            #nearest_waste: Optional[str] = None,
             **kwargs
         ) -> None:
         super().__init__(locals())
@@ -101,7 +106,7 @@ class FinalAnalysis(AbstractStep):
                 if not 18 <= self.children[0].temp <= 30:
                     raise OptimizerError(
                         'Final analysis only supported for room temperature \
-                        reaction mixture!')
+reaction mixture!')
             except AttributeError:
                 pass
 
@@ -130,6 +135,29 @@ class FinalAnalysis(AbstractStep):
                 Callback(
                     fn=self.on_finish,
                 )
+            ]
+        # NMR
+        # take sample and send it to instrument, clean up afterwards
+        if self.method == 'NMR':
+            return [
+                Transfer(
+                    from_vessel=self.children[0].vessel,
+                    to_vessel=self.instrument,
+                    volume=self.sample_volume,
+                    aspiration_speed=10,
+                    dispense_speed=10,
+                ),
+                RunNMR(
+                    nmr=self.instrument,
+                    on_finish=self.on_finish,
+                ),
+                Transfer(
+                    from_vessel=self.instrument,
+                    to_vessel=self.children[0].vessel,
+                    volume=self.sample_volume,
+                    aspiration_speed=10,
+                    dispense_speed=10,
+                ),
             ]
 
         # TODO add implied steps for additional analytical methods
