@@ -49,7 +49,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self.logger = logging.getLogger('optimizer.dynamic_step')
 
     def _get_params_template(self) -> None:
-        """Get dictionary of all parametrs to be optimized.
+        """Get dictionary of all parameters to be optimized.
 
         Updates parameters attribute in form:
             (Dict): Nested dictionary of optimizing steps and corresponding parameters of the form:
@@ -135,7 +135,6 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self.working_xdl_copy = new_xdl
 
         self.save()
-        print('###', id(self._graph))
 
         self.working_xdl_copy.prepare_for_execution(self.graph,
                                                     interactive=False,
@@ -149,7 +148,6 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # saving graph for future xdl updates
         self._graph = graph
-        print('***', id(self._graph))
 
         # getting parameters from the *raw* xdl
         self._get_params_template()
@@ -217,7 +215,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             self.logger.debug('Added extra RunRaman blank step.')
 
     def interactive_final_analysis_callback(self):
-        """Callback function to promt user input for final analysis"""
+        """Callback function to prompt user input for final analysis"""
 
         msg = 'You are running FinalAnalysis step interactively.\n'
         msg += f'Current procedure is running towards >{self.target}< parameters.\n'
@@ -256,13 +254,14 @@ VALUE ###\n'
         procedure. Updates the state (current result) parameter.
 
         Args:
-            data (Any): Spectral data (e.g. NMR) of the final product
+            data (Tuple[np.array, np.array, float]): Spectral data of the final
+                product as X and Y datapoints and a timestamp.
         """
 
         self._analyzer.load_spectrum(data)
 
         # final parsing occurs in SpectraAnalyzer.final_analysis
-        result = self._analyzer.final_analysis()
+        result = self._analyzer.final_analysis(self.reference, self.target)
 
         self.state['current_result'] = result
 
@@ -276,13 +275,21 @@ VALUE ###\n'
             self.logger.info('Max iterations reached. Done.')
             return True
 
-        if self.state['current_result']['final_parameter'] >= self.target[
-                'final_parameter']:
-            self.logger.info('Target parameter reached. Done.')
-            return True
+        params = []
 
-        else:
-            return False
+        for target_parameter in self.target:
+            self.logger.info(
+                'Target parameter (%s) is %.02f.',
+                target_parameter,
+                self.state['current_result'][target_parameter],
+            )
+
+            params.append(
+                self.state['current_result'][target_parameter] >
+                self.target[target_parameter]
+            )
+
+        return all(params)
 
     def on_start(self):
 

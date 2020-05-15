@@ -1,7 +1,4 @@
 {
-  "directed": true,
-  "multigraph": true,
-  "graph": {},
   "nodes": [
     {
       "type": "reactor",
@@ -9,12 +6,12 @@
       "y": 240,
       "internalId": 10,
       "label": "reactor",
+      "id": "reactor",
       "class": "ChemputerReactor",
       "name": "reactor",
       "current_volume": 0,
       "max_volume": 300,
-      "necks": 2,
-      "id": "reactor"
+      "necks": 2
     },
     {
       "type": "valve",
@@ -22,23 +19,23 @@
       "y": 120,
       "internalId": 16,
       "label": "valve_H",
+      "id": "valve_H",
       "class": "ChemputerValve",
       "name": "valve_H",
-      "address": "192.168.1.122",
-      "id": "valve_H"
+      "address": "192.168.1.122"
     },
     {
       "type": "pump",
       "x": 240,
-      "y": 40,
+      "y": 0,
       "internalId": 17,
       "label": "pump_H",
+      "id": "pump_H",
       "class": "ChemputerPump",
       "name": "pump_H",
       "address": "192.168.1.102",
       "max_volume": 25,
-      "current_volume": 0,
-      "id": "pump_H"
+      "current_volume": 0
     },
     {
       "type": "waste",
@@ -46,35 +43,12 @@
       "y": 40,
       "internalId": 18,
       "label": "waste_H",
+      "id": "waste_H",
       "class": "ChemputerWaste",
       "name": "waste_H",
       "current_volume": 0,
       "max_volume": 2000,
-      "necks": 1,
-      "id": "waste_H"
-    },
-    {
-      "type": "valve",
-      "x": 360,
-      "y": 240,
-      "internalId": 22,
-      "label": "valve_J",
-      "class": "ChemputerValve",
-      "name": "valve_J",
-      "address": "192.168.1.127",
-      "id": "valve_J"
-    },
-    {
-      "type": "vacuum",
-      "x": 440,
-      "y": 400,
-      "internalId": 75,
-      "label": "vacuum_pump",
-      "mode": "ethernet",
-      "class": "CVC3000",
-      "name": "vacuum_pump",
-      "address": "192.168.1.201",
-      "id": "vacuum_pump"
+      "necks": 1
     },
     {
       "type": "heater",
@@ -82,50 +56,74 @@
       "y": 320,
       "internalId": 78,
       "label": "stirrer_reactor",
+      "id": "stirrer_reactor",
       "mode": "ethernet",
       "class": "IKARCTDigital",
       "name": "stirrer_reactor",
-      "address": "192.168.1.203",
-      "id": "stirrer_reactor"
-    },
-    {
-      "type": "vacuum",
-      "x": 360,
-      "y": 400,
-      "internalId": 47,
-      "label": "vacuum_reactor",
-      "class": "ChemputerVacuum",
-      "name": "vacuum_reactor",
-      "port": "",
-      "address": "",
-      "mode": "ethernet",
-      "id": "vacuum_reactor"
+      "address": "192.168.1.203"
     },
     {
       "type": "flask",
       "x": 160,
       "y": 200,
+      "label": "flask_water",
+      "id": "flask_water",
+      "internalId": 0,
       "max_volume": 100,
       "current_volume": 0,
       "class": "ChemputerFlask",
       "chemical": "water",
-      "name": "flask_water",
-      "label": "flask_water",
-      "id": "flask_water",
-      "internalId": 0
+      "name": "flask_water"
     },
     {
       "type": "flask",
       "x": 320,
       "y": 200,
+      "label": "flask_nitrogen",
+      "id": "flask_nitrogen",
+      "internalId": 1,
       "max_volume": 100,
       "current_volume": 0,
       "class": "ChemputerFlask",
       "chemical": "nitrogen",
-      "name": "flask_nitrogen",
-      "label": "flask_nitrogen",
-      "id": "flask_nitrogen",
-      "internalId": 1
+      "name": "flask_nitrogen"
+    },
+    {
+      "id": "nmr",
+      "type": "custom",
+      "x": 120,
+      "y": 120,
+      "customProperties": {
+        "name": {
+          "name": "name",
+          "id": "name",
+          "units": "",
+          "type": "str"
+        }
+      },
+      "class": "ChemputerNMR",
+      "name": "nmr",
+      "internalId": 2,
+      "label": "nmr",
+      "current_volume": 0
+    },
+    {
+      "id": "raman",
+      "type": "custom",
+      "x": 360,
+      "y": 320,
+      "customProperties": {
+        "name": {
+          "name": "name",
+          "id": "name",
+          "units": "",
+          "type": "str"
+        }
+      },
+      "class": "OceanOpticsRaman",
+      "name": "raman",
+      "internalId": 3,
+      "label": "raman"
     }
   ],
   "links": [
@@ -133,118 +131,89 @@
       "id": 49,
       "sourceInternal": 10,
       "targetInternal": 16,
-      "port": "(0,4)",
       "source": "reactor",
       "target": "valve_H",
-      "key": 0
-    },
-    {
-      "id": 71,
-      "sourceInternal": 10,
-      "targetInternal": 22,
-      "port": "(0,-1)",
-      "source": "reactor",
-      "target": "valve_J",
-      "key": 0
+      "port": "(0,4)"
     },
     {
       "id": 34,
       "sourceInternal": 16,
       "targetInternal": 17,
-      "port": "(-1,0)",
       "source": "valve_H",
       "target": "pump_H",
-      "key": 0
+      "port": "(-1,0)"
     },
     {
       "id": 48,
       "sourceInternal": 16,
       "targetInternal": 10,
-      "port": "(4,0)",
       "source": "valve_H",
       "target": "reactor",
-      "key": 0
+      "port": "(4,0)"
     },
     {
       "id": 96,
       "sourceInternal": 16,
       "targetInternal": 18,
-      "port": "(0,0)",
       "source": "valve_H",
       "target": "waste_H",
-      "key": 0
+      "port": "(0,0)"
     },
     {
       "id": 33,
       "sourceInternal": 17,
       "targetInternal": 16,
-      "port": "(0,-1)",
       "source": "pump_H",
       "target": "valve_H",
-      "key": 0
-    },
-    {
-      "id": 102,
-      "sourceInternal": 22,
-      "targetInternal": 10,
-      "port": "(-1,0)",
-      "source": "valve_J",
-      "target": "reactor",
-      "key": 0
-    },
-    {
-      "id": 50,
-      "sourceInternal": 22,
-      "targetInternal": 47,
-      "port": "(2,0)",
-      "source": "valve_J",
-      "target": "vacuum_reactor",
-      "key": 0
-    },
-    {
-      "id": 51,
-      "sourceInternal": 75,
-      "targetInternal": 47,
-      "port": "(,)",
-      "source": "vacuum_pump",
-      "target": "vacuum_reactor",
-      "key": 0
+      "port": "(0,-1)"
     },
     {
       "id": 79,
       "sourceInternal": 78,
       "targetInternal": 10,
-      "port": "(,)",
       "source": "stirrer_reactor",
       "target": "reactor",
-      "key": 0
+      "port": "(,)"
     },
     {
-      "port": "(0,3)",
-      "source": "flask_water",
-      "target": "valve_H",
+      "id": 0,
       "sourceInternal": 0,
       "targetInternal": 16,
-      "id": 0,
-      "key": 0
+      "source": "flask_water",
+      "target": "valve_H",
+      "port": "(0,3)"
     },
     {
-      "port": "(0,5)",
-      "source": "flask_nitrogen",
-      "target": "valve_H",
+      "id": 1,
       "sourceInternal": 1,
       "targetInternal": 16,
-      "id": 1,
-      "key": 0
+      "source": "flask_nitrogen",
+      "target": "valve_H",
+      "port": "(0,5)"
     },
     {
-      "port": "(0,0)",
-      "source": "flask_nitrogen",
-      "target": "valve_J",
-      "sourceInternal": 1,
-      "targetInternal": 22,
-      "id": 2,
-      "key": 0
+      "id": 4,
+      "sourceInternal": 2,
+      "targetInternal": 16,
+      "source": "nmr",
+      "target": "valve_H",
+      "port": "(0,2)"
+    },
+    {
+      "id": 5,
+      "sourceInternal": 16,
+      "targetInternal": 2,
+      "source": "valve_H",
+      "target": "nmr",
+      "port": "(2,0)"
+    },
+    {
+      "id": 6,
+      "sourceInternal": 3,
+      "targetInternal": 10,
+      "source": "raman",
+      "target": "reactor",
+      "port": "(,)"
     }
   ]
 }
