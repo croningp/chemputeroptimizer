@@ -12,11 +12,11 @@ class RunRaman(AbstractBaseStep):
     }
 
     def __init__(
-        self,
-        raman: str,
-        on_finish: Any,
-        blank: bool = False,
-        **kwargs
+            self,
+            raman: str,
+            on_finish: Any,
+            blank: bool = False,
+            **kwargs
     ):
         super().__init__(locals())
 
@@ -29,6 +29,6 @@ class RunRaman(AbstractBaseStep):
             raman.obtain_reference_spectrum()
         else:
             raman.get_spectrum()
-        spec = raman.spectrum.default_process()
+        spec = raman.spectrum.default_processing()
         self.on_finish(spec)
         return True

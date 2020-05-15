@@ -15,3 +15,15 @@ def find_instrument(graph: MultiDiGraph, method: str) -> str:
     for node, data in graph.nodes(data=True):
         if data['class'] == ANALYTICAL_INSTRUMENTS[method]:
             return node
+
+def find_nearest_waste(graph: MultiDiGraph, instrument: str) -> str:
+    """Get the waste container closest to the given instrument.
+
+    Args:
+        instrument (str): Name of the analytical instrument.
+
+    Returns:
+        str: ID of the nearest waste container
+    """
+
+

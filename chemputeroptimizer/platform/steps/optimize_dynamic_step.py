@@ -1,11 +1,15 @@
 import logging
 import os
 import json
+import re
 
 from typing import List, Callable, Optional, Dict, Any
 
-from xdl import xdl_copy, XDL
-from xdl.utils.errors import XDLError
+import AnalyticalLabware
+
+from xdl import XDL
+from xdl.errors import XDLError
+from xdl.utils.copy import xdl_copy
 from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from chemputerxdl.steps import (
     HeatChill,
@@ -45,7 +49,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self.logger = logging.getLogger('optimizer.dynamic_step')
 
     def _get_params_template(self) -> None:
-        """Get dictionary of all parametrs to be optimized.
+        """Get dictionary of all parameters to be optimized.
 
         Updates parameters attribute in form:
             (Dict): Nested dictionary of optimizing steps and corresponding parameters of the form:
@@ -132,8 +136,9 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         self.save()
 
-        self.working_xdl_copy.prepare_for_execution(self._graph,
-                                                    interactive=False)
+        self.working_xdl_copy.prepare_for_execution(self.graph,
+                                                    interactive=False,
+                                                    device_modules=[AnalyticalLabware])
         self._update_analysis_steps()
 
     def on_prepare_for_execution(self, graph):
@@ -152,7 +157,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
-        self.working_xdl_copy.prepare_for_execution(graph, interactive=False)
+        self.working_xdl_copy.prepare_for_execution(self.graph, interactive=False, device_modules=[AnalyticalLabware])
         self._update_analysis_steps()
 
         # load necessary tools
@@ -210,7 +215,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             self.logger.debug('Added extra RunRaman blank step.')
 
     def interactive_final_analysis_callback(self):
-        """Callback function to promt user input for final analysis"""
+        """Callback function to prompt user input for final analysis"""
 
         msg = 'You are running FinalAnalysis step interactively.\n'
         msg += f'Current procedure is running towards >{self.target}< parameters.\n'
@@ -219,8 +224,14 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         while True:
             answer = input(msg)
-            # TODO check with regex
-            param, param_value = answer.split(':')
+            pattern = r'.*:.*'
+            match = re.fullmatch(pattern, answer)
+            if not match:
+                warning_msg = '\n### Please type "PARAMETER NAME": PARAMETER \
+VALUE ###\n'
+                self.logger.warning(warning_msg)
+                continue
+            param, param_value = match[0].split(':')
 
             try:
                 self.logger.info('Last value for %s is %.02f, updating.',
@@ -243,13 +254,14 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         procedure. Updates the state (current result) parameter.
 
         Args:
-            data (Any): Spectral data (e.g. NMR) of the final product
+            data (Tuple[np.array, np.array, float]): Spectral data of the final
+                product as X and Y datapoints and a timestamp.
         """
 
         self._analyzer.load_spectrum(data)
 
         # final parsing occurs in SpectraAnalyzer.final_analysis
-        result = self._analyzer.final_analysis()
+        result = self._analyzer.final_analysis(self.reference, self.target)
 
         self.state['current_result'] = result
 
@@ -263,13 +275,21 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             self.logger.info('Max iterations reached. Done.')
             return True
 
-        if self.state['current_result']['final_parameter'] >= self.target[
-                'final_parameter']:
-            self.logger.info('Target parameter reached. Done.')
-            return True
+        params = []
 
-        else:
-            return False
+        for target_parameter in self.target:
+            self.logger.info(
+                'Target parameter (%s) is %.02f.',
+                target_parameter,
+                self.state['current_result'][target_parameter],
+            )
+
+            params.append(
+                self.state['current_result'][target_parameter] >
+                self.target[target_parameter]
+            )
+
+        return all(params)
 
     def on_start(self):
 

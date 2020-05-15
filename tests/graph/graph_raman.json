@@ -414,8 +414,8 @@
     },
     {
       "type": "flask",
-      "x": -120,
-      "y": 40,
+      "x": 320,
+      "y": 160,
       "label": "flask_distilled water",
       "id": "flask_distilled water",
       "internalId": 1,
@@ -921,14 +921,6 @@
       "port": "(,)"
     },
     {
-      "id": 0,
-      "sourceInternal": 1,
-      "targetInternal": 13,
-      "source": "flask_distilled water",
-      "target": "valve_Z",
-      "port": "(0,2)"
-    },
-    {
       "id": 3,
       "sourceInternal": 2,
       "targetInternal": 13,
@@ -951,6 +943,14 @@
       "source": "raman_spec",
       "target": "filter",
       "port": "(,)"
+    },
+    {
+      "id": 55,
+      "sourceInternal": 1,
+      "targetInternal": 16,
+      "source": "flask_distilled water",
+      "target": "valve_H",
+      "port": "(0,5)"
     }
   ]
 }

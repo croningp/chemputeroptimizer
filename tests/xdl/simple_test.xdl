@@ -1,0 +1,34 @@
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor"
+    />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      id="water"
+    />
+  </Reagents>
+
+  <Procedure>
+    <Add
+      reagent="water"
+      vessel="reactor"
+      volume="30 mL"
+    />
+    <Stir
+      vessel="reactor"
+      time="30 secs"
+    />
+    <FinalAnalysis method="NMR" sample_volume="5">
+      <Stir
+        vessel="reactor"
+        time="5 secs"
+      />
+    </FinalAnalysis>
+  </Procedure>
+
+</Synthesis>

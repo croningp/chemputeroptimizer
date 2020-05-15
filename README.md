@@ -41,11 +41,11 @@ You can omit both OptimizeStep and FinalAnalysis wrappers and run optimization o
 
 ## Features
 
-### v0.1.2
+### v0.1.3
 
-* Sequential Model Based Optimisation
+* Genetic Algorithm for Optimisation.
 
-* Optimization config files now support algorithm configuration.
+* Support NMR and Raman spectroscopy for analysis (as `spectrum_peak-area_XXX` where XXX is peak X coordinate and `spectrum_integration-area_LLL-RRR` where LLL and RRR - left and right area borders respectively).
 
 ## Development
 

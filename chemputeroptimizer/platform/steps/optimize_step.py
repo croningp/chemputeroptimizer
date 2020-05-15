@@ -1,6 +1,6 @@
 from typing import List, Callable, Optional, Dict, Any
 
-from xdl.utils.errors import XDLError
+from xdl.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, Step
 
 
@@ -19,7 +19,7 @@ class OptimizeStep(AbstractStep):
             XDL.
         max_value (float): Minimum parameter value for the optimization routine.
         min_value (float): Maximum parameter value for the optimization routine.
-    
+
     Example:
         ...
         <OptimizeStep "max_value"=1.2, "min_value"=3.2

@@ -38,6 +38,7 @@ SUPPORTED_FINAL_ANALYSIS_STEPS = [
 
 ANALYTICAL_INSTRUMENTS = {
     'Raman': 'OceanOpticsRaman',
+    'NMR': 'ChemputerNMR',
 }
 
 TARGET_PARAMETERS = [
@@ -45,6 +46,8 @@ TARGET_PARAMETERS = [
     'final_conversion',
     'final_purity',
     'final_parameter',
+    'spectrum_peak-area_XXX', # peak X coordinate (XXX)
+    'spectrum_integration-area_LLL-RRR', # area left (LLL) and right (RRR) border
 ]
 
 DEFAULT_OPTIMIZATION_PARAMETERS = {
