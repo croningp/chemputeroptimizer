@@ -342,7 +342,7 @@ VALUE ###\n'
             original_filename[:-4] + '_params.json',
         )
         with open(params_file, 'w') as f:
-            json.dump(self.parameters, f)
+            json.dump(self.parameters, f, indent=4)
 
         # saving algorithmic data
         alg_file = os.path.join(
