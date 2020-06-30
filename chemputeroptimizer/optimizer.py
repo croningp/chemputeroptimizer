@@ -84,6 +84,10 @@ loading.', optimize_steps)
 
         self._check_optimization_steps_and_parameters()
 
+        if not self._optimization_steps:
+            # TODO public methods for loading optimization steps
+            raise OptimizerError('No OptimizeSteps found or given!')
+
         self._initalise_optimize_step()
 
     def _check_final_analysis_steps(self) -> None:
