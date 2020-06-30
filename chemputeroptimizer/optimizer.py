@@ -7,6 +7,7 @@ import json
 import os
 
 from typing import Dict, Union
+from copy import deepcopy
 
 import AnalyticalLabware
 
@@ -287,9 +288,9 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                 raise OptimizerError('Parameters must be .json file!')
 
         else:
-            opt_params = DEFAULT_OPTIMIZATION_PARAMETERS.copy()
+            opt_params = deepcopy(DEFAULT_OPTIMIZATION_PARAMETERS)
 
-        for k, v in opt_params.items():
+        for k, _ in opt_params.items():
             if k not in DEFAULT_OPTIMIZATION_PARAMETERS:
                 raise ParameterError(
                     f'<{k}> not a valid optimization parameter!')
@@ -304,7 +305,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
             here = os.path.dirname(self._original_procedure)
             json_file = os.path.join(here, 'optimizer_config.json')
             with open(json_file, 'w') as f:
-                json.dump(opt_params, f)
+                json.dump(opt_params, f, indent=4)
 
         # updating algorithmAPI
         algorithm_parameters = opt_params.pop('algorithm')

@@ -34,7 +34,7 @@ class AlgorithmAPI():
 
         # OrderedDict used to preserve the order when parsing to a np.array
         self.current_setup = OrderedDict() # current parameters setup
-        self.setup_constraints = OrderedDict() # dictionary with data points contsraints
+        self.setup_constraints = OrderedDict() # dictionary with data points constraints
         self.current_result = OrderedDict() # current result parameters
         self.parameter_matrix = None
         self.result_matrix = None
@@ -58,7 +58,7 @@ class AlgorithmAPI():
 
     @property
     def method_config(self):
-        "Dictionary containing all neccessary configuration for an algorithm."
+        "Dictionary containing all necessary configuration for an algorithm."
         return self._method_config
 
     @method_config.setter
@@ -122,7 +122,7 @@ class AlgorithmAPI():
 
         Args:
             data (Dict): Nested dictionary containing all input parameters.
-            result (Dict): Nested dictionary containg all result parameters
+            result (Dict): Nested dictionary contaning all result parameters
                 with desired target value.
 
         Example:
