@@ -218,6 +218,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
                     self._xdl_object.steps[i] = self._create_optimize_step(
                         step, i, params)
+                    self._optimization_steps.update({f'{step.name}_{i}': f'{params}'})
 
     def _create_optimize_step(
             self,
