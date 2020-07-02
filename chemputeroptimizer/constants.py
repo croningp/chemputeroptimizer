@@ -27,9 +27,9 @@ SUPPORTED_ANALYTICAL_METHODS = [
 ]
 
 SUPPORTED_FINAL_ANALYSIS_STEPS = [
-    'Dry',
-    'Evaporate',
-    'Filter',
+    # 'Dry',
+    # 'Evaporate',
+    # 'Filter',
     'Stir',
     'Wait',
     'HeatChill',

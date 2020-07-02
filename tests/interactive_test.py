@@ -8,7 +8,7 @@ import AnalyticalLabware
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 co = ChemputerOptimizer(
-    os.path.join(HERE, 'xdl', 'simple_test.xdl'),
+    os.path.join(HERE, 'xdl', 'test_simple.xdl'),
     os.path.join(HERE, 'graph', 'graph_simple.json'),
     interactive=True,
 )

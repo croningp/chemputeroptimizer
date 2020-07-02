@@ -1,0 +1,12 @@
+{
+    "max_iterations": 1,
+    "target": {
+        "final_parameter": 1
+    },
+    "algorithm": {
+        "name": "ga",
+        "pop_size": 8,
+        "mutation_rate": 0.3
+    },
+    "reference": null
+}

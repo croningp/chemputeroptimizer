@@ -20,9 +20,13 @@ from .platform.steps import (
     OptimizeStep,
     FinalAnalysis,
 )
+from .platform.steps.utils import (
+    find_last_meaningful_step,
+)
 from .constants import (
     SUPPORTED_STEPS_PARAMETERS,
     DEFAULT_OPTIMIZATION_PARAMETERS,
+    SUPPORTED_FINAL_ANALYSIS_STEPS,
 )
 from .utils.errors import OptimizerError, ParameterError
 from .utils import (
@@ -104,8 +108,9 @@ loading.', optimize_steps)
 
         final_analysis_steps = []
 
-        for step in self._xdl_object.steps:
+        for i, step in enumerate(self._xdl_object.steps):
             if step.name == 'FinalAnalysis':
+                step.reference_step = self._xdl_object.steps[i - 1]
                 final_analysis_steps.append(step)
 
         if not final_analysis_steps and not self.interactive:
@@ -113,16 +118,22 @@ loading.', optimize_steps)
 add them to the procedure or run ChemputerOptimizer in interactive mode.')
 
         if not final_analysis_steps and self.interactive:
-            self.logger.info('No FinalAnalysis steps found, will wrap \
-the last step in the procedure with an interactive one')
-            # wrapping is not very elegant, but FinalAnalysis should
-            # always have a child step. No reason to create a separate
-            # Callback step to mimic the functionality that's already
-            # inside FinalAnalysis if method='interactive'
-            last_step = self._xdl_object.steps[-1]
-            self._xdl_object.steps[-1] = FinalAnalysis(
-                children=[last_step],
-                method='interactive',
+            position, last_meaningful_step = find_last_meaningful_step(
+                self._xdl_object.steps,
+                SUPPORTED_FINAL_ANALYSIS_STEPS,
+            )
+
+            self.logger.info('No FinalAnalysis steps found, will insert one \
+after the last %s step in the procedure (at position %s) with an interactive \
+method', last_meaningful_step.name, position)
+
+            self._xdl_object.steps.insert(
+                position,
+                FinalAnalysis(
+                    vessel=last_meaningful_step.vessel,
+                    method='interactive',
+                    reference_step=last_meaningful_step,
+                )
             )
 
     def _initalise_optimize_step(self) -> None:
