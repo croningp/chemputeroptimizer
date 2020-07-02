@@ -1,0 +1,28 @@
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor"
+    />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      id="water"
+    />
+  </Reagents>
+
+  <Procedure>
+    <Add
+      reagent="water"
+      vessel="reactor"
+      volume="30 mL"
+    />
+    <Stir
+      vessel="reactor"
+      time="30 secs"
+    />
+  </Procedure>
+
+</Synthesis>

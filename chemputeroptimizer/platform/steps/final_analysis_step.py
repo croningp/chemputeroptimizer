@@ -27,46 +27,50 @@ from ...constants import (
 
 
 class FinalAnalysis(AbstractStep):
-    """Wrapper for a step to obtain final yield and purity. Should be used
-    to indicate the last step of the procedure where pure material is obtained.
+    """Support for a step to obtain final yield and purity. Should be used
+    after the last step of the procedure where pure material is obtained.
 
     Steps supported:
-        Dry: material was dried and needs to be dissolved for analysis
-        Evaporate: material was concentrated and needs to be dissolved for analysis
-        Filter (solid): solid material was filtered and needs to be dissolved for analysis
-        Filter (filtrate) : dissolved material was filtered and filtrate could be analyzed directly
+        Stir: reaction is over and product remains in a reaction vessel.
+        HeatChill/HeatChillToTemp: reaction is over and product remains in a
+            reaction vessel (only at or near room temperature).
 
     Args:
-        children (List[Step]): List of steps to obtain final analysis from.
-            Max length 1. Reason for using a list is for later integration into
-            XDL.
-        method (str): Name of the analytical method for material analysis, e.g. Raman, NMR, HPLC, etc.
-            Will determine necessary steps to obtain analytical data, e.g. if sampling is required.
+        vessel (str): Name of the vessel (on the graph) where final product
+            remains at the end of the reaction.
+        method (str): Names of the analytical method for material
+            analysis, e.g. Raman, NMR, HPLC, etc. Will determine necessary steps
+            to obtain analytical data, e.g. if sampling is required.
+        sample_volume (int): Volume of product sample to be sent to the
+            analytical instrument. Either supplied, or determined in the graph.
     """
 
     PROP_TYPES = {
-        'children': List,
-        'method': List,
+        'vessel': str,
+        'method': str,
         'sample_volume': int,
         'instrument': str,
         'on_finish': Any,
+        'reference_step': Step,
     }
 
     INTERNAL_PROPS = [
         'instrument',
+        'reference_step',
         #'cleaning_solvent',
         #'nearest_waste',
     ]
 
     def __init__(
             self,
-            children: List[Step],
+            vessel: str,
             method: str,
             sample_volume: Optional[int] = None,
             on_finish: Optional[Any] = None,
 
             # Internal properties
             instrument: Optional[str] = None,
+            reference_step: Optional[Step] = None,
             #cleaning_solvent: Optional[str] = None,
             #nearest_waste: Optional[str] = None,
             **kwargs
@@ -77,17 +81,6 @@ class FinalAnalysis(AbstractStep):
         if method not in SUPPORTED_ANALYTICAL_METHODS:
             raise OptimizerError(f'Specified method {method} is not supported')
 
-        # Check there is only one child step.
-        if len(children) > 1:
-            raise XDLError('Only one step can be wrapped by OptimizeStep.')
-        self.step = children[0]
-
-        # check if the supported step was wrapped
-        if self.children[0].name not in SUPPORTED_FINAL_ANALYSIS_STEPS:
-            raise OptimizerError(
-                f'Substep {self.step.name} is not supported to run final analysis'
-            )
-
     def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
 
         if self.method != 'interactive':
@@ -95,15 +88,14 @@ class FinalAnalysis(AbstractStep):
 
     def get_steps(self) -> List[Step]:
         steps = []
-        steps.extend(self.children)
 
         # reaction is complete and reaction product
         # remains in reaction vessel
-        if isinstance(self.children[0],
+        if isinstance(self.reference_step,
                       (HeatChill, HeatChillToTemp, Wait, Stir)):
             try:
                 # checking for steps temperature
-                if not 18 <= self.children[0].temp <= 30:
+                if not 18 <= self.reference_step.temp <= 30:
                     raise OptimizerError(
                         'Final analysis only supported for room temperature \
 reaction mixture!')
@@ -120,6 +112,13 @@ reaction mixture!')
     def _get_analytical_steps(self) -> List:
         """Obtaining steps to perform analysis based on internal method attribute"""
 
+        if self.method == 'interactive':
+            return [
+                Callback(
+                    fn=self.on_finish,
+                )
+            ]
+
         # Raman
         # no special prepartion needed, just measure the spectrum
         if self.method == 'Raman':
@@ -130,18 +129,12 @@ reaction mixture!')
                 )
             ]
 
-        if self.method == 'interactive':
-            return [
-                Callback(
-                    fn=self.on_finish,
-                )
-            ]
         # NMR
         # take sample and send it to instrument, clean up afterwards
         if self.method == 'NMR':
             return [
                 Transfer(
-                    from_vessel=self.children[0].vessel,
+                    from_vessel=self.vessel,
                     to_vessel=self.instrument,
                     volume=self.sample_volume,
                     aspiration_speed=10,
@@ -153,7 +146,7 @@ reaction mixture!')
                 ),
                 Transfer(
                     from_vessel=self.instrument,
-                    to_vessel=self.children[0].vessel,
+                    to_vessel=self.vessel,
                     volume=self.sample_volume,
                     aspiration_speed=10,
                     dispense_speed=10,
