@@ -29,7 +29,7 @@ else:
 co = ChemputerOptimizer(
     procedure_file,
     os.path.join(HERE, 'graph', 'graph_simple.json'),
-    interactive=False,
+    interactive=args['interactive'],
 )
 
 for step in co._xdl_object.steps:

@@ -2,6 +2,7 @@ import logging
 import os
 import json
 import re
+import time
 
 from typing import List, Callable, Optional, Dict, Any
 
@@ -107,6 +108,10 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self.state['iteration'] += 1
         self.state['updated'] = True
 
+        # reset the iterator for the next iteration
+        self._cursor = 0
+        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
+
     def _update_xdl(self):
         """Creates a new copy of xdl procedure with updated parameters and
         saves the .xdl file"""
@@ -136,9 +141,11 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         self.save()
 
-        self.working_xdl_copy.prepare_for_execution(self.graph,
-                                                    interactive=False,
-                                                    device_modules=[AnalyticalLabware])
+        self.working_xdl_copy.prepare_for_execution(
+            self.graph,
+            interactive=False,
+            device_modules=[AnalyticalLabware]
+        )
         self._update_analysis_steps()
 
     def on_prepare_for_execution(self, graph):
@@ -157,11 +164,19 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
-        self.working_xdl_copy.prepare_for_execution(self.graph, interactive=False, device_modules=[AnalyticalLabware])
+        self.working_xdl_copy.prepare_for_execution(
+            self.graph,
+            interactive=False,
+            device_modules=[AnalyticalLabware]
+        )
         self._update_analysis_steps()
 
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
+
+        # iterating over xdl to allow checkpoints
+        self._cursor = 0
+        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
 
         self.state = {
             'iteration': 1,
@@ -271,6 +286,10 @@ VALUE ###\n'
 
     def _check_termination(self):
 
+        self.logger.info(
+            'Optimize Dynamic step running, current iteration: <%d>; last result: <%s>',
+            self.state['iteration'], self.state['current_result'])
+
         if self.state['iteration'] > self.max_iterations:
             self.logger.info('Max iterations reached. Done.')
             return True
@@ -293,25 +312,40 @@ VALUE ###\n'
 
     def on_start(self):
 
+        self.logger.info('Optimize Dynamic step starting')
+
         return []
 
     def on_continue(self):
 
-        self.logger.info(
-            'Optimize Dynamic step running, current iteration: <%d>; current result: <%s>',
-            self.state['iteration'], self.state['current_result'])
+        try:
+            next_step = next(self._xdl_iter)
+            self._cursor += 1
+            return [next_step]
 
-        if self._check_termination():
-            return []
+        except StopIteration:
+            # procedure is over, checking and restarting
 
-        if not self.state['updated']:
-            self.update_steps_parameters(self.state['current_result'])
-            self._update_state()
+            if not self.state['updated']:
+                self.update_steps_parameters(self.state['current_result'])
+                self._update_state()
 
-        return self.working_xdl_copy.steps
+            if self._check_termination():
+                return []
+
+            return self.on_continue()
 
     def on_finish(self):
         return []
+
+    def resume(self, platform_controller, logger=None, level=0):
+        # straight to on_continue
+        self.started = False
+        self.start_block = []
+
+        # creating new iterator from last cursor position
+        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor - 1:])
+        self.execute(platform_controller, logger=logger, level=level)
 
     def cleaning_steps(self):
         pass
