@@ -344,7 +344,8 @@ VALUE ###\n'
         self.start_block = []
 
         # creating new iterator from last cursor position
-        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor - 1:])
+        self._cursor -= 1
+        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
         self.execute(platform_controller, logger=logger, level=level)
 
     def cleaning_steps(self):
