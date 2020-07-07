@@ -183,6 +183,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
                 input(confirmation_msg)
                 # setting the new current volume
                 flask['current_volume'] = flask['max_volume']
+                self._previous_volume.pop(flask['name'], None)
 
     def _check_wastes_empty(self, platform_controller):
         """Ensure waste bottles are empty for the next iteration"""
@@ -208,13 +209,14 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             )
 
             previous_use *= 1.2 # 20% for extra safety
-            if previous_use < flask['max_volume'] - flask['current_volume']:
+            if previous_use > flask['max_volume'] - flask['current_volume']:
                 confirmation_msg = f'Please empty {flask["name"]} and press \
 Enter to continue\n'
                 # confirming
                 input(confirmation_msg)
                 # setting the new current volume
                 flask['current_volume'] = flask['max_volume']
+                self._previous_volume.pop(flask['name'], None)
 
     def execute(self, platform_controller, logger=None, level=0):
         """Dirty hack to get the state of the chemputer from its graph"""
