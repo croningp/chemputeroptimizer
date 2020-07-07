@@ -160,18 +160,24 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         )
 
         for flask in flasks_reagents:
-            previous_use = flask['max_volume'] - flask['current_volume']
+            try:
+                previous_volume = self._previous_volume[flask['name']]
+                previous_use = previous_volume - flask['current_volume']
+            except KeyError:
+                previous_use = flask['max_volume'] - flask['current_volume']
+            finally:
+                self._previous_volume[flask['name']] = flask['current_volume']
 
             self.logger.info(
-                'Used %f ml from %s, current volume is %f',
+                'Used %.2f ml from %s, current volume is %.2f',
                 previous_use,
-                flask,
+                flask['name'],
                 flask['current_volume']
             )
 
             previous_use *= 1.2 # 20% for extra safety
             if previous_use > flask['current_volume']:
-                confirmation_msg = f'Please refill {flask} with \
+                confirmation_msg = f'Please refill {flask["name"]} with \
 {flask["chemical"]} to {flask["max_volume"]} ml!'
                 # confirming
                 input(confirmation_msg)
@@ -216,6 +222,9 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         # iterating over xdl to allow checkpoints
         self._cursor = 0
         self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
+
+        # tracking of flask usage
+        self._previous_volume = {}
 
         self.state = {
             'iteration': 1,
