@@ -148,6 +148,11 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         )
         self._update_analysis_steps()
 
+    def execute(self, platform_controller, logger=None, level=0):
+        """Dirty hack to get the state of the chemputer from its graph"""
+
+        self._platform_controller = platform_controller
+        super().execute(platform_controller, logger, level)
     def on_prepare_for_execution(self, graph):
         """Additional preparations before execution"""
 
