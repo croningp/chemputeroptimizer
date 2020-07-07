@@ -21,7 +21,11 @@ from chemputerxdl.steps import (
 )
 
 from .steps_analysis import *
-from .utils import find_instrument
+from .utils import (
+    find_instrument,
+    get_reagent_flasks,
+    get_waste_containers,
+)
 from ...utils import SpectraAnalyzer, AlgorithmAPI
 
 
@@ -148,11 +152,41 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         )
         self._update_analysis_steps()
 
+    def _check_flasks_full(self, platform_controller):
+        """Ensure solvent and reagents flasks are full for the next iteration"""
+
+        flasks_reagents = get_reagent_flasks(
+            platform_controller.graph.graph # MultiDiGraph inside ChemputerGraph
+        )
+
+        for flask in flasks_reagents:
+            previous_use = flask['max_volume'] - flask['current_volume']
+
+            self.logger.info(
+                'Used %f ml from %s, current volume is %f',
+                previous_use,
+                flask,
+                flask['current_volume']
+            )
+
+            previous_use *= 1.2 # 20% for extra safety
+            if previous_use > flask['current_volume']:
+                confirmation_msg = f'Please refill {flask} with \
+{flask["chemical"]} to {flask["max_volume"]} ml!'
+                # confirming
+                input(confirmation_msg)
+                # setting the new current volume
+                flask['current_volume'] = flask['max_volume']
+
+    def _check_wastes_empty(self, platform_controller):
+        """Ensure waste bottles are empty for the next iteration"""
+
     def execute(self, platform_controller, logger=None, level=0):
         """Dirty hack to get the state of the chemputer from its graph"""
 
         self._platform_controller = platform_controller
         super().execute(platform_controller, logger, level)
+
     def on_prepare_for_execution(self, graph):
         """Additional preparations before execution"""
 
@@ -330,6 +364,9 @@ VALUE ###\n'
 
         except StopIteration:
             # procedure is over, checking and restarting
+
+            self._check_flasks_full(self._platform_controller)
+            self._check_wastes_empty(self._platform_controller)
 
             if not self.state['updated']:
                 self.update_steps_parameters(self.state['current_result'])
