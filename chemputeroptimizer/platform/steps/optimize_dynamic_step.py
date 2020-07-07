@@ -178,7 +178,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             previous_use *= 1.2 # 20% for extra safety
             if previous_use > flask['current_volume']:
                 confirmation_msg = f'Please refill {flask["name"]} with \
-{flask["chemical"]} to {flask["max_volume"]} ml!'
+{flask["chemical"]} to {flask["max_volume"]} ml and press Enter to continue.\n'
                 # confirming
                 input(confirmation_msg)
                 # setting the new current volume
@@ -186,6 +186,35 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
     def _check_wastes_empty(self, platform_controller):
         """Ensure waste bottles are empty for the next iteration"""
+
+        waste_containers = get_waste_containers(
+            platform_controller.graph.graph # MultiDiGraph inside ChemputerGraph
+        )
+
+        for flask in waste_containers:
+            try:
+                previous_volume = self._previous_volume[flask['name']]
+                previous_use = flask['current_volume'] - previous_volume
+            except KeyError:
+                previous_use = flask['current_volume']
+            finally:
+                self._previous_volume[flask['name']] = flask['current_volume']
+
+            self.logger.info(
+                'Filled %s with %.2f ml, current volume is %.2f',
+                flask['name'],
+                previous_use,
+                flask['current_volume']
+            )
+
+            previous_use *= 1.2 # 20% for extra safety
+            if previous_use < flask['max_volume'] - flask['current_volume']:
+                confirmation_msg = f'Please empty {flask["name"]} and press \
+Enter to continue\n'
+                # confirming
+                input(confirmation_msg)
+                # setting the new current volume
+                flask['current_volume'] = flask['max_volume']
 
     def execute(self, platform_controller, logger=None, level=0):
         """Dirty hack to get the state of the chemputer from its graph"""
