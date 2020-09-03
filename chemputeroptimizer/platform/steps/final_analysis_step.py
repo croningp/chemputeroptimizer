@@ -5,7 +5,11 @@ from networkx import MultiDiGraph
 from xdl.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, Step
 from xdl.steps.special_steps import Callback
+from chemputerxdl.utils.execution import get_nearest_node
 from chemputerxdl.steps import (
+    CleanBackbone,
+    CleanVessel,
+    PrimePumpForAdd,
     HeatChill,
     HeatChillToTemp,
     Wait,
@@ -16,7 +20,7 @@ from chemputerxdl.steps import (
     Add,
 )
 
-from .steps_analysis import RunRaman, RunNMR
+from .steps_analysis import RunRaman, RunNMR, RunHPLC
 from .utils import find_instrument, find_nearest_waste
 from ...utils import SpectraAnalyzer
 from ...utils.errors import OptimizerError
@@ -62,6 +66,7 @@ class FinalAnalysis(AbstractStep):
         'dilution_solvent': str,
         'instrument': str,
         'distribution_valve': str,
+        'injection_pump': str,
         'on_finish': Any,
         'reference_step': Step,
     }
@@ -69,6 +74,8 @@ class FinalAnalysis(AbstractStep):
     INTERNAL_PROPS = [
         'instrument',
         'reference_step',
+        'distribution_valve',
+        'injection_pump'
         #'cleaning_solvent',
         #'nearest_waste',
     ]
@@ -97,6 +104,10 @@ class FinalAnalysis(AbstractStep):
 
         if self.method != 'interactive':
             self.instrument = find_instrument(graph, self.method)
+
+        if self.method == 'HPLC':
+            self.distribution_valve = find_instrument(graph, "IDEX")
+            self.injection_pump = get_nearest_node(graph, self.dilution_vessel, "ChemputerIDEX")
 
     def get_steps(self) -> List[Step]:
         steps = []
@@ -165,7 +176,62 @@ reaction mixture!')
                 ),
             ]
 
-        # TODO add implied steps for additional analytical methods
-        # HPLC, NMR, pH
+        # HPLC
+        # take sample, dilute
+        if self.method == 'HPLC':
+            return self._get_hplc_steps()
 
-        return []
+        # TODO add implied steps for additional analytical methods
+        # pH
+
+    def _get_hplc_steps(self) -> List:
+        return [
+            # clean backbone
+            CleanBackbone(
+                solvent=self.dilution_solvent
+            ),
+            # prime tube
+            PrimePumpForAdd(
+                reagent="", 
+                reagent_vessel=self.vessel, 
+                volume=1
+            ),
+            # transfer sample to dilution vessel
+            Transfer(
+                from_vessel=self.vessel,
+                to_vessel=self.dilution_vessel,
+                volume=self.sample_volume,
+                aspiration_speed=10,
+                dispense_speed=10,
+            ),
+            # add solvent to dilution vessel (with stirring)
+            Add(
+                reagent=self.dilution_solvent,
+                vessel=self.dilution_vessel,
+                volume=self.dilution_volume,
+                stir=True
+            ),
+            # wait
+            Wait(
+                time=60
+            ),
+            # move to pump
+            # move to idex (slowly)
+            # RunHPLC(method="default")
+            RunHPLC(
+                hplc=self.instrument,
+                valve=self.valve,
+                on_finish=self.on_finish,
+             ),
+            # move rest of volume in pump to waste
+            # 3x transfer acetonitrile to dilution flask, then to waste
+            CleanVessel(
+                vessel=self.dilution_vessel, 
+                solvent=self.dilution_solvent,
+                volume=self.dilution_volume,
+                repeats=3
+            ),
+            # move acetonitrile to pump
+            # move to idex (slowly)
+            # RunHPLC(method="cleaning")
+        ]
