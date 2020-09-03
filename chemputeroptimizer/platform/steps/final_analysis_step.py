@@ -38,18 +38,30 @@ class FinalAnalysis(AbstractStep):
     Args:
         vessel (str): Name of the vessel (on the graph) where final product
             remains at the end of the reaction.
+        dilution_vessel (str): Name of the vessel to which the sample transfered 
+            and in which it gets diluted. Currently only needed for HPLC.
         method (str): Names of the analytical method for material
             analysis, e.g. Raman, NMR, HPLC, etc. Will determine necessary steps
             to obtain analytical data, e.g. if sampling is required.
         sample_volume (int): Volume of product sample to be sent to the
             analytical instrument. Either supplied, or determined in the graph.
+        dilution_volume (int): Volume of dilution solvent  used to dilute sample
+            to be sent to the analytical instrument. Currently only needed for HPLC.
+        dilution_solvent (str): Solvent used to dilute sample to be sent to the 
+            analytical instrument. Currently only needed for HPLC. Typically MeCN.
+        distribution_valve (str): Distribution valve (IDEX) used to trigger the HPLC.
+            Currently only needed for HPLC.
     """
 
     PROP_TYPES = {
         'vessel': str,
+        'dilution_vessel': str,
         'method': str,
         'sample_volume': int,
+        'dilution_volume': int,
+        'dilution_solvent': str,
         'instrument': str,
+        'distribution_valve': str,
         'on_finish': Any,
         'reference_step': Step,
     }
