@@ -18,6 +18,7 @@ from chemputerxdl.steps import (
     Dissolve,
     Stir,
     Add,
+    CMove,
 )
 
 from .steps_analysis import RunRaman, RunNMR, RunHPLC
@@ -107,6 +108,7 @@ class FinalAnalysis(AbstractStep):
 
         if self.method == 'HPLC':
             self.distribution_valve = find_instrument(graph, "IDEX")
+            self.nearest_waste = get_nearest_node(graph, self.dilution_vessel, "ChemputerWaste")
             self.injection_pump = get_nearest_node(graph, self.dilution_vessel, "ChemputerIDEX")
 
     def get_steps(self) -> List[Step]:
@@ -216,22 +218,71 @@ reaction mixture!')
                 time=60
             ),
             # move to pump
+            CMove(
+                from_vessel=self.dilution_vessel,
+                to_vessel=self.injection_pump,
+                volume=5, # dilution volume must be > 5
+                aspiration_speed=10
+            ),
             # move to idex (slowly)
+            CMove(
+                from_vessel=self.injection_pump,
+                to_vessel=self.distribution_valve,
+                volume=2.5,
+                dispense_speed=0.5
+            ),
             # RunHPLC(method="default")
             RunHPLC(
                 hplc=self.instrument,
                 valve=self.valve,
+                protocol='AH_default',
                 on_finish=self.on_finish,
              ),
             # move rest of volume in pump to waste
-            # 3x transfer acetonitrile to dilution flask, then to waste
+            CMove(
+                from_vessel=self.injection_pump,
+                to_vessel=self.nearest_waste,
+                volume=2.5
+            ),
+            # Clean dilution flask
             CleanVessel(
                 vessel=self.dilution_vessel, 
                 solvent=self.dilution_solvent,
                 volume=self.dilution_volume,
                 repeats=3
             ),
-            # move acetonitrile to pump
-            # move to idex (slowly)
+            # Clean sample loop
+            CMove(
+                from_vessel=self.dilution_solvent,
+                to_vessel=self.distribution_valve,
+                volume=5,
+                dispense_speed=0.5
+            ),
+            # move acetonitrile to pump for blank run
+            CMove(
+                from_vessel=self.dilution_solvent,
+                to_vessel=self.injection_pump,
+                volume=5,
+                aspiration_speed=10
+            ),
+            # move to idex (slowly) for blank run
+            CMove(
+                from_vessel=self.injection_pump,
+                to_vessel=self.distribution_valve,
+                volume=2.5,
+                dispense_speed=0.5
+            ),
             # RunHPLC(method="cleaning")
+            RunHPLC(
+                hplc=self.instrument,
+                valve=self.valve,
+                protocol='AH_cleaning',
+                on_finish=self.on_finish,
+             ),
+            # move rest of volume in pump to waste
+            CMove(
+                from_vessel=self.injection_pump,
+                to_vessel=self.nearest_waste,
+                volume=2.5
+            ),
         ]
