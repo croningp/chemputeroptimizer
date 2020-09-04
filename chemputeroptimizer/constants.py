@@ -39,6 +39,8 @@ SUPPORTED_FINAL_ANALYSIS_STEPS = [
 ANALYTICAL_INSTRUMENTS = {
     'Raman': 'OceanOpticsRaman',
     'NMR': 'ChemputerNMR',
+    'HPLC': 'ChemputerHPLC',
+    'IDEX': 'ChemputerIDEX'
 }
 
 TARGET_PARAMETERS = [
