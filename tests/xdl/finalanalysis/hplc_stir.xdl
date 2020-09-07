@@ -1,0 +1,37 @@
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor"
+    />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      id="water"
+    />
+  </Reagents>
+
+  <Procedure>
+    <Add
+      reagent="water"
+      vessel="reactor"
+      volume="30 mL"
+    />
+    <Stir
+      vessel="reactor"
+      time="30 secs"
+    />
+    <FinalAnalysis
+      method="HPLC"
+      method_props={run_method="AH_default", cleaning_method="AH_cleaning"}
+      vessel="reactor"
+      sample_volume="0.1"
+      dilution_vessel="dilution"
+      dilution_volume="10"
+      dilution_solvent="acetonitrile"
+    />
+  </Procedure>
+
+</Synthesis>
