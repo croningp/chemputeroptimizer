@@ -60,9 +60,10 @@ class FinalAnalysis(AbstractStep):
 
     PROP_TYPES = {
         'vessel': str,
-        'dilution_vessel': str,
         'method': str,
+        'method_props': Dict,
         'sample_volume': int,
+        'dilution_vessel': str,
         'dilution_volume': int,
         'dilution_solvent': str,
         'instrument': str,
@@ -78,21 +79,27 @@ class FinalAnalysis(AbstractStep):
         'distribution_valve',
         'injection_pump'
         #'cleaning_solvent',
-        #'nearest_waste',
+        'nearest_waste',
     ]
 
     def __init__(
             self,
             vessel: str,
             method: str,
+            method_props: Dict,
             sample_volume: Optional[int] = None,
+            dilution_vessel: Optional[str]= None,
+            dilution_volume: Optional[int]= None,
+            dilution_solvent: Optional[str]= None,
             on_finish: Optional[Any] = None,
 
             # Internal properties
             instrument: Optional[str] = None,
             reference_step: Optional[Step] = None,
             #cleaning_solvent: Optional[str] = None,
-            #nearest_waste: Optional[str] = None,
+            distribution_valve: Optional[str] = None,
+            injection_pump: Optional[str] = None,
+            nearest_waste: Optional[str] = None,
             **kwargs
         ) -> None:
         super().__init__(locals())
@@ -100,6 +107,9 @@ class FinalAnalysis(AbstractStep):
         # check if method is valid
         if method not in SUPPORTED_ANALYTICAL_METHODS:
             raise OptimizerError(f'Specified method {method} is not supported')
+
+        if method == 'HPLC' and dilution_volume < 5:
+                raise OptimizerError(f'Dilution volume for HPLC analysis must be at least 5 mL.')
 
     def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
 
@@ -235,7 +245,7 @@ reaction mixture!')
             RunHPLC(
                 hplc=self.instrument,
                 valve=self.valve,
-                protocol='AH_default',
+                protocol=self.method_props['run_method'],
                 on_finish=self.on_finish,
              ),
             # move rest of volume in pump to waste
@@ -276,7 +286,7 @@ reaction mixture!')
             RunHPLC(
                 hplc=self.instrument,
                 valve=self.valve,
-                protocol='AH_cleaning',
+                protocol=self.method_props['cleaning_method'],
                 on_finish=self.on_finish,
              ),
             # move rest of volume in pump to waste

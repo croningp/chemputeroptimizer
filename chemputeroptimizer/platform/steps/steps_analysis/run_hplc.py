@@ -38,7 +38,7 @@ class RunHPLC(AbstractBaseStep):
         else:
             sleep(30*60)
         hplc.standby()
-        hplc.get_spectrum()
-        spec = hplc.spectrum.default_processing()
-        self.on_finish(spec)
+        #hplc.get_spectrum()
+        #spec = hplc.spectrum.default_processing()
+        #self.on_finish(spec)
         return True
