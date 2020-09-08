@@ -11,7 +11,12 @@ import AnalyticalLabware
 from xdl import XDL
 from xdl.errors import XDLError
 from xdl.utils.copy import xdl_copy
-from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
+from xdl.steps.base_steps import (
+    AbstractStep,
+    AbstractDynamicStep,
+    Step,
+    AbstractAsyncStep,
+)
 from chemputerxdl.steps import (
     HeatChill,
     HeatChillToTemp,
@@ -223,6 +228,42 @@ Enter to continue\n'
 
         self._platform_controller = platform_controller
         super().execute(platform_controller, logger, level)
+
+    def get_simulation_steps(self):
+        """Should return steps for the simulation.
+
+        No need to call the method, since the simulate method is overwritten.
+        """
+
+    def simulate(self, platform_controller):
+        """Run the optimization routine in the simulation mode.
+
+        Since the optimizer handles simulation mode correctly, including various
+        analytical methods (via "simulated" spectrum) and interactive method for
+        the final analysis, the method is overwritten from the parent .simulate.
+        The current method just executes the on_continue steps sequence just as 
+        the normal execute method.
+        """
+
+        continue_block = self.on_continue()
+        self.executor.prepare_block_for_execution(self.graph, continue_block)
+
+        while continue_block:
+            for step in continue_block:
+                if isinstance(step, AbstractAsyncStep):
+                    self.async_steps.append(step)
+                self.executor.execute_step(
+                    platform_controller, step, async_steps=self.async_steps
+                )
+
+            continue_block = self.on_continue()
+            self.executor.prepare_block_for_execution(
+                self.graph,
+                continue_block
+            )
+
+        # Kill all threads
+        self._post_finish()
 
     def on_prepare_for_execution(self, graph):
         """Additional preparations before execution"""
