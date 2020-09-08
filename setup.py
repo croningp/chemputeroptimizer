@@ -10,7 +10,7 @@ setup(
     install_requires=[
         "xdl @ git+ssh://git@gitlab.com/croningroup/chemputer/xdl.git",
         "numpy",
-        "scikit-optimize",
+        "scikit-optimize>=0.8",
         "AnalyticalLabware @ git+ssh://git@gitlab.com/croningroup/chemputer/analyticallabware.git",
     ]
 )
