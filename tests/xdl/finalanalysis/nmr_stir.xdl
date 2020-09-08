@@ -25,6 +25,7 @@
     />
     <FinalAnalysis 
       method="NMR"
+      method_props="{'protocol': '1D PROTON', 'protocol_options': {'Scan': 'StandardScan'}}"
       vessel="reactor"
       sample_volume="5"
     />
