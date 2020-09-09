@@ -3,6 +3,7 @@ from typing import List, Callable, Optional, Dict, Any
 from networkx import MultiDiGraph
 
 from xdl.errors import XDLError
+from xdl.constants import JSON_PROP_TYPE
 from xdl.steps.base_steps import AbstractStep, Step
 from xdl.steps.special_steps import Callback
 from chemputerxdl.utils.execution import get_nearest_node
@@ -61,7 +62,7 @@ class FinalAnalysis(AbstractStep):
     PROP_TYPES = {
         'vessel': str,
         'method': str,
-        'method_props': Dict,
+        'method_props': JSON_PROP_TYPE,
         'sample_volume': int,
         'dilution_vessel': str,
         'dilution_volume': int,
@@ -77,7 +78,7 @@ class FinalAnalysis(AbstractStep):
         'instrument',
         'reference_step',
         'distribution_valve',
-        'injection_pump'
+        'injection_pump',
         #'cleaning_solvent',
         'nearest_waste',
     ]
@@ -86,7 +87,7 @@ class FinalAnalysis(AbstractStep):
             self,
             vessel: str,
             method: str,
-            method_props: Dict,
+            method_props: JSON_PROP_TYPE = None,
             sample_volume: Optional[int] = None,
             dilution_vessel: Optional[str]= None,
             dilution_volume: Optional[int]= None,
@@ -244,9 +245,9 @@ reaction mixture!')
             # RunHPLC(method="default")
             RunHPLC(
                 hplc=self.instrument,
-                valve=self.valve,
-                protocol=self.method_props['run_method'],
+                valve=self.distribution_valve,
                 on_finish=self.on_finish,
+                **self.method_props
              ),
             # move rest of volume in pump to waste
             CMove(
@@ -285,9 +286,9 @@ reaction mixture!')
             # RunHPLC(method="cleaning")
             RunHPLC(
                 hplc=self.instrument,
-                valve=self.valve,
-                protocol=self.method_props['cleaning_method'],
+                valve=self.distribution_valve,
                 on_finish=self.on_finish,
+                **self.method_props
              ),
             # move rest of volume in pump to waste
             CMove(
