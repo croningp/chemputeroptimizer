@@ -25,7 +25,7 @@
     />
     <FinalAnalysis
       method="HPLC"
-      method_props="{'run_method'='AH_default', 'cleaning_method'='AH_cleaning'}"
+      method_props="{'run_method':'AH_default', 'cleaning_method':'AH_cleaning'}"
       vessel="reactor"
       sample_volume="0.1"
       dilution_vessel="dilution"
