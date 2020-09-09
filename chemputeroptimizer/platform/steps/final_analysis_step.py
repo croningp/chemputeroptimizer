@@ -63,13 +63,14 @@ class FinalAnalysis(AbstractStep):
         'vessel': str,
         'method': str,
         'method_props': JSON_PROP_TYPE,
-        'sample_volume': int,
+        'sample_volume': float,
         'dilution_vessel': str,
-        'dilution_volume': int,
+        'dilution_volume': float,
         'dilution_solvent': str,
         'instrument': str,
         'distribution_valve': str,
         'injection_pump': str,
+        'nearest_waste': str,
         'on_finish': Any,
         'reference_step': Step,
     }
@@ -88,9 +89,9 @@ class FinalAnalysis(AbstractStep):
             vessel: str,
             method: str,
             method_props: JSON_PROP_TYPE = None,
-            sample_volume: Optional[int] = None,
+            sample_volume: Optional[float] = None,
             dilution_vessel: Optional[str]= None,
-            dilution_volume: Optional[int]= None,
+            dilution_volume: Optional[float]= None,
             dilution_solvent: Optional[str]= None,
             on_finish: Optional[Any] = None,
 
@@ -109,7 +110,7 @@ class FinalAnalysis(AbstractStep):
         if method not in SUPPORTED_ANALYTICAL_METHODS:
             raise OptimizerError(f'Specified method {method} is not supported')
 
-        if method == 'HPLC' and dilution_volume < 5:
+        if method == 'HPLC' and float(dilution_volume) < 5.0:
                 raise OptimizerError(f'Dilution volume for HPLC analysis must be at least 5 mL.')
 
     def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
