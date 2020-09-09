@@ -3,8 +3,10 @@
 SUPPORTED_STEPS_PARAMETERS = {
     'Add': {
         "volume",
-        "mass",
         "time",
+    },
+    'AddSolid': {
+        "mass",
     },
     'HeatChill': {
         "time",
