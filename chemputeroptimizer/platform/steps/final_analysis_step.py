@@ -3,6 +3,7 @@ from typing import List, Callable, Optional, Dict, Any
 from networkx import MultiDiGraph
 
 from xdl.errors import XDLError
+from xdl.constants import JSON_PROP_TYPE
 from xdl.steps.base_steps import AbstractStep, Step
 from xdl.steps.special_steps import Callback
 from chemputerxdl.steps import (
@@ -52,6 +53,7 @@ class FinalAnalysis(AbstractStep):
         'instrument': str,
         'on_finish': Any,
         'reference_step': Step,
+        'method_props': JSON_PROP_TYPE,
     }
 
     INTERNAL_PROPS = [
@@ -67,6 +69,7 @@ class FinalAnalysis(AbstractStep):
             method: str,
             sample_volume: Optional[int] = None,
             on_finish: Optional[Any] = None,
+            method_props: JSON_PROP_TYPE = None,
 
             # Internal properties
             instrument: Optional[str] = None,
@@ -132,28 +135,33 @@ reaction mixture!')
         # NMR
         # take sample and send it to instrument, clean up afterwards
         if self.method == 'NMR':
-            return [
-                Transfer(
-                    from_vessel=self.vessel,
-                    to_vessel=self.instrument,
-                    volume=self.sample_volume,
-                    aspiration_speed=10,
-                    dispense_speed=10,
-                ),
-                RunNMR(
-                    nmr=self.instrument,
-                    on_finish=self.on_finish,
-                ),
-                Transfer(
-                    from_vessel=self.instrument,
-                    to_vessel=self.vessel,
-                    volume=self.sample_volume,
-                    aspiration_speed=10,
-                    dispense_speed=10,
-                ),
-            ]
+            return self._get_nmr_steps()
 
         # TODO add implied steps for additional analytical methods
         # HPLC, NMR, pH
 
         return []
+
+    def _get_nmr_steps(self) -> List:
+        """ Returns the steps relevant for NMR analysis execution. """
+        return [
+            Transfer(
+                from_vessel=self.vessel,
+                to_vessel=self.instrument,
+                volume=self.sample_volume,
+                aspiration_speed=10,
+                dispense_speed=10,
+            ),
+            RunNMR(
+                nmr=self.instrument,
+                on_finish=self.on_finish,
+                **self.method_props,
+            ),
+            Transfer(
+                from_vessel=self.instrument,
+                to_vessel=self.vessel,
+                volume=self.sample_volume,
+                aspiration_speed=10,
+                dispense_speed=10,
+            ),
+        ]

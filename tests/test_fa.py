@@ -35,6 +35,8 @@ co = ChemputerOptimizer(
 for step in co._xdl_object.steps:
     if step.name == 'FinalAnalysis':
         print('FinalAnalysis steps:\n\t', step.steps)
+        for substep in step.steps:
+            print('\t', substep.name, '\t', substep.properties)
 
 c = Chempiler(
     experiment_code='',
@@ -44,5 +46,7 @@ c = Chempiler(
     device_modules=[ChemputerAPI, AnalyticalLabware]
 )
 
-co.prepare_for_optimization()
+co.prepare_for_optimization(
+    os.path.join(HERE, 'xdl', 'optimizer_config.json')
+)
 co.optimize(c)
