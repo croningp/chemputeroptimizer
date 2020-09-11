@@ -160,20 +160,6 @@
       "can_filter": false
     },
     {
-      "id": "dilution",
-      "type": "reactor",
-      "x": 560,
-      "y": 320,
-      "internalId": 15,
-      "label": "dilution",
-      "class": "ChemputerReactor",
-      "name": "dilution",
-      "current_volume": 0,
-      "max_volume": 100,
-      "necks": 2,
-      "can_filter": false
-    },
-    {
       "id": "acetonitrile",
       "type": "flask",
       "x": 680,
@@ -312,6 +298,20 @@
       "port": 5000,
       "address": "192.168.1.44",
       "mode": "ethernet"
+    },
+    {
+      "id": "dilution",
+      "type": "flask",
+      "x": 560,
+      "y": 320,
+      "class": "ChemputerFlask",
+      "name": "dilution",
+      "chemical": "",
+      "current_volume": 100,
+      "max_volume": 100,
+      "can_filter": false,
+      "internalId": 15,
+      "label": "dilution"
     }
   ],
   "links": [
@@ -436,22 +436,6 @@
       "port": "(0,4)"
     },
     {
-      "id": 16,
-      "sourceInternal": 4,
-      "targetInternal": 15,
-      "source": "valve_2",
-      "target": "dilution",
-      "port": "(5,0)"
-    },
-    {
-      "id": 36,
-      "sourceInternal": 15,
-      "targetInternal": 5,
-      "source": "dilution",
-      "target": "valve_3",
-      "port": "(1,3)"
-    },
-    {
       "id": 38,
       "sourceInternal": 37,
       "targetInternal": 5,
@@ -516,19 +500,35 @@
       "port": "(,)"
     },
     {
-      "id": 46,
-      "sourceInternal": 34,
-      "targetInternal": 15,
-      "source": "hotplate",
-      "target": "dilution",
-      "port": "(,)"
-    },
-    {
       "id": 35,
       "sourceInternal": 43,
       "targetInternal": 33,
       "source": "idex",
       "target": "hplc",
+      "port": "(,)"
+    },
+    {
+      "id": 16,
+      "sourceInternal": 4,
+      "targetInternal": 15,
+      "source": "valve_2",
+      "target": "dilution",
+      "port": "(5,0)"
+    },
+    {
+      "id": 36,
+      "sourceInternal": 15,
+      "targetInternal": 5,
+      "source": "dilution",
+      "target": "valve_3",
+      "port": "(0,3)"
+    },
+    {
+      "id": 46,
+      "sourceInternal": 34,
+      "targetInternal": 15,
+      "source": "hotplate",
+      "target": "dilution",
       "port": "(,)"
     }
   ]
