@@ -522,6 +522,14 @@
       "source": "hotplate",
       "target": "dilution",
       "port": "(,)"
+    },
+    {
+      "id": 35,
+      "sourceInternal": 43,
+      "targetInternal": 33,
+      "source": "idex",
+      "target": "hplc",
+      "port": "(,)"
     }
   ]
 }
