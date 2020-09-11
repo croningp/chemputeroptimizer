@@ -121,7 +121,7 @@ class FinalAnalysis(AbstractStep):
         if self.method == 'HPLC':
             self.distribution_valve = find_instrument(graph, "IDEX")
             self.nearest_waste = get_nearest_node(graph, self.dilution_vessel, "ChemputerWaste")
-            self.injection_pump = get_nearest_node(graph, self.dilution_vessel, "ChemputerIDEX")
+            self.injection_pump = get_nearest_node(graph, self.dilution_vessel, "ChemputerPump")
 
     def get_steps(self) -> List[Step]:
         steps = []
@@ -207,7 +207,8 @@ reaction mixture!')
             # prime tube
             PrimePumpForAdd(
                 reagent="", 
-                reagent_vessel=self.vessel, 
+                reagent_vessel=self.vessel,
+                waste_vessel=self.nearest_waste,
                 volume=1
             ),
             # transfer sample to dilution vessel
