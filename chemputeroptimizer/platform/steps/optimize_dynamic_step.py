@@ -424,8 +424,8 @@ VALUE ###\n'
             )
 
             params.append(
-                self.state['current_result'][target_parameter] >
-                self.target[target_parameter]
+                float(self.state['current_result'][target_parameter]) >
+                float(self.target[target_parameter])
             )
 
         return all(params)
