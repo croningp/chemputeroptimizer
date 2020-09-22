@@ -193,20 +193,30 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         self.logger.debug('Probing for OptimizeStep steps in xdl object.')
 
+        # internal tag to avoid step unnecessary step creation
+        consistent = False
+
         # checking procedure for consistency
         for step in self._xdl_object.steps:
             if step.name == 'OptimizeStep':
-                if step.children[0] not in SUPPORTED_STEPS_PARAMETERS:
+                optimized_step = step.children[0].name
+                if optimized_step not in SUPPORTED_STEPS_PARAMETERS:
                     raise OptimizerError(
                         f'Step {step} is not supported for optimization')
 
                 for parameter in step.optimize_properties:
-                    if parameter not in SUPPORTED_STEPS_PARAMETERS[step]:
+                    if parameter not in SUPPORTED_STEPS_PARAMETERS[optimized_step]:
                         raise ParameterError(
                             f'Parameter {parameter} is not supported for step {step}'
                         )
+                self._optimization_steps.update(
+                    {f'{optimized_step}_{step.id}': f'{step.optimize_properties}'}
+                )
+                self.logger.debug('Found OptimizeStep for %s.', optimized_step)
+                consistent = True
 
-        if self._optimization_steps:
+        # creating steps only if no OptimizeStep found in the procedure
+        if self._optimization_steps and not consistent:
             for optimization_step in self._optimization_steps:
                 # unpacking step data from "Step_ID"
                 step, sid = optimization_step.split('_')
