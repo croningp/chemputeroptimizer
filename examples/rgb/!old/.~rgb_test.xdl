@@ -1,0 +1,45 @@
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor"
+    />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      id="1M iodine thf solution"
+    />
+    <Reagent
+      id="25 % ammonia water"
+    />
+    <Reagent
+      id="4-formylbenzonitrile"
+    />
+  </Reagents>
+
+  <Procedure>
+    <AddSolid
+      vessel="reactor"
+      reagent="4-formylbenzonitrile"
+      mass="0.131 g"
+    />
+    <Add
+      vessel="reactor"
+      reagent="25 % ammonia water"
+      volume="10 mL"
+    />
+    <Add
+      vessel="reactor"
+      reagent="1M iodine thf solution"
+      volume="1.1 mL"
+      stir="True"
+    />
+    <Stir
+      vessel="reactor"
+      time="60 mins"
+    />
+  </Procedure>
+
+</Synthesis>

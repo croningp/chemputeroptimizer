@@ -1,0 +1,18 @@
+{
+  "nodes": [
+    {
+      "id": "hotplate",
+      "type": "heater",
+      "x": 360,
+      "y": 280,
+      "internalId": 24,
+      "label": "hotplate",
+      "class": "IKARETControlVisc",
+      "name": "hotplate",
+      "port": null,
+      "address": "192.168.1.51",
+      "mode": "ethernet"
+    }
+  ],
+  "links": []
+}

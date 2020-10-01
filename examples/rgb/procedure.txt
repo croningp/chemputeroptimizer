@@ -1,0 +1,4 @@
+4-formylbenzonitrile (131 mg), 25% ammonia water (10 mL), and  1M iodine thf solution (1.1 mL) were added to a round bottom flask and stirred for 1 hour.
+
+
+The following procedure is typical. Iodine (1.1 mmol) was added to a stirring solution of aldehyde (1 mmol) in ammonia water (10 mL of 28% solution) and THF (1 mL) at room temperature. The dark solution became colorless (or light gray in some cases) after stirring for 5–73 min, an indication that the reaction was complete. The reaction mixture was charged with aqueous Na2S2O3 (5 mL of 5% solution), followed by extraction with ether (2×15 mL), to give a practically pure nitrile product.

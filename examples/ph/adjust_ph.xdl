@@ -1,0 +1,47 @@
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor"
+    />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      id="kh2po4"
+    />
+    <Reagent
+      id="water"
+    />
+    <Reagent
+      id="k2hpo4"
+    />
+  </Reagents>
+
+  <Procedure>
+    <Add
+      vessel="reactor"
+      reagent="water"
+      volume="100 mL"
+    />
+    <Add
+      vessel="reactor"
+      reagent="k2hpo4"
+      volume="13.2 mL"
+      stir="true"
+    />
+    <Add
+      vessel="reactor"
+      reagent="kh2po4"
+      volume="86.8 mL"
+      stir="True"
+    />
+    <Stir
+      vessel="reactor"
+      time="1 mins"
+      continue_stirring="true"
+    />
+  </Procedure>
+
+</Synthesis>

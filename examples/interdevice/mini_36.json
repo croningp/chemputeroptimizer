@@ -1,0 +1,249 @@
+{
+  "nodes": [
+    {
+      "id": "valve_1",
+      "type": "valve",
+      "x": 320,
+      "y": 280,
+      "internalId": 0,
+      "label": "valve_1",
+      "class": "ChemputerValve",
+      "name": "valve_1",
+      "address": "192.168.1.31",
+      "current_volume": 0
+    },
+    {
+      "id": "valve_2",
+      "type": "valve",
+      "x": 480,
+      "y": 280,
+      "internalId": 1,
+      "label": "valve_2",
+      "class": "ChemputerValve",
+      "name": "valve_2",
+      "address": "192.168.1.32",
+      "current_volume": 0
+    },
+    {
+      "id": "valve_3",
+      "type": "valve",
+      "x": 640,
+      "y": 280,
+      "internalId": 2,
+      "label": "valve_3",
+      "class": "ChemputerValve",
+      "name": "valve_3",
+      "address": "192.168.1.33",
+      "current_volume": 0
+    },
+    {
+      "id": "pump_1",
+      "type": "pump",
+      "x": 320,
+      "y": 160,
+      "internalId": 3,
+      "label": "pump_1",
+      "class": "ChemputerPump",
+      "name": "pump_1",
+      "address": "192.168.1.61",
+      "max_volume": 5,
+      "current_volume": 0
+    },
+    {
+      "id": "pump_2",
+      "type": "pump",
+      "x": 480,
+      "y": 160,
+      "internalId": 4,
+      "label": "pump_2",
+      "class": "ChemputerPump",
+      "name": "pump_2",
+      "address": "192.168.1.62",
+      "max_volume": 5,
+      "current_volume": 0
+    },
+    {
+      "id": "pump_3",
+      "type": "pump",
+      "x": 640,
+      "y": 160,
+      "internalId": 5,
+      "label": "pump_3",
+      "class": "ChemputerPump",
+      "name": "pump_3",
+      "address": "192.168.1.63",
+      "max_volume": 5,
+      "current_volume": 0
+    },
+    {
+      "id": "waste_1",
+      "type": "waste",
+      "x": 400,
+      "y": 360,
+      "internalId": 16,
+      "label": "waste_1",
+      "class": "ChemputerWaste",
+      "name": "waste_1",
+      "current_volume": 0,
+      "max_volume": 100,
+      "necks": 1,
+      "can_filter": false
+    },
+    {
+      "id": "waste_2",
+      "type": "waste",
+      "x": 560,
+      "y": 360,
+      "internalId": 17,
+      "label": "waste_2",
+      "class": "ChemputerWaste",
+      "name": "waste_2",
+      "current_volume": 0,
+      "max_volume": 100,
+      "necks": 1,
+      "can_filter": false
+    },
+    {
+      "id": "waste_3",
+      "type": "waste",
+      "x": 720,
+      "y": 360,
+      "internalId": 18,
+      "label": "waste_3",
+      "class": "ChemputerWaste",
+      "name": "waste_3",
+      "current_volume": 0,
+      "max_volume": 100,
+      "necks": 1,
+      "can_filter": false
+    },
+    {
+      "id": "water",
+      "type": "flask",
+      "x": 240,
+      "y": 360,
+      "internalId": 22,
+      "label": "water",
+      "class": "ChemputerFlask",
+      "name": "water",
+      "chemical": "water",
+      "current_volume": 100,
+      "max_volume": 100,
+      "can_filter": false
+    }
+  ],
+  "links": [
+    {
+      "id": 6,
+      "sourceInternal": 3,
+      "targetInternal": 0,
+      "source": "pump_1",
+      "target": "valve_1",
+      "port": "(0,-1)"
+    },
+    {
+      "id": 7,
+      "sourceInternal": 0,
+      "targetInternal": 3,
+      "source": "valve_1",
+      "target": "pump_1",
+      "port": "(-1,0)"
+    },
+    {
+      "id": 8,
+      "sourceInternal": 4,
+      "targetInternal": 1,
+      "source": "pump_2",
+      "target": "valve_2",
+      "port": "(0,-1)"
+    },
+    {
+      "id": 9,
+      "sourceInternal": 1,
+      "targetInternal": 4,
+      "source": "valve_2",
+      "target": "pump_2",
+      "port": "(-1,0)"
+    },
+    {
+      "id": 10,
+      "sourceInternal": 5,
+      "targetInternal": 2,
+      "source": "pump_3",
+      "target": "valve_3",
+      "port": "(0,-1)"
+    },
+    {
+      "id": 11,
+      "sourceInternal": 2,
+      "targetInternal": 5,
+      "source": "valve_3",
+      "target": "pump_3",
+      "port": "(-1,0)"
+    },
+    {
+      "id": 12,
+      "sourceInternal": 2,
+      "targetInternal": 1,
+      "source": "valve_3",
+      "target": "valve_2",
+      "port": "(2,1)"
+    },
+    {
+      "id": 13,
+      "sourceInternal": 1,
+      "targetInternal": 2,
+      "source": "valve_2",
+      "target": "valve_3",
+      "port": "(1,2)"
+    },
+    {
+      "id": 14,
+      "sourceInternal": 1,
+      "targetInternal": 0,
+      "source": "valve_2",
+      "target": "valve_1",
+      "port": "(2,1)"
+    },
+    {
+      "id": 15,
+      "sourceInternal": 0,
+      "targetInternal": 1,
+      "source": "valve_1",
+      "target": "valve_2",
+      "port": "(1,2)"
+    },
+    {
+      "id": 19,
+      "sourceInternal": 0,
+      "targetInternal": 16,
+      "source": "valve_1",
+      "target": "waste_1",
+      "port": "(0,0)"
+    },
+    {
+      "id": 20,
+      "sourceInternal": 1,
+      "targetInternal": 17,
+      "source": "valve_2",
+      "target": "waste_2",
+      "port": "(0,0)"
+    },
+    {
+      "id": 21,
+      "sourceInternal": 2,
+      "targetInternal": 18,
+      "source": "valve_3",
+      "target": "waste_3",
+      "port": "(0,0)"
+    },
+    {
+      "id": 23,
+      "sourceInternal": 22,
+      "targetInternal": 0,
+      "source": "water",
+      "target": "valve_1",
+      "port": "(0,3)"
+    }
+  ]
+}
