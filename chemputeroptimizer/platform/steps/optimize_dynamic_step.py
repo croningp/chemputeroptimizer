@@ -150,12 +150,14 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         self.save()
 
+        self._update_analysis_steps()
+
         self.working_xdl_copy.prepare_for_execution(
             self.graph,
             interactive=False,
             device_modules=[AnalyticalLabware]
         )
-        self._update_analysis_steps()
+        # self._update_analysis_steps()
 
     def _check_flasks_full(self, platform_controller):
         """Ensure solvent and reagents flasks are full for the next iteration"""
@@ -241,7 +243,7 @@ Enter to continue\n'
         Since the optimizer handles simulation mode correctly, including various
         analytical methods (via "simulated" spectrum) and interactive method for
         the final analysis, the method is overwritten from the parent .simulate.
-        The current method just executes the on_continue steps sequence just as 
+        The current method just executes the on_continue steps sequence just as
         the normal execute method.
         """
 
@@ -281,12 +283,14 @@ Enter to continue\n'
 
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
+        self._update_analysis_steps()
+
         self.working_xdl_copy.prepare_for_execution(
             self.graph,
             interactive=False,
             device_modules=[AnalyticalLabware]
         )
-        self._update_analysis_steps()
+        # self._update_analysis_steps()
 
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
