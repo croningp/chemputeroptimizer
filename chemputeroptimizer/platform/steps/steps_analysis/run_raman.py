@@ -7,14 +7,14 @@ class RunRaman(AbstractBaseStep):
 
     PROP_TYPES = {
         'raman': str,
-        'on_finish': Any,
+        'on_finish': Callable,
         'blank': bool,
     }
 
     def __init__(
             self,
             raman: str,
-            on_finish: Any,
+            on_finish: Callable,
             blank: bool = False,
             **kwargs
     ):

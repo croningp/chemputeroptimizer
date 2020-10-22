@@ -24,6 +24,9 @@ from chemputerxdl.steps import (
     StopHeatChill,
     Transfer,
 )
+from chemputerxdl.executor.cleaning import (
+    get_cleaning_schedule,
+)
 
 from .steps_analysis import *
 from .utils import (
@@ -241,7 +244,7 @@ Enter to continue\n'
         Since the optimizer handles simulation mode correctly, including various
         analytical methods (via "simulated" spectrum) and interactive method for
         the final analysis, the method is overwritten from the parent .simulate.
-        The current method just executes the on_continue steps sequence just as 
+        The current method just executes the on_continue steps sequence just as
         the normal execute method.
         """
 
@@ -281,11 +284,14 @@ Enter to continue\n'
 
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
+
         self.working_xdl_copy.prepare_for_execution(
             self.graph,
             interactive=False,
             device_modules=[AnalyticalLabware]
         )
+
+        # additional preparations for the analysis steps
         self._update_analysis_steps()
 
         # load necessary tools
@@ -315,6 +321,9 @@ Enter to continue\n'
 
         analysis_method = None
 
+        cleaning_schedule = get_cleaning_schedule(self.working_xdl_copy)
+        organic_cleaning_solvents = cleaning_schedule[0]
+
         for step in self.working_xdl_copy.steps:
             if step.name == 'FinalAnalysis':
                 analysis_method = step.method
@@ -322,6 +331,20 @@ Enter to continue\n'
                     step.on_finish = self.interactive_final_analysis_callback
                     continue
                 step.on_finish = self.on_final_analysis
+
+        # Looking for Analyze steps:
+        for i, step in enumerate(self.working_xdl_copy.steps):
+            if step.name == 'Analyze':
+                # Updating the cleaning solvent
+                step.cleaning_solvent = organic_cleaning_solvents[i]
+
+                # The reason for an extra call here is to update the vessel for
+                # the cleaning solvent which may only be given after the whole
+                # procedure was prepared and the cleaning schedule is set
+                self.working_xdl_copy.executor.add_internal_properties_to_step(
+                    self._graph,
+                    step
+                )
 
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
