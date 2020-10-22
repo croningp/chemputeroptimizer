@@ -71,6 +71,7 @@ class FinalAnalysis(AbstractStep):
         'distribution_valve': str,
         'injection_pump': str,
         'nearest_waste': str,
+        'priming_waste': str,
         'on_finish': Any,
         'reference_step': Step,
     }
@@ -82,6 +83,7 @@ class FinalAnalysis(AbstractStep):
         'injection_pump',
         #'cleaning_solvent',
         'nearest_waste',
+        'priming_waste',
     ]
 
     def __init__(
@@ -102,6 +104,7 @@ class FinalAnalysis(AbstractStep):
             distribution_valve: Optional[str] = None,
             injection_pump: Optional[str] = None,
             nearest_waste: Optional[str] = None,
+            priming_waste: Optional[str] = None,
             **kwargs
         ) -> None:
         super().__init__(locals())
@@ -121,6 +124,7 @@ class FinalAnalysis(AbstractStep):
         if self.method == 'HPLC':
             self.distribution_valve = find_instrument(graph, "IDEX")
             self.nearest_waste = get_nearest_node(graph, self.dilution_vessel, "ChemputerWaste")
+            self.priming_waste = get_nearest_node(graph, self.vessel, "ChemputerWaste")
             self.injection_pump = get_nearest_node(graph, self.dilution_vessel, "ChemputerPump")
 
     def get_steps(self) -> List[Step]:
@@ -206,9 +210,9 @@ reaction mixture!')
             ),
             # prime tube
             PrimePumpForAdd(
-                reagent="", 
+                reagent="", # not nice
                 reagent_vessel=self.vessel,
-                waste_vessel=self.nearest_waste,
+                waste_vessel=self.priming_waste,
                 volume=1
             ),
             # transfer sample to dilution vessel
@@ -290,6 +294,7 @@ reaction mixture!')
                 hplc=self.instrument,
                 valve=self.distribution_valve,
                 on_finish=self.on_finish,
+                is_cleaning=True,
                 **self.method_props
              ),
             # move rest of volume in pump to waste
