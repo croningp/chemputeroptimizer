@@ -110,7 +110,12 @@ loading.', optimize_steps)
 
         for i, step in enumerate(self._xdl_object.steps):
             if step.name == 'FinalAnalysis':
-                step.reference_step = self._xdl_object.steps[i - 1]
+                # building reference step dictionary
+                reference_step = {
+                    'step': self._xdl_object.steps[i - 1].name,
+                    'properties': self._xdl_object.steps[i - 1].properties,
+                }
+                step.reference_step = reference_step
                 final_analysis_steps.append(step)
 
         if not final_analysis_steps and not self.interactive:
@@ -127,10 +132,15 @@ add them to the procedure or run ChemputerOptimizer in interactive mode.')
 after the last %s step in the procedure (at position %s) with an interactive \
 method', last_meaningful_step.name, position)
 
+            last_meaningful_step = {
+                'step': last_meaningful_step.name,
+                'properties': last_meaningful_step.properties,
+            }
+
             self._xdl_object.steps.insert(
                 position,
                 FinalAnalysis(
-                    vessel=last_meaningful_step.vessel,
+                    vessel=last_meaningful_step['properties']['vessel'],
                     method='interactive',
                     reference_step=last_meaningful_step,
                 )

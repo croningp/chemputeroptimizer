@@ -1,0 +1,102 @@
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor"
+    />
+    <Component
+      id="rotavap"
+      type="rotavap"
+    />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      id="TBAF (0.1 M in THF)"
+    />
+    <Reagent
+      id="TBAF (1 M in THF)"
+    />
+    <Reagent
+      id="acetophenone (0.4M in THF)"
+    />
+    <Reagent
+      id="trifluoromethylsilane (0.48M in THF)"
+    />
+    <Reagent
+      id="THF"
+      use_for_cleaning="true"
+    />
+  </Reagents>
+
+  <Procedure>
+    <Add
+      vessel="reactor"
+      reagent="acetophenone (0.4M in THF)"
+      volume="10 mL"
+      speed="3.0"
+    />
+    <Add
+      vessel="reactor"
+      reagent="trifluoromethylsilane (0.48M in THF)"
+      volume="10 mL"
+      speed="3.0"
+      stir="True"
+    />
+    <Add
+      vessel="reactor"
+      reagent="TBAF (0.1 M in THF)"
+      volume="0.4 mL"
+      speed="3.0"
+      stir="True"
+    />
+    <OptimizeStep
+      id="1"
+      optimize_properties="{'time': {'max_value': 1800.0, 'min_value': 300}}" >
+      <Stir
+        vessel="reactor"
+        time="5 mins"
+      />
+    </OptimizeStep>
+    <Analyze
+      vessel="reactor"
+      method="NMR"
+      sample_volume="3 mL"
+      method_props="{'protocol': '1D FLUORINE+', 'protocol_options': {'Number': 128, 'AcquisitionTime': 3.2, 'RepetitionTime': 5, 'PulseAngle': 90}}"
+    />
+    <Add
+      vessel="reactor"
+      reagent="TBAF (1 M in THF)"
+      volume="4 mL"
+    />
+    <Stir
+      vessel="reactor"
+      time="5 mins"
+    />
+    <Analyze
+      vessel="reactor"
+      method="NMR"
+      sample_volume="3 mL"
+      method_props="{'protocol': '1D FLUORINE+', 'protocol_options': {'Number': 128, 'AcquisitionTime': 3.2, 'RepetitionTime': 5, 'PulseAngle': 90}}"
+    />
+    <FinalAnalysis
+      vessel="reactor"
+      method="NMR"
+      sample_volume="3 ml"
+      method_props="{'protocol': '1D EXTENDED+', 'protocol_options': {'Number': 128, 'AcquisitionTime': 3.2, 'RepetitionTime': 7, 'PulseAngle': 90}}"
+    />
+    <Transfer
+      from_vessel="reactor"
+      to_vessel="rotavap"
+      volume="all"
+    />
+    <Evaporate
+      vessel="rotavap"
+      time="30 mins"
+      pressure="100 mbar"
+      mode="auto"
+    />
+  </Procedure>
+
+</Synthesis>

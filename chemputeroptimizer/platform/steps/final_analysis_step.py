@@ -17,6 +17,7 @@ from chemputerxdl.steps import (
     Add,
 )
 
+from .analysis_step import Analyze
 from .steps_analysis import RunRaman, RunNMR
 from .utils import find_instrument, find_nearest_waste
 from ...utils import SpectraAnalyzer
@@ -27,7 +28,7 @@ from ...constants import (
 )
 
 
-class FinalAnalysis(AbstractStep):
+class FinalAnalysis(Analyze):
     """Support for a step to obtain final yield and purity. Should be used
     after the last step of the procedure where pure material is obtained.
 
@@ -49,119 +50,57 @@ class FinalAnalysis(AbstractStep):
     PROP_TYPES = {
         'vessel': str,
         'method': str,
-        'sample_volume': int,
+        'sample_volume': float,
         'instrument': str,
-        'on_finish': Any,
-        'reference_step': Step,
+        'on_finish': Callable,
+        'reference_step': JSON_PROP_TYPE,
         'method_props': JSON_PROP_TYPE,
+        'injection_pump': str,
+        'sample_transfer_volume': float,
+        'cleaning_solvent': str,
+        'cleaning_solvent_vessel': str,
+        'nearest_waste': str,
     }
 
     INTERNAL_PROPS = [
         'instrument',
         'reference_step',
-        #'cleaning_solvent',
-        #'nearest_waste',
+        'cleaning_solvent',
+        'nearest_waste',
+        'injection_pump',
+        'sample_transfer_volume',
+        'cleaning_solvent_vessel',
     ]
+
+    DEFAULT_PROPS = {
+        'on_finish': lambda spec: None,
+        # volume left in the syringe after sample is injected
+        'sample_transfer_volume': 2,
+        'method_props': {},
+    }
 
     def __init__(
             self,
             vessel: str,
             method: str,
-            sample_volume: Optional[int] = None,
-            on_finish: Optional[Any] = None,
-            method_props: JSON_PROP_TYPE = None,
+            sample_volume: Optional[float] = None,
+            on_finish: Optional[Callable] = 'default',
+            method_props: JSON_PROP_TYPE = 'default',
 
             # Internal properties
             instrument: Optional[str] = None,
-            reference_step: Optional[Step] = None,
-            #cleaning_solvent: Optional[str] = None,
-            #nearest_waste: Optional[str] = None,
+            reference_step: Optional[JSON_PROP_TYPE] = None,
+            cleaning_solvent: Optional[str] = None,
+            nearest_waste: Optional[str] = None,
+            injection_pump: Optional[str] = None,
+            sample_transfer_volume: Optional[float] = 'default',
+            cleaning_solvent_vessel: Optional[str] = None,
             **kwargs
         ) -> None:
-        super().__init__(locals())
+
+        print('#### LOCALS ####\n', locals())
+        Analyze.__init__(**locals())
 
         # check if method is valid
         if method not in SUPPORTED_ANALYTICAL_METHODS:
             raise OptimizerError(f'Specified method {method} is not supported')
-
-    def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
-
-        if self.method != 'interactive':
-            self.instrument = find_instrument(graph, self.method)
-
-    def get_steps(self) -> List[Step]:
-        steps = []
-
-        # reaction is complete and reaction product
-        # remains in reaction vessel
-        if isinstance(self.reference_step,
-                      (HeatChill, HeatChillToTemp, Wait, Stir)):
-            try:
-                # checking for steps temperature
-                if not 18 <= self.reference_step.temp <= 30:
-                    raise OptimizerError(
-                        'Final analysis only supported for room temperature \
-reaction mixture!')
-            except AttributeError:
-                pass
-
-        steps.extend(self._get_analytical_steps())
-
-        # TODO support other steps wrapped with FinalAnalysis, i.e. Filter, Dry
-        # required additional preparation of the sample, e.g. dissolution
-
-        return steps
-
-    def _get_analytical_steps(self) -> List:
-        """Obtaining steps to perform analysis based on internal method attribute"""
-
-        if self.method == 'interactive':
-            return [
-                Callback(
-                    fn=self.on_finish,
-                )
-            ]
-
-        # Raman
-        # no special prepartion needed, just measure the spectrum
-        if self.method == 'Raman':
-            return [
-                RunRaman(
-                    raman=self.instrument,
-                    on_finish=self.on_finish,
-                )
-            ]
-
-        # NMR
-        # take sample and send it to instrument, clean up afterwards
-        if self.method == 'NMR':
-            return self._get_nmr_steps()
-
-        # TODO add implied steps for additional analytical methods
-        # HPLC, NMR, pH
-
-        return []
-
-    def _get_nmr_steps(self) -> List:
-        """ Returns the steps relevant for NMR analysis execution. """
-        return [
-            Transfer(
-                from_vessel=self.vessel,
-                to_vessel=self.instrument,
-                volume=self.sample_volume,
-                aspiration_speed=10,
-                dispense_speed=10,
-            ),
-            RunNMR(
-                nmr=self.instrument,
-                on_finish=self.on_finish,
-                **self.method_props,
-            ),
-            Transfer(
-                from_vessel=self.instrument,
-                to_vessel=self.vessel,
-                volume=self.sample_volume,
-                aspiration_speed=10,
-                dispense_speed=10,
-            ),
-        ]

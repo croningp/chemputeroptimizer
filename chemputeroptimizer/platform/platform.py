@@ -5,6 +5,7 @@ from .steps import (
     OptimizeStep,
     OptimizeDynamicStep,
     FinalAnalysis,
+    Analyze,
 )
 
 
@@ -16,4 +17,5 @@ class OptimizerPlatform(ChemputerPlatform):
         step_lib['OptimizeStep'] = OptimizeStep
         step_lib['OptimizeDynamicStep'] = OptimizeDynamicStep
         step_lib['FinalAnalysis'] = FinalAnalysis
+        step_lib['Analyze'] = Analyze
         return step_lib
