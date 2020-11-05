@@ -39,6 +39,6 @@ class RunNMR(AbstractBaseStep):
             nmr.get_spectrum((self.protocol, self.protocol_options)) # Tuple!
         else:
             nmr.get_spectrum(None)
-        spec = nmr.spectrum.default_processing()
-        self.on_finish(spec)
+        nmr.spectrum.default_processing()
+        self.on_finish(nmr.spectrum.copy())
         return True

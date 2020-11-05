@@ -29,6 +29,6 @@ class RunRaman(AbstractBaseStep):
             raman.obtain_reference_spectrum()
         else:
             raman.get_spectrum()
-        spec = raman.spectrum.default_processing()
-        self.on_finish(spec)
+        raman.spectrum.default_processing()
+        self.on_finish(raman.spectrum.copy())
         return True

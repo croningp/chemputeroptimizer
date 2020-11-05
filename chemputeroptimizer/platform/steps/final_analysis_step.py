@@ -98,7 +98,6 @@ class FinalAnalysis(Analyze):
             **kwargs
         ) -> None:
 
-        print('#### LOCALS ####\n', locals())
         Analyze.__init__(**locals())
 
         # check if method is valid

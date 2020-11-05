@@ -407,16 +407,16 @@ VALUE ###\n'
 
         self.state['updated'] = False
 
-    def on_final_analysis(self, data):
+    def on_final_analysis(self, spectrum):
         """Callback function for when spectra has been recorded at end of
         procedure. Updates the state (current result) parameter.
 
         Args:
-            data (Tuple[np.array, np.array, float]): Spectral data of the final
-                product as X and Y datapoints and a timestamp.
+            spectrum (:obj:AbstractSpectrum): Spectrum object, contaning methods
+                for performing basic processing and analysis.
         """
 
-        self._analyzer.load_spectrum(data)
+        self._analyzer.load_spectrum(spectrum)
 
         # final parsing occurs in SpectraAnalyzer.final_analysis
         result = self._analyzer.final_analysis(self.reference, self.target)
