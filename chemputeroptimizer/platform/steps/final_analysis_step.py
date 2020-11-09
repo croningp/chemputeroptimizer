@@ -19,7 +19,7 @@ from chemputerxdl.steps import (
 
 from .analysis_step import Analyze
 from .steps_analysis import RunRaman, RunNMR
-from .utils import find_instrument, find_nearest_waste
+from .utils import find_instrument
 from ...utils import SpectraAnalyzer
 from ...utils.errors import OptimizerError
 from ...constants import (
@@ -48,6 +48,7 @@ class FinalAnalysis(Analyze):
     """
 
     PROP_TYPES = {
+        # step related
         'vessel': str,
         'method': str,
         'sample_volume': float,
@@ -55,27 +56,40 @@ class FinalAnalysis(Analyze):
         'on_finish': Callable,
         'reference_step': JSON_PROP_TYPE,
         'method_props': JSON_PROP_TYPE,
-        'injection_pump': str,
-        'sample_transfer_volume': float,
+        # method related
         'cleaning_solvent': str,
         'cleaning_solvent_vessel': str,
-        'nearest_waste': str,
+        'priming_waste': str,
+        # sample related
+        'injection_pump': str,
+        'sample_excess_volume': float,
+        'dilution_vessel': str,
+        'dilution_volume': float,
+        'dilution_solvent': str,
+        'dilution_solvent_vessel': str,
+        'distribution_valve': str,
+        'injection_waste': str,
     }
 
     INTERNAL_PROPS = [
         'instrument',
         'reference_step',
         'cleaning_solvent',
-        'nearest_waste',
+        'priming_waste',
         'injection_pump',
-        'sample_transfer_volume',
+        'sample_excess_volume',
         'cleaning_solvent_vessel',
+        'dilution_vessel',
+        'dilution_solvent_vessel',
+        'distribution_valve',
+        'injection_waste',
     ]
 
     DEFAULT_PROPS = {
+        # anonymous function to take 1 argument and return None
         'on_finish': lambda spec: None,
         # volume left in the syringe after sample is injected
-        'sample_transfer_volume': 2,
+        'sample_excess_volume': 2,
         'method_props': {},
     }
 
@@ -86,20 +100,23 @@ class FinalAnalysis(Analyze):
             sample_volume: Optional[float] = None,
             on_finish: Optional[Callable] = 'default',
             method_props: JSON_PROP_TYPE = 'default',
+            dilution_volume: Optional[float] = None,
+            dilution_solvent: Optional[str] = None,
 
             # Internal properties
             instrument: Optional[str] = None,
             reference_step: Optional[JSON_PROP_TYPE] = None,
             cleaning_solvent: Optional[str] = None,
-            nearest_waste: Optional[str] = None,
+            priming_waste: Optional[str] = None,
             injection_pump: Optional[str] = None,
-            sample_transfer_volume: Optional[float] = 'default',
+            sample_excess_volume: Optional[float] = 'default',
             cleaning_solvent_vessel: Optional[str] = None,
+            dilution_solvent_vessel: Optional[str] = None,
+            dilution_vessel: Optional[str] = None,
+            injection_waste: Optional[str] = None,
+            distribution_valve: Optional[str] = None,
+
             **kwargs
         ) -> None:
 
         Analyze.__init__(**locals())
-
-        # check if method is valid
-        if method not in SUPPORTED_ANALYTICAL_METHODS:
-            raise OptimizerError(f'Specified method {method} is not supported')

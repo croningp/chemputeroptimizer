@@ -3,6 +3,8 @@ from typing import List, Dict
 from xdl.steps import Step
 from xdl.constants import INERT_GAS_SYNONYMS
 
+from chemputerxdl.utils.execution import get_vessel_stirrer
+
 from networkx import MultiDiGraph
 
 from ...constants import ANALYTICAL_INSTRUMENTS
@@ -20,16 +22,6 @@ def find_instrument(graph: MultiDiGraph, method: str) -> str:
     for node, data in graph.nodes(data=True):
         if data['class'] == ANALYTICAL_INSTRUMENTS[method]:
             return node
-
-def find_nearest_waste(graph: MultiDiGraph, instrument: str) -> str:
-    """Get the waste container closest to the given instrument.
-
-    Args:
-        instrument (str): Name of the analytical instrument.
-
-    Returns:
-        str: ID of the nearest waste container
-    """
 
 def find_last_meaningful_step(
         procedure: List[Step],
@@ -89,3 +81,25 @@ def get_waste_containers(
             waste_containers.append(graph.nodes[node])
 
     return waste_containers
+
+def get_dilution_flask(graph: MultiDiGraph) -> str:
+    """ Get an empty flask with a stirrer attached to it.
+
+        Used to dilute the analyte before injecting into analytical instrument.
+    """
+
+    empty_flasks = [
+        flask
+        for flask, data in graph.nodes(data=True)
+        if data['class'] == 'ChemputerFlask' and not data['chemical']
+    ]
+
+    for flask in empty_flasks:
+        # looking for stirrer attached
+        found_stirrer = get_vessel_stirrer(graph, flask)
+
+        # if found stirrer, return current flask
+        if found_stirrer:
+            return flask
+
+    return None
