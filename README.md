@@ -7,7 +7,7 @@ The repo contains the optimizer package for Chemputer platoform to perform inter
 ```python
 from optimizer import ChemputerOptimizer
 
-co = ChemputerOptimizer('<xdl optimization procedure>', '<optimization graph>', <'path to OptimizeStep steps config'>)
+co = ChemputerOptimizer('<xdl optimization procedure>', '<optimization graph>')
 co.prepare_for_optimization(<'path to optimization config'>)
 co.optimize('<chempiler instance>')
 ```
@@ -34,18 +34,17 @@ Optionally some steps may be wrapped *FinalAnalysis* step with supported analyti
     time="15 mins" />
 </FinalAnalysis>
 ```
-Examples for `.json` config files are available for both [OptimizeStep config](/tests/config/valid_steps.json) and [optimization loop](/tests/config/valid_opt_config.json).
 
 **Note**
 You can omit both OptimizeStep and FinalAnalysis wrappers and run optimization of any procedure interactively by instantiating *ChemputerOptimizer* with `interactive=True` attribute.
 
 ## Features
 
-### v0.1.2
+### v0.2
 
-* Sequential Model Based Optimisation
+* HPLC and NMR analysis integrated
 
-* Optimization config files now support algorithm configuration.
+* Processing of NMR spectra added
 
 ## Development
 
