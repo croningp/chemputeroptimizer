@@ -334,9 +334,10 @@ Enter to continue\n'
 
         # Looking for Analyze steps:
         for i, step in enumerate(self.working_xdl_copy.steps):
-            if step.name == 'Analyze':
+            if step.name == 'Analyze' or step.name == 'FinalAnalysis':
                 # Updating the cleaning solvent
-                step.cleaning_solvent = organic_cleaning_solvents[i]
+                if step.cleaning_solvent is None:
+                    step.cleaning_solvent = organic_cleaning_solvents[i]
 
                 # The reason for an extra call here is to update the vessel for
                 # the cleaning solvent which may only be given after the whole

@@ -23,10 +23,14 @@ from chemputerxdl.steps import (
     HeatChillToTemp,
     Wait,
     Stir,
+    CleanBackbone,
+    PrimePumpForAdd,
+    Add,
+    CleanVessel,
 )
 
-from .steps_analysis import RunNMR, RunRaman
-from .utils import find_instrument
+from .steps_analysis import RunNMR, RunRaman, RunHPLC
+from .utils import find_instrument, get_dilution_flask
 from ...utils.errors import OptimizerError
 from ...constants import (
     SUPPORTED_ANALYTICAL_METHODS,
@@ -40,6 +44,20 @@ NO_PREPARATION_STEPS = [
     'Stir',
 ]
 
+# sample constants
+PRIMING_WASTE_VOLUME = 1 # to prime the tubing while acquiring sample
+DISSOLUTION_TIME = 60 # seconds
+NMR_CLEANING_DELAY = 120 # seconds
+HPLC_INJECTION_VOLUME = 2.5 # ml
+HPLC_INJECTION_EXCESS_VOLUME = 2 # ml
+HPLC_SAMPLE_LOOP_CLEANING_VOLUME = 5 # ml
+
+# speed constants
+SAMPLE_SPEED_MEDIUM = 10
+SAMPLE_SPEED_SLOW = 5
+HPLC_INJECTION_SPEED = 0.5
+
+
 class Analyze(AbstractStep):
     """A generic step to perform an analysis of the chemicals in a given vessel
 
@@ -52,6 +70,7 @@ class Analyze(AbstractStep):
     """
 
     PROP_TYPES = {
+        # step related
         'vessel': str,
         'method': str,
         'sample_volume': float,
@@ -59,27 +78,40 @@ class Analyze(AbstractStep):
         'on_finish': Callable,
         'reference_step': JSON_PROP_TYPE,
         'method_props': JSON_PROP_TYPE,
-        'injection_pump': str,
-        'sample_transfer_volume': float,
+        # method related
         'cleaning_solvent': str,
         'cleaning_solvent_vessel': str,
-        'nearest_waste': str,
+        'priming_waste': str,
+        # sample related
+        'injection_pump': str,
+        'sample_excess_volume': float,
+        'dilution_vessel': str,
+        'dilution_volume': float,
+        'dilution_solvent': str,
+        'dilution_solvent_vessel': str,
+        'distribution_valve': str,
+        'injection_waste': str,
     }
 
     INTERNAL_PROPS = [
         'instrument',
         'reference_step',
         'cleaning_solvent',
-        'nearest_waste',
+        'priming_waste',
         'injection_pump',
-        'sample_transfer_volume',
+        'sample_excess_volume',
         'cleaning_solvent_vessel',
+        'dilution_vessel',
+        'dilution_solvent_vessel',
+        'distribution_valve',
+        'injection_waste',
     ]
 
     DEFAULT_PROPS = {
+        # anonymous function to take 1 argument and return None
         'on_finish': lambda spec: None,
         # volume left in the syringe after sample is injected
-        'sample_transfer_volume': 2,
+        'sample_excess_volume': 2,
         'method_props': {},
     }
 
@@ -90,21 +122,37 @@ class Analyze(AbstractStep):
             sample_volume: Optional[float] = None,
             on_finish: Optional[Callable] = 'default',
             method_props: JSON_PROP_TYPE = 'default',
+            dilution_volume: Optional[float] = None,
+            dilution_solvent: Optional[str] = None,
 
             # Internal properties
             instrument: Optional[str] = None,
             reference_step: Optional[JSON_PROP_TYPE] = None,
             cleaning_solvent: Optional[str] = None,
-            nearest_waste: Optional[str] = None,
+            priming_waste: Optional[str] = None,
             injection_pump: Optional[str] = None,
-            sample_transfer_volume: Optional[float] = 'default',
+            sample_excess_volume: Optional[float] = 'default',
             cleaning_solvent_vessel: Optional[str] = None,
+            dilution_solvent_vessel: Optional[str] = None,
+            dilution_vessel: Optional[str] = None,
+            injection_waste: Optional[str] = None,
+            distribution_valve: Optional[str] = None,
+
             **kwargs
         ) -> None:
 
         # check if method is valid
         if method not in SUPPORTED_ANALYTICAL_METHODS:
             raise OptimizerError(f'Specified method {method} is not supported')
+
+        if method == 'HPLC' and dilution_volume is None and dilution_volume < 5:
+            raise OptimizerError('Dilution volume must be at least 5 ml for\
+HPLC analysis.')
+
+        # additional check for dilution solvent attribute
+        if dilution_volume is not None and dilution_solvent is None:
+            raise OptimizerError('Dilution solvent must be specified if volume\
+is given.')
 
         super().__init__(locals())
 
@@ -116,34 +164,57 @@ class Analyze(AbstractStep):
 
         self.instrument = find_instrument(graph, self.method)
 
-        # Nearest pump needed to store "buffer" of the sample volume
-        self.injection_pump = get_nearest_node(
-            graph=graph,
-            src=self.instrument,
-            target_vessel_class='ChemputerPump'
-        )
+        if self.sample_volume is not None:
+            # Nearest pump needed to store "buffer" of the sample volume
+            self.injection_pump = get_nearest_node(
+                graph=graph,
+                src=self.instrument,
+                target_vessel_class='ChemputerPump'
+            )
 
-        # Accessing target properties, so storing a graph object instead
-        injection_pump_obj = graph.nodes[self.injection_pump]
+            # Accessing target properties, so storing a graph object instead
+            injection_pump_obj = graph.nodes[self.injection_pump]
 
-        # Reducing if the desired volume exceeds the pump's max volume
-        if self.sample_transfer_volume + self.sample_volume > \
-            injection_pump_obj['max_volume']:
-            self.sample_transfer_volume = injection_pump_obj['max_volume'] - \
-                self.sample_volume
+            # Reducing if the desired volume exceeds the pump's max volume
+            if self.sample_excess_volume + self.sample_volume > \
+                injection_pump_obj['max_volume']:
+                self.sample_excess_volume = \
+                    injection_pump_obj['max_volume'] - self.sample_volume
 
-        # Obtain cleaning solvent vessel
+        # Obtaining cleaning solvent vessel
         self.cleaning_solvent_vessel = get_reagent_vessel(
             graph,
             self.cleaning_solvent
         )
 
-        # Obtaining nearest waste to dispose solvent after cleaning
-        self.nearest_waste = get_nearest_node(
+        # Obtaining nearest waste to dispose sample after priming
+        self.priming_waste = get_nearest_node(
+            graph=graph,
+            src=self.vessel,
+            target_vessel_class='ChemputerWaste'
+        )
+
+        # Obtaining nearest waste to dispose sample before injection
+        self.injection_waste = get_nearest_node(
             graph=graph,
             src=self.instrument,
             target_vessel_class='ChemputerWaste'
         )
+
+        # Updating if dilution is needed
+        if self.dilution_volume is not None:
+            self.dilution_solvent_vessel = get_reagent_vessel(
+                graph,
+                self.dilution_solvent
+            )
+
+            self.dilution_vessel = get_dilution_flask(graph)
+            if self.dilution_vessel is None:
+                raise OptimizerError('Dilution vessel is not found on graph!')
+
+        # Additional preparations for HPLC
+        if self.method == 'HPLC':
+            self.distribution_valve = find_instrument(graph, 'IDEX')
 
     def get_steps(self) -> List[Step]:
         steps = []
@@ -151,6 +222,7 @@ class Analyze(AbstractStep):
         # Preparation after the reference step
         steps.extend(self._get_preparation_steps())
 
+        # Actual analysis
         steps.extend(self._get_analytical_steps())
 
         # Appending steps needed for cleaning
@@ -184,6 +256,42 @@ reaction mixture!')
         # TODO support other steps wrapped with FinalAnalysis, i.e. Filter, Dry
         # required additional preparation of the sample, e.g. dissolution
 
+        # additional preparations if dilution is specified
+        if self.dilution_volume is not None:
+            steps.extend([
+                # clean backbone before
+                CleanBackbone(
+                    solvent=self.dilution_solvent
+                ),
+                # prime tubing
+                # FIXME
+                PrimePumpForAdd(
+                    reagent='',
+                    reagent_vessel=self.vessel,
+                    waste_vessel=self.priming_waste,
+                    volume=PRIMING_WASTE_VOLUME,
+                ),
+                # transferring sample
+                Transfer(
+                    from_vessel=self.vessel,
+                    to_vessel=self.dilution_vessel,
+                    volume=self.sample_volume,
+                    aspiration_speed=SAMPLE_SPEED_MEDIUM,
+                    dispense_speed=SAMPLE_SPEED_MEDIUM,
+                ),
+                # diluting
+                Add(
+                    reagent=self.dilution_solvent,
+                    vessel=self.dilution_vessel,
+                    volume=self.dilution_volume,
+                    stir=True
+                ),
+                # wait
+                Wait(
+                    time=DISSOLUTION_TIME
+                )
+            ])
+
         return steps
 
     def _get_analytical_steps(self) -> List[Step]:
@@ -213,6 +321,9 @@ reaction mixture!')
         if self.method == 'NMR':
             return self._get_nmr_steps()
 
+        if self.method == 'HPLC':
+            return self._get_hplc_steps()
+
         # TODO add implied steps for additional analytical methods
         # HPLC, NMR, pH
 
@@ -226,22 +337,22 @@ reaction mixture!')
             Transfer(
                 from_vessel=self.vessel,
                 to_vessel=self.injection_pump,
-                volume=self.sample_transfer_volume + self.sample_volume,
-                aspiration_speed=10,
+                volume=self.sample_excess_volume + self.sample_volume,
+                aspiration_speed=SAMPLE_SPEED_MEDIUM,
             ),
             # Injecting into the instrument
             Transfer(
                 from_vessel=self.injection_pump,
                 to_vessel=self.instrument,
                 volume=self.sample_volume,
-                aspiration_speed=10,
-                dispense_speed=10,
+                aspiration_speed=SAMPLE_SPEED_MEDIUM,
+                dispense_speed=SAMPLE_SPEED_MEDIUM,
             ),
             # Returning the excess back to the vessel
             Transfer(
                 from_vessel=self.injection_pump,
                 to_vessel=self.vessel,
-                volume=self.sample_transfer_volume,
+                volume=self.sample_excess_volume,
             ),
             # Running the instrument
             RunNMR(
@@ -254,7 +365,45 @@ reaction mixture!')
                 from_vessel=self.instrument,
                 to_vessel=self.vessel,
                 volume=self.sample_volume*1.2, # 20% extra
-                aspiration_speed=5,
+                aspiration_speed=SAMPLE_SPEED_SLOW,
+            ),
+        ]
+
+    def _get_hplc_steps(self) -> List:
+        """ Return steps relevant for the HPLC analysis.
+
+        Assuming that analyte was diluted and now stored in dilution_vessel.
+        """
+        return [
+            # Transfer to injection pump
+            Transfer(
+                from_vessel=self.dilution_vessel,
+                to_vessel=self.injection_pump,
+                # hardcoded for now, might be changed in the future
+                # to cover dilution case with various analytical techniques
+                volume=HPLC_INJECTION_EXCESS_VOLUME + HPLC_INJECTION_VOLUME,
+                aspiration_speed=SAMPLE_SPEED_MEDIUM
+            ),
+            # Charging distribution valve
+            Transfer(
+                from_vessel=self.injection_pump,
+                to_vessel=self.distribution_valve,
+                volume=HPLC_INJECTION_VOLUME,
+                dispense_speed=HPLC_INJECTION_SPEED,
+            ),
+            # Running analysis
+            RunHPLC(
+                hplc=self.instrument,
+                valve=self.distribution_valve,
+                on_finish=self.on_finish,
+                **self.method_props
+            ),
+            # Discarding the rest
+            Transfer(
+                from_vessel=self.injection_pump,
+                to_vessel=self.injection_waste,
+                # what's charged - what's injected
+                volume=HPLC_INJECTION_EXCESS_VOLUME
             ),
         ]
 
@@ -271,18 +420,76 @@ reaction mixture!')
                     from_vessel=self.cleaning_solvent_vessel,
                     to_vessel=self.instrument,
                     volume=self.sample_volume*1.5,
-                    dispense_speed=5,
+                    dispense_speed=SAMPLE_SPEED_SLOW,
                 ),
                 Wait(
-                    time=120,
+                    time=NMR_CLEANING_DELAY,
                 ),
                 Transfer(
                     from_vessel=self.instrument,
-                    to_vessel=self.nearest_waste,
+                    to_vessel=self.priming_waste,
                     volume=self.sample_volume*2,
-                    aspiration_speed=5,
+                    aspiration_speed=SAMPLE_SPEED_SLOW,
                 ),
             ]
 
             # Repeat cleaning twice
             return [Repeat(children=cleaning_steps, repeats=2)]
+
+        if self.method == 'HPLC':
+            return [
+                # Cleaning dilution flask
+                Transfer(
+                    from_vessel=self.dilution_vessel,
+                    to_vessel=self.injection_waste,
+                    # FIXME use "all" here
+                    # atm "all" doesn't get updated to the actual volume
+                    volume=self.dilution_volume + self.sample_excess_volume +\
+                        self.sample_volume,
+                ),
+                CleanVessel(
+                    vessel=self.dilution_vessel,
+                    solvent=self.cleaning_solvent,
+                    volume=self.dilution_volume + self.sample_excess_volume +\
+                        self.sample_volume,
+                    repeats=3,
+                    dry=False,
+                    temp=None,
+                ),
+                # Clean sample loop
+                Transfer(
+                    from_vessel=self.dilution_solvent_vessel,
+                    to_vessel=self.distribution_valve,
+                    volume=HPLC_SAMPLE_LOOP_CLEANING_VOLUME,
+                    dispense_speed=HPLC_INJECTION_SPEED
+                ),
+                # Prepare blank run
+                Transfer(
+                    from_vessel=self.dilution_solvent_vessel,
+                    to_vessel=self.injection_pump,
+                    volume=HPLC_SAMPLE_LOOP_CLEANING_VOLUME,
+                    aspiration_speed=SAMPLE_SPEED_MEDIUM
+                ),
+                # Preparing for blank run
+                Transfer(
+                    from_vessel=self.injection_pump,
+                    to_vessel=self.distribution_valve,
+                    volume=HPLC_INJECTION_VOLUME,
+                    dispense_speed=HPLC_INJECTION_SPEED,
+                ),
+                # blank run
+                RunHPLC(
+                    hplc=self.instrument,
+                    valve=self.distribution_valve,
+                    on_finish=self.on_finish,
+                    is_cleaning=True,
+                    **self.method_props
+                ),
+                # Discarding the rest
+                Transfer(
+                    from_vessel=self.injection_pump,
+                    to_vessel=self.injection_waste,
+                    volume=HPLC_SAMPLE_LOOP_CLEANING_VOLUME - \
+                        HPLC_INJECTION_VOLUME
+                )
+            ]
