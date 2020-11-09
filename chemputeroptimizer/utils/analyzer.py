@@ -1,69 +1,49 @@
 """
 Module for comparing several spectra.
 """
+import logging
+
 from typing import Dict
 from collections import deque
 
 import numpy as np
 
-from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
+# AnalyticalLabware spectrum classes
+from AnalyticalLabware import (
+    RamanSpectrum,
+    SpinsolveNMRSpectrum,
+)
+from AnalyticalLabware.analysis.utils import find_nearest_value_index
 
 
-class BaseSpectrum(AbstractSpectrum):
-    """Base class to provide methods for spectral processing
+def find_point_in_regions(regions, point):
+    """ Help function to find if the point belong to any given region
 
-    Used in SpectraAnalyzer to obtain spectral properties like peak and
-        integration area, also for spectra addition and substraction.
+    Args:
+        regions (:obj:np.array): 2D M x 2 array with peak regions indexes (rows)
+            as left and right borders (columns).
+        point (int): Point of interest.
+
+    Returns:
+        :obj:np.array: Array of indexes for regions where the potential point
+            belongs.
+
+    Example:
+        >>> regions = np.array([[1, 5], [7, 12]])
+        >>> point = 11
+        >>> find_point_in_regions(regions, point)
+        array([1], dtype=int32)
+        # regions[1] -> [7, 12]
     """
 
-    def __init__(self):
-        super().__init__(save_path=False)
+    # subtracting and mapping vs 0
+    binary_map = np.array(regions - point < 0)
 
-    def load_spectrum(self, x, y, timestamp):
-        # no special preparations here
-        # just redefining abstract method
-        super().load_spectrum(x, y, timestamp)
+    # logical xor row-wise
+    region_map = np.logical_xor(binary_map[:, 0], binary_map[:, 1])
 
-    def save_data(self):
-        # don't need to save this
-        pass
-
-    def __add__(self, other):
-        """Method for addition of several spectra
-
-        Args:
-            other (Spectrum object): Instance of
-                AnalyticalLabware.AbstractSpectrum.
-        """
-
-        raise NotImplementedError
-
-    def __sub__(self, other):
-        """Method for subtraction of several spectra
-
-        Args:
-            other (Spectrum object): Instance of
-                AnalyticalLabware.AbstractSpectrum.
-
-        Returns:
-            Tuple[np.array, np.array]: Tuple with X and Y coordinates for
-                resulting spectrum.
-        """
-
-        try:
-            new_x = self.x - other.x
-            new_y = self.y - other.y
-        except AttributeError:
-            raise AttributeError(
-                f'Wrong spectrum class supplied ({type(other)}) \
-check that "x" attribute for {other} exists.') from None
-
-        except ValueError:
-            raise ValueError(f'Spectral data shape mismatch: \
-(self - {self.y.shape}, other - {other.y.shape})') from None
-
-        return new_x, new_y
-
+    # returning the matching arguments
+    return np.nonzero(region_map)[0]
 
 class SpectraAnalyzer():
     """General class for analyzing spectra differences.
@@ -80,9 +60,13 @@ class SpectraAnalyzer():
     def __init__(self, max_spectra=5, data_path=None):
 
         self.data_path = data_path
+        self.logger = logging.getLogger('spectraanalyzer')
 
         # Storing spectral data
         self.spectra = deque(maxlen=max_spectra)
+
+        # Dictionary to store regions of interest from loaded spectra
+        self.regions = {}
 
         # Future arguments for peaks classification
         self.starting_material = None
@@ -93,13 +77,11 @@ class SpectraAnalyzer():
         """Loads the spectrum and stores it in spectra list.
 
         Args:
-            spectrum (Tuple[np.array, np.array, float]): Tuple with X and Y data
-                points for the spectrum and a timestamp.
+            spectrum (:obj:AnalyticalLabware.AbstractSpectrum): Spectrum object,
+                contaning methods for performing basic processing and analysis.
         """
 
-        spec = BaseSpectrum()
-        spec.load_spectrum(*spectrum)
-        self.spectra.append(spec)
+        self.spectra.append(spectrum)
 
     def add_spectrum(self, spectrum):
         """Updates the latest spectrum.
@@ -120,12 +102,6 @@ class SpectraAnalyzer():
         Returns:
             (float): An average difference between spectra.
         """
-        try:
-            _, dif_y = self.spectra[-1] - self.spectra[-2]
-        except IndexError:
-            raise IndexError('Load at least two spectra.') from None
-
-        return dif_y.mean()
 
     def final_analysis(self, reference=None, target=None):
         """Analyses the spectrum relative to provided reference.
@@ -152,6 +128,11 @@ class SpectraAnalyzer():
             - if both reference and target attributes are provided will return a
                 dictionary of final parameter of a given sample
         """
+
+        # spectra specific analysis
+        if isinstance(self.spectra[-1], SpinsolveNMRSpectrum):
+            return self._nmr_analysis(reference, target)
+
         if reference is not None:
             raise NotImplementedError('Supplying reference is not currently \
 supported.')
@@ -159,7 +140,7 @@ supported.')
         for target_parameter in target:
             if 'spectrum' in target_parameter:
                 if 'peak-area' in target_parameter:
-                    # simple case, searching for peak property on a single spectrum
+                    # simple case, searching for peak property on a spectrum
                     _, _, peak_position = target_parameter.split('_')
                     result = self.spectra[-1].integrate_peak(
                         float(peak_position)
@@ -222,3 +203,78 @@ supported.')
     def _dump(self):
         """Dumps the first spectrum as csv if maximum number of spectra
             reaches max_spectra."""
+
+    def _nmr_analysis(self, reference, target):
+        """ Method for performing analysis on NMR spectra. """
+
+        self.logger.debug('Processing spectrum from NMR')
+        # looking only in the most recent uploaded spectrum
+        spec = self.spectra[-1]
+
+        # generating regions of interest first, best result achieved when
+        # searching in "smoothed" and "derivative" modes
+        regions = spec.generate_peak_regions(
+            magnitude=False,
+            derivative=True,
+            smoothed=True,
+            d_merge=0.01,
+            d_expand=0.005
+        )
+        self.logger.debug('Found regions, %s', regions)
+
+        # integrating the reference if given
+        if reference is not None:
+            _, reference_index = find_nearest_value_index(spec.x, reference)
+
+            reference_region_index = find_point_in_regions(regions,
+                                                           reference_index)
+
+            if reference_region_index.size == 1:
+                reference_region_index = reference_region_index[0]
+                self.logger.debug('Reference peak matches one of the regions: \
+%s', regions[reference_region_index])
+                # integrating
+                reference_value = spec.integrate_area(
+                    spec.x[regions[reference_region_index]])
+            else:
+                # 0 or more than 1 regions did match the reference point
+                # falling back to integrate peak
+                self.logger.debug('No regions matched the reference peak, \
+fallback to integrating the peak')
+                reference_value = spec.integrate_peak(reference)
+
+            self.logger.debug('Integrated the reference peak: %.2f',
+                              reference_value)
+        else:
+            reference_value = 1
+
+        # proceed with the target parameter
+        for target_parameter in target:
+            if 'spectrum' in target_parameter:
+                if 'peak-area' in target_parameter:
+                    # simple case, searching for peak property on a spectrum
+                    _, _, peak_position = target_parameter.split('_')
+                    peak_index = find_nearest_value_index(spec.x,
+                                                          float(peak_position))
+                    peak_index_region = find_point_in_regions(regions,
+                                                              peak_index)
+
+                    if peak_index_region.size == 1:
+                        peak_index_region = peak_index_region[0]
+                        result = spec.integrate_area(
+                            spec.x[regions[peak_index_region]]
+                        )
+                    else:
+                        result = spec.integrate_peak(float(peak_position))
+
+                    return {target_parameter: result/reference_value}
+
+                if 'integration-area' in target_parameter:
+                    # splitting "spectrum_integration-area_lll-rrr"
+                    _, _, region = target_parameter.split('_')
+                    left_w, right_w = region.split('-')
+                    result = self.spectra[-1].integrate_area(
+                        (float(left_w), float(right_w))
+                    )
+
+                    return {target_parameter: result}

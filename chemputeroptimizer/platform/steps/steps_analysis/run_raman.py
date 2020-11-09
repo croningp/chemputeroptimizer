@@ -7,14 +7,14 @@ class RunRaman(AbstractBaseStep):
 
     PROP_TYPES = {
         'raman': str,
-        'on_finish': Any,
+        'on_finish': Callable,
         'blank': bool,
     }
 
     def __init__(
             self,
             raman: str,
-            on_finish: Any,
+            on_finish: Callable,
             blank: bool = False,
             **kwargs
     ):
@@ -29,6 +29,6 @@ class RunRaman(AbstractBaseStep):
             raman.obtain_reference_spectrum()
         else:
             raman.get_spectrum()
-        spec = raman.spectrum.default_processing()
-        self.on_finish(spec)
+        raman.spectrum.default_processing()
+        self.on_finish(raman.spectrum.copy())
         return True

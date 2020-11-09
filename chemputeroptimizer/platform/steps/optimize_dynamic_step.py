@@ -2,6 +2,7 @@ import logging
 import os
 import json
 import re
+import time
 
 from typing import List, Callable, Optional, Dict, Any
 
@@ -10,7 +11,12 @@ import AnalyticalLabware
 from xdl import XDL
 from xdl.errors import XDLError
 from xdl.utils.copy import xdl_copy
-from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
+from xdl.steps.base_steps import (
+    AbstractStep,
+    AbstractDynamicStep,
+    Step,
+    AbstractAsyncStep,
+)
 from chemputerxdl.steps import (
     HeatChill,
     HeatChillToTemp,
@@ -18,9 +24,16 @@ from chemputerxdl.steps import (
     StopHeatChill,
     Transfer,
 )
+from chemputerxdl.executor.cleaning import (
+    get_cleaning_schedule,
+)
 
 from .steps_analysis import *
-from .utils import find_instrument
+from .utils import (
+    find_instrument,
+    get_reagent_flasks,
+    get_waste_containers,
+)
 from ...utils import SpectraAnalyzer, AlgorithmAPI
 
 
@@ -107,6 +120,10 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self.state['iteration'] += 1
         self.state['updated'] = True
 
+        # reset the iterator for the next iteration
+        self._cursor = 0
+        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
+
     def _update_xdl(self):
         """Creates a new copy of xdl procedure with updated parameters and
         saves the .xdl file"""
@@ -136,10 +153,120 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         self.save()
 
-        self.working_xdl_copy.prepare_for_execution(self.graph,
-                                                    interactive=False,
-                                                    device_modules=[AnalyticalLabware])
+        self.working_xdl_copy.prepare_for_execution(
+            self.graph,
+            interactive=False,
+            device_modules=[AnalyticalLabware]
+        )
         self._update_analysis_steps()
+
+    def _check_flasks_full(self, platform_controller):
+        """Ensure solvent and reagents flasks are full for the next iteration"""
+
+        flasks_reagents = get_reagent_flasks(
+            platform_controller.graph.graph # MultiDiGraph inside ChemputerGraph
+        )
+
+        for flask in flasks_reagents:
+            try:
+                previous_volume = self._previous_volume[flask['name']]
+                previous_use = previous_volume - flask['current_volume']
+            except KeyError:
+                previous_use = flask['max_volume'] - flask['current_volume']
+            finally:
+                self._previous_volume[flask['name']] = flask['current_volume']
+
+            self.logger.info(
+                'Used %.2f ml from %s, current volume is %.2f',
+                previous_use,
+                flask['name'],
+                flask['current_volume']
+            )
+
+            previous_use *= 1.2 # 20% for extra safety
+            if previous_use > flask['current_volume']:
+                confirmation_msg = f'Please refill {flask["name"]} with \
+{flask["chemical"]} to {flask["max_volume"]} ml and press Enter to continue.\n'
+                # confirming
+                input(confirmation_msg)
+                # setting the new current volume
+                flask['current_volume'] = flask['max_volume']
+                self._previous_volume.pop(flask['name'], None)
+
+    def _check_wastes_empty(self, platform_controller):
+        """Ensure waste bottles are empty for the next iteration"""
+
+        waste_containers = get_waste_containers(
+            platform_controller.graph.graph # MultiDiGraph inside ChemputerGraph
+        )
+
+        for flask in waste_containers:
+            try:
+                previous_volume = self._previous_volume[flask['name']]
+                previous_use = flask['current_volume'] - previous_volume
+            except KeyError:
+                previous_use = flask['current_volume']
+            finally:
+                self._previous_volume[flask['name']] = flask['current_volume']
+
+            self.logger.info(
+                'Filled %s with %.2f ml, current volume is %.2f',
+                flask['name'],
+                previous_use,
+                flask['current_volume']
+            )
+
+            previous_use *= 1.2 # 20% for extra safety
+            if previous_use > flask['max_volume'] - flask['current_volume']:
+                confirmation_msg = f'Please empty {flask["name"]} and press \
+Enter to continue\n'
+                # confirming
+                input(confirmation_msg)
+                # setting the new current volume
+                flask['current_volume'] = flask['max_volume']
+                self._previous_volume.pop(flask['name'], None)
+
+    def execute(self, platform_controller, logger=None, level=0):
+        """Dirty hack to get the state of the chemputer from its graph"""
+
+        self._platform_controller = platform_controller
+        super().execute(platform_controller, logger, level)
+
+    def get_simulation_steps(self):
+        """Should return steps for the simulation.
+
+        No need to call the method, since the simulate method is overwritten.
+        """
+
+    def simulate(self, platform_controller):
+        """Run the optimization routine in the simulation mode.
+
+        Since the optimizer handles simulation mode correctly, including various
+        analytical methods (via "simulated" spectrum) and interactive method for
+        the final analysis, the method is overwritten from the parent .simulate.
+        The current method just executes the on_continue steps sequence just as
+        the normal execute method.
+        """
+
+        continue_block = self.on_continue()
+        self.executor.prepare_block_for_execution(self.graph, continue_block)
+
+        while continue_block:
+            for step in continue_block:
+                if isinstance(step, AbstractAsyncStep):
+                    self.async_steps.append(step)
+                self.executor.execute_step(
+                    platform_controller, step, async_steps=self.async_steps
+                )
+
+            continue_block = self.on_continue()
+            self.executor.prepare_block_for_execution(
+                self.graph,
+                continue_block
+            )
+
+        # Kill all threads
+        self._post_finish()
 
     def on_prepare_for_execution(self, graph):
         """Additional preparations before execution"""
@@ -157,11 +284,25 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
-        self.working_xdl_copy.prepare_for_execution(self.graph, interactive=False, device_modules=[AnalyticalLabware])
+
+        self.working_xdl_copy.prepare_for_execution(
+            self.graph,
+            interactive=False,
+            device_modules=[AnalyticalLabware]
+        )
+
+        # additional preparations for the analysis steps
         self._update_analysis_steps()
 
         # load necessary tools
         self._analyzer = SpectraAnalyzer()
+
+        # iterating over xdl to allow checkpoints
+        self._cursor = 0
+        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
+
+        # tracking of flask usage
+        self._previous_volume = {}
 
         self.state = {
             'iteration': 1,
@@ -180,6 +321,9 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         analysis_method = None
 
+        cleaning_schedule = get_cleaning_schedule(self.working_xdl_copy)
+        organic_cleaning_solvents = cleaning_schedule[0]
+
         for step in self.working_xdl_copy.steps:
             if step.name == 'FinalAnalysis':
                 analysis_method = step.method
@@ -187,6 +331,21 @@ class OptimizeDynamicStep(AbstractDynamicStep):
                     step.on_finish = self.interactive_final_analysis_callback
                     continue
                 step.on_finish = self.on_final_analysis
+
+        # Looking for Analyze steps:
+        for i, step in enumerate(self.working_xdl_copy.steps):
+            if step.name == 'Analyze' or step.name == 'FinalAnalysis':
+                # Updating the cleaning solvent
+                if step.cleaning_solvent is None:
+                    step.cleaning_solvent = organic_cleaning_solvents[i]
+
+                # The reason for an extra call here is to update the vessel for
+                # the cleaning solvent which may only be given after the whole
+                # procedure was prepared and the cleaning schedule is set
+                self.working_xdl_copy.executor.add_internal_properties_to_step(
+                    self._graph,
+                    step
+                )
 
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
@@ -249,16 +408,16 @@ VALUE ###\n'
 
         self.state['updated'] = False
 
-    def on_final_analysis(self, data):
+    def on_final_analysis(self, spectrum):
         """Callback function for when spectra has been recorded at end of
         procedure. Updates the state (current result) parameter.
 
         Args:
-            data (Tuple[np.array, np.array, float]): Spectral data of the final
-                product as X and Y datapoints and a timestamp.
+            spectrum (:obj:AbstractSpectrum): Spectrum object, contaning methods
+                for performing basic processing and analysis.
         """
 
-        self._analyzer.load_spectrum(data)
+        self._analyzer.load_spectrum(spectrum)
 
         # final parsing occurs in SpectraAnalyzer.final_analysis
         result = self._analyzer.final_analysis(self.reference, self.target)
@@ -270,6 +429,10 @@ VALUE ###\n'
         self.state['updated'] = False
 
     def _check_termination(self):
+
+        self.logger.info(
+            'Optimize Dynamic step running, current iteration: <%d>; last result: <%s>',
+            self.state['iteration'], self.state['current_result'])
 
         if self.state['iteration'] > self.max_iterations:
             self.logger.info('Max iterations reached. Done.')
@@ -285,33 +448,52 @@ VALUE ###\n'
             )
 
             params.append(
-                self.state['current_result'][target_parameter] >
-                self.target[target_parameter]
+                float(self.state['current_result'][target_parameter]) >
+                float(self.target[target_parameter])
             )
 
         return all(params)
 
     def on_start(self):
 
+        self.logger.info('Optimize Dynamic step starting')
+
         return []
 
     def on_continue(self):
 
-        self.logger.info(
-            'Optimize Dynamic step running, current iteration: <%d>; current result: <%s>',
-            self.state['iteration'], self.state['current_result'])
+        try:
+            next_step = next(self._xdl_iter)
+            self._cursor += 1
+            return [next_step]
 
-        if self._check_termination():
-            return []
+        except StopIteration:
+            # procedure is over, checking and restarting
 
-        if not self.state['updated']:
-            self.update_steps_parameters(self.state['current_result'])
-            self._update_state()
+            self._check_flasks_full(self._platform_controller)
+            self._check_wastes_empty(self._platform_controller)
 
-        return self.working_xdl_copy.steps
+            if not self.state['updated']:
+                self.update_steps_parameters(self.state['current_result'])
+                self._update_state()
+
+            if self._check_termination():
+                return []
+
+            return self.on_continue()
 
     def on_finish(self):
         return []
+
+    def resume(self, platform_controller, logger=None, level=0):
+        # straight to on_continue
+        self.started = False
+        self.start_block = []
+
+        # creating new iterator from last cursor position
+        self._cursor -= 1
+        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
+        self.execute(platform_controller, logger=logger, level=level)
 
     def cleaning_steps(self):
         pass
@@ -342,7 +524,7 @@ VALUE ###\n'
             original_filename[:-4] + '_params.json',
         )
         with open(params_file, 'w') as f:
-            json.dump(self.parameters, f)
+            json.dump(self.parameters, f, indent=4)
 
         # saving algorithmic data
         alg_file = os.path.join(

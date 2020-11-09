@@ -3,8 +3,10 @@
 SUPPORTED_STEPS_PARAMETERS = {
     'Add': {
         "volume",
-        "mass",
         "time",
+    },
+    'AddSolid': {
+        "mass",
     },
     'HeatChill': {
         "time",
@@ -27,9 +29,9 @@ SUPPORTED_ANALYTICAL_METHODS = [
 ]
 
 SUPPORTED_FINAL_ANALYSIS_STEPS = [
-    'Dry',
-    'Evaporate',
-    'Filter',
+    # 'Dry',
+    # 'Evaporate',
+    # 'Filter',
     'Stir',
     'Wait',
     'HeatChill',
@@ -39,6 +41,8 @@ SUPPORTED_FINAL_ANALYSIS_STEPS = [
 ANALYTICAL_INSTRUMENTS = {
     'Raman': 'OceanOpticsRaman',
     'NMR': 'ChemputerNMR',
+    'HPLC': 'HPLCController',
+    'IDEX': 'IDEXMXIIValve'
 }
 
 TARGET_PARAMETERS = [

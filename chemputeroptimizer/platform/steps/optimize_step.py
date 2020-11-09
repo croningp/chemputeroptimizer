@@ -1,35 +1,36 @@
-from typing import List, Callable, Optional, Dict, Any
+"""
+The module contains a wrapper step used to target desired step and its
+properties for optimization.
+"""
+
+from typing import List
 
 from xdl.errors import XDLError
+from xdl.constants import JSON_PROP_TYPE
 from xdl.steps.base_steps import AbstractStep, Step
 
 
 class OptimizeStep(AbstractStep):
-    """Wrapper for a step to be optimised
+    """Wrapper for a step to be optimised.
 
-    Steps and parameters supported:
-        Add: addition volume
-        HeatChill, HeatChillToTemp: reaction temperature
-        HeatChill, Wait, Stir: reaction time
+    Check the .constants module for the supported steps and their properties.
 
     Args:
         id (str): ID to keep track of what parameters are being optimised.
-        children (List[Step]): List of steps to optimize parameters for.
-            Max length 1. Reason for using a list is for later integration into
-            XDL.
-        max_value (float): Minimum parameter value for the optimization routine.
-        min_value (float): Maximum parameter value for the optimization routine.
+        children (List): list of wrapped steps. Must be 1!
+        optimize_properties (JSON_PROP_TYPE): json-like dictionary of the target
+            properties for the optimization and their limits, e.g.
+            optimize_properties="{'mass': {'max_value': 1, 'min_value': 0.5}}".
 
     Example:
         ...
-        <OptimizeStep "max_value"=1.2, "min_value"=3.2
-            <Add
-                "reagent"="reagent"
-                "volume"=volume
-            <Add />
-        <OptimizeStep />
-        <OptimizeStep "max_value"=70, "min_value"=25
-            <HeatChill "temp"=temperature />
+        <OptimizeStep 
+            id="0"
+            optimize_properties="{'mass': {'max_value': 1, 'min_value': 0.5}}"
+                <AddSolid
+                    "reagent"="reagent"
+                    "mass"="mass"
+                <AddSolid />
         <OptimizeStep />
         ...
     """
@@ -37,14 +38,14 @@ class OptimizeStep(AbstractStep):
     PROP_TYPES = {
         'id': str,
         'children': List,
-        'optimize_properties': Dict,
+        'optimize_properties': JSON_PROP_TYPE,
     }
 
     def __init__(
             self,
             id: str,
             children: List[Step],
-            optimize_properties: Dict,
+            optimize_properties: JSON_PROP_TYPE,
             **kwargs
         ):
         super().__init__(locals())

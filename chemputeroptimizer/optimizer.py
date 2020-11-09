@@ -7,6 +7,7 @@ import json
 import os
 
 from typing import Dict, Union
+from copy import deepcopy
 
 import AnalyticalLabware
 
@@ -19,9 +20,13 @@ from .platform.steps import (
     OptimizeStep,
     FinalAnalysis,
 )
+from .platform.steps.utils import (
+    find_last_meaningful_step,
+)
 from .constants import (
     SUPPORTED_STEPS_PARAMETERS,
     DEFAULT_OPTIMIZATION_PARAMETERS,
+    SUPPORTED_FINAL_ANALYSIS_STEPS,
 )
 from .utils.errors import OptimizerError, ParameterError
 from .utils import (
@@ -83,6 +88,10 @@ loading.', optimize_steps)
 
         self._check_optimization_steps_and_parameters()
 
+        if not self._optimization_steps:
+            # TODO public methods for loading optimization steps
+            raise OptimizerError('No OptimizeSteps found or given!')
+
         self._initalise_optimize_step()
 
     def _check_final_analysis_steps(self) -> None:
@@ -99,8 +108,14 @@ loading.', optimize_steps)
 
         final_analysis_steps = []
 
-        for step in self._xdl_object.steps:
+        for i, step in enumerate(self._xdl_object.steps):
             if step.name == 'FinalAnalysis':
+                # building reference step dictionary
+                reference_step = {
+                    'step': self._xdl_object.steps[i - 1].name,
+                    'properties': self._xdl_object.steps[i - 1].properties,
+                }
+                step.reference_step = reference_step
                 final_analysis_steps.append(step)
 
         if not final_analysis_steps and not self.interactive:
@@ -108,16 +123,27 @@ loading.', optimize_steps)
 add them to the procedure or run ChemputerOptimizer in interactive mode.')
 
         if not final_analysis_steps and self.interactive:
-            self.logger.info('No FinalAnalysis steps found, will wrap \
-the last step in the procedure with an interactive one')
-            # wrapping is not very elegant, but FinalAnalysis should
-            # always have a child step. No reason to create a separate
-            # Callback step to mimic the functionality that's already
-            # inside FinalAnalysis if method='interactive'
-            last_step = self._xdl_object.steps[-1]
-            self._xdl_object.steps[-1] = FinalAnalysis(
-                children=[last_step],
-                method='interactive',
+            position, last_meaningful_step = find_last_meaningful_step(
+                self._xdl_object.steps,
+                SUPPORTED_FINAL_ANALYSIS_STEPS,
+            )
+
+            self.logger.info('No FinalAnalysis steps found, will insert one \
+after the last %s step in the procedure (at position %s) with an interactive \
+method', last_meaningful_step.name, position)
+
+            last_meaningful_step = {
+                'step': last_meaningful_step.name,
+                'properties': last_meaningful_step.properties,
+            }
+
+            self._xdl_object.steps.insert(
+                position,
+                FinalAnalysis(
+                    vessel=last_meaningful_step['properties']['vessel'],
+                    method='interactive',
+                    reference_step=last_meaningful_step,
+                )
             )
 
     def _initalise_optimize_step(self) -> None:
@@ -177,20 +203,30 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         self.logger.debug('Probing for OptimizeStep steps in xdl object.')
 
+        # internal tag to avoid step unnecessary step creation
+        consistent = False
+
         # checking procedure for consistency
         for step in self._xdl_object.steps:
             if step.name == 'OptimizeStep':
-                if step.children[0] not in SUPPORTED_STEPS_PARAMETERS:
+                optimized_step = step.children[0].name
+                if optimized_step not in SUPPORTED_STEPS_PARAMETERS:
                     raise OptimizerError(
                         f'Step {step} is not supported for optimization')
 
                 for parameter in step.optimize_properties:
-                    if parameter not in SUPPORTED_STEPS_PARAMETERS[step]:
+                    if parameter not in SUPPORTED_STEPS_PARAMETERS[optimized_step]:
                         raise ParameterError(
                             f'Parameter {parameter} is not supported for step {step}'
                         )
+                self._optimization_steps.update(
+                    {f'{optimized_step}_{step.id}': f'{step.optimize_properties}'}
+                )
+                self.logger.debug('Found OptimizeStep for %s.', optimized_step)
+                consistent = True
 
-        if self._optimization_steps:
+        # creating steps only if no OptimizeStep found in the procedure
+        if self._optimization_steps and not consistent:
             for optimization_step in self._optimization_steps:
                 # unpacking step data from "Step_ID"
                 step, sid = optimization_step.split('_')
@@ -213,6 +249,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
                     self._xdl_object.steps[i] = self._create_optimize_step(
                         step, i, params)
+                    self._optimization_steps.update({f'{step.name}_{i}': f'{params}'})
 
     def _create_optimize_step(
             self,
@@ -287,9 +324,9 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                 raise OptimizerError('Parameters must be .json file!')
 
         else:
-            opt_params = DEFAULT_OPTIMIZATION_PARAMETERS.copy()
+            opt_params = deepcopy(DEFAULT_OPTIMIZATION_PARAMETERS)
 
-        for k, v in opt_params.items():
+        for k, _ in opt_params.items():
             if k not in DEFAULT_OPTIMIZATION_PARAMETERS:
                 raise ParameterError(
                     f'<{k}> not a valid optimization parameter!')
@@ -304,7 +341,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
             here = os.path.dirname(self._original_procedure)
             json_file = os.path.join(here, 'optimizer_config.json')
             with open(json_file, 'w') as f:
-                json.dump(opt_params, f)
+                json.dump(opt_params, f, indent=4)
 
         # updating algorithmAPI
         algorithm_parameters = opt_params.pop('algorithm')
