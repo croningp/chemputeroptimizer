@@ -60,7 +60,7 @@ class SpectraAnalyzer():
     def __init__(self, max_spectra=5, data_path=None):
 
         self.data_path = data_path
-        self.logger = logging.getLogger('spectraanalyzer')
+        self.logger = logging.getLogger('optimizer.spectraanalyzer')
 
         # Storing spectral data
         self.spectra = deque(maxlen=max_spectra)
@@ -81,6 +81,7 @@ class SpectraAnalyzer():
                 contaning methods for performing basic processing and analysis.
         """
 
+        self.logger.debug('Appending spectrum %r', spectrum)
         self.spectra.append(spectrum)
 
     def add_spectrum(self, spectrum):
@@ -254,17 +255,30 @@ fallback to integrating the peak')
                 if 'peak-area' in target_parameter:
                     # simple case, searching for peak property on a spectrum
                     _, _, peak_position = target_parameter.split('_')
+                    self.logger.debug('Looking for peak at %s', peak_position)
                     peak_index = find_nearest_value_index(spec.x,
                                                           float(peak_position))
                     peak_index_region = find_point_in_regions(regions,
                                                               peak_index)
 
                     if peak_index_region.size == 1:
+                        # match!
                         peak_index_region = peak_index_region[0]
+                        self.logger.debug('Found matching region %s for peak \
+%s', regions[peak_index_region], peak_position)
                         result = spec.integrate_area(
                             spec.x[regions[peak_index_region]]
                         )
+                    elif peak_index_region.size == 0:
+                        # no matching region, no peak found
+                        self.logger.warning('No matching region for peak %s, \
+no product formed or processing error, check manually.', peak_position)
+                        result = 0
                     else:
+                        self.logger.warning('More than one region matched the \
+target peak, check below:\n regions: %s, peak: %s',
+                                            peak_index_region,
+                                            peak_position)
                         result = spec.integrate_peak(float(peak_position))
 
                     return {target_parameter: result/reference_value}
@@ -273,6 +287,8 @@ fallback to integrating the peak')
                     # splitting "spectrum_integration-area_lll-rrr"
                     _, _, region = target_parameter.split('_')
                     left_w, right_w = region.split('-')
+                    self.logger.debug('Integrating spectra within %.2f;%.2f',
+                                      left_w, right_w)
                     result = self.spectra[-1].integrate_area(
                         (float(left_w), float(right_w))
                     )
