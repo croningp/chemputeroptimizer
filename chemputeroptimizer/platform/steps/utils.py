@@ -1,13 +1,18 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple, Optional
 
 from xdl.steps import Step
 from xdl.constants import INERT_GAS_SYNONYMS
 
+from chemputerxdl.constants import (
+    CHEMPUTER_FLASK,
+    CHEMPUTER_WASTE,
+)
 from chemputerxdl.utils.execution import get_vessel_stirrer
 
 from networkx import MultiDiGraph
 
 from ...constants import ANALYTICAL_INSTRUMENTS
+from .steps_analysis.constants import SHIMMING_SOLVENTS
 
 
 def find_instrument(graph: MultiDiGraph, method: str) -> str:
@@ -77,7 +82,7 @@ def get_waste_containers(
     waste_containers = []
 
     for node, data in graph.nodes(data=True):
-        if data['class'] == 'ChemputerWaste':
+        if data['class'] == CHEMPUTER_WASTE:
             waste_containers.append(graph.nodes[node])
 
     return waste_containers
@@ -91,7 +96,7 @@ def get_dilution_flask(graph: MultiDiGraph) -> str:
     empty_flasks = [
         flask
         for flask, data in graph.nodes(data=True)
-        if data['class'] == 'ChemputerFlask' and not data['chemical']
+        if data['class'] == CHEMPUTER_FLASK and not data['chemical']
     ]
 
     for flask in empty_flasks:
@@ -101,5 +106,28 @@ def get_dilution_flask(graph: MultiDiGraph) -> str:
         # if found stirrer, return current flask
         if found_stirrer:
             return flask
+
+    return None
+
+def find_shimming_solvent_flask(graph) -> Optional[Tuple[str, float]]:
+    """
+    Returns flask with the solvent suitable for shimming and corresponding
+    reference peak in ppm.
+    """
+
+    # Map all chemicals with their flasks
+    chemicals_flasks = {
+        data['chemical']: flask
+        for flask, data in graph.nodes(data=True)
+        if data['class'] == CHEMPUTER_FLASK
+    }
+
+    # solvents for shimming
+    shimming_solvents = chemicals_flasks.keys() & SHIMMING_SOLVENTS.keys()
+
+    # iterating to preserve solvent priority in SHIMMING_SOLVENTS
+    for solvent in SHIMMING_SOLVENTS:
+        if solvent in shimming_solvents:
+            return chemicals_flasks[solvent], SHIMMING_SOLVENTS[solvent]
 
     return None
