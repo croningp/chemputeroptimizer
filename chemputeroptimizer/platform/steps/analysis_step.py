@@ -30,7 +30,12 @@ from chemputerxdl.steps import (
 )
 
 from .steps_analysis import RunNMR, RunRaman, RunHPLC
-from .utils import find_instrument, get_dilution_flask
+from .steps_analysis.shim_nmr import ShimNMR, check_last_shimming_results
+from .utils import (
+    find_instrument,
+    get_dilution_flask,
+    find_shimming_solvent_flask,
+)
 from ...utils.errors import OptimizerError
 from ...constants import (
     SUPPORTED_ANALYTICAL_METHODS,
@@ -91,6 +96,7 @@ class Analyze(AbstractStep):
         'dilution_solvent_vessel': str,
         'distribution_valve': str,
         'injection_waste': str,
+        'force_shimming': bool,
     }
 
     INTERNAL_PROPS = [
@@ -113,6 +119,7 @@ class Analyze(AbstractStep):
         # volume left in the syringe after sample is injected
         'sample_excess_volume': 2,
         'method_props': {},
+        'force_shimming': False,
     }
 
     def __init__(
@@ -124,6 +131,7 @@ class Analyze(AbstractStep):
             method_props: JSON_PROP_TYPE = 'default',
             dilution_volume: Optional[float] = None,
             dilution_solvent: Optional[str] = None,
+            force_shimming: Optional[bool] = 'default',
 
             # Internal properties
             instrument: Optional[str] = None,
@@ -215,6 +223,10 @@ is given.')
         # Additional preparations for HPLC
         if self.method == 'HPLC':
             self.distribution_valve = find_instrument(graph, 'IDEX')
+
+        # Additional preparations for NMR
+        if self.method == 'NMR':
+            self.nmr_precheck(graph)
 
     def get_steps(self) -> List[Step]:
         steps = []
@@ -493,3 +505,72 @@ reaction mixture!')
                         HPLC_INJECTION_VOLUME
                 )
             ]
+
+    def nmr_precheck(self, graph: MultiDiGraph) -> None:
+        """ Inserts additional steps into Analysis if needed for NMR analysis.
+        """
+
+        shimming_solvent_flask, reference_peak = \
+            find_shimming_solvent_flask(graph)
+
+        # Light check
+        try:
+            assert shimming_solvent_flask
+        except AssertionError:
+            self.logger.critical('Found no solvents suitable for shimming the \
+NMR. If the procedure is longer than 24 hours shimming will be required!')
+        shimming_steps = []
+
+        # Checking for the last shimming
+        if not check_last_shimming_results() or self.force_shimming:
+            # If shimming is required, but no suitable solvents found
+            if shimming_solvent_flask is None:
+                raise OptimizerError('No solvents suitable for shimming the \
+NMR found, but shimming is required!')
+            shimming_steps.extend([
+                Transfer(
+                    from_vessel=shimming_solvent_flask,
+                    to_vessel=self.injection_pump,
+                    volume=self.sample_excess_volume + self.sample_volume,
+                    aspiration_speed=SAMPLE_SPEED_MEDIUM,
+                ),
+                # Injecting into the instrument
+                Transfer(
+                    from_vessel=self.injection_pump,
+                    to_vessel=self.instrument,
+                    volume=self.sample_volume,
+                    aspiration_speed=SAMPLE_SPEED_MEDIUM,
+                    dispense_speed=SAMPLE_SPEED_MEDIUM,
+                ),
+                # Discarding excess
+                Transfer(
+                    from_vessel=self.injection_pump,
+                    to_vessel=self.injection_waste,
+                    volume=self.sample_excess_volume,
+                ),
+                # Running the instrument
+                ShimNMR(
+                    nmr=self.instrument,
+                    reference_peak=reference_peak,
+                ),
+                # Discarding sample
+                Transfer(
+                    from_vessel=self.instrument,
+                    to_vessel=self.injection_waste,
+                    volume=self.sample_volume*2, # twice excess to remove all
+                    aspiration_speed=SAMPLE_SPEED_SLOW,
+                ),
+                # Repeat again
+                Transfer(
+                    from_vessel=self.instrument,
+                    to_vessel=self.injection_waste,
+                    volume=self.sample_volume*2, # twice excess to remove all
+                    aspiration_speed=SAMPLE_SPEED_SLOW,
+                ),
+            ])
+
+        # reversing steps for correct insertion
+        shimming_steps.reverse()
+
+        for step in shimming_steps:
+            self.steps.insert(0, step)
