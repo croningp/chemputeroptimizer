@@ -221,7 +221,7 @@ supported.')
             d_merge=0.01,
             d_expand=0.005
         )
-        self.logger.debug('Found regions, %s', regions)
+        self.logger.debug('Found regions, %s', spec.x[regions])
 
         # integrating the reference if given
         if reference is not None:
@@ -244,8 +244,8 @@ supported.')
 fallback to integrating the peak')
                 reference_value = spec.integrate_peak(reference)
 
-            self.logger.debug('Integrated the reference peak: %.2f',
-                              reference_value)
+            self.logger.debug('Integrated the reference peak at %.2f: %.2f',
+                              reference, reference_value)
         else:
             reference_value = 1
 
@@ -256,7 +256,7 @@ fallback to integrating the peak')
                     # simple case, searching for peak property on a spectrum
                     _, _, peak_position = target_parameter.split('_')
                     self.logger.debug('Looking for peak at %s', peak_position)
-                    peak_index = find_nearest_value_index(spec.x,
+                    _, peak_index = find_nearest_value_index(spec.x,
                                                           float(peak_position))
                     peak_index_region = find_point_in_regions(regions,
                                                               peak_index)
