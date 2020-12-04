@@ -69,6 +69,7 @@ class FinalAnalysis(Analyze):
         'dilution_solvent_vessel': str,
         'distribution_valve': str,
         'injection_waste': str,
+        'force_shimming': bool,
     }
 
     INTERNAL_PROPS = [
@@ -91,6 +92,7 @@ class FinalAnalysis(Analyze):
         # volume left in the syringe after sample is injected
         'sample_excess_volume': 2,
         'method_props': {},
+        'force_shimming': False,
     }
 
     def __init__(
@@ -102,6 +104,7 @@ class FinalAnalysis(Analyze):
             method_props: JSON_PROP_TYPE = 'default',
             dilution_volume: Optional[float] = None,
             dilution_solvent: Optional[str] = None,
+            force_shimming: Optional[bool] = 'default',
 
             # Internal properties
             instrument: Optional[str] = None,

@@ -2,8 +2,8 @@ import logging
 import os
 import json
 import re
-import time
 
+from datetime import datetime
 from typing import List, Callable, Optional, Dict, Any
 
 import AnalyticalLabware
@@ -35,6 +35,10 @@ from .utils import (
     get_waste_containers,
 )
 from ...utils import SpectraAnalyzer, AlgorithmAPI
+
+
+# for saving iterations
+DATE_FORMAT = "%d%m%y"
 
 
 class OptimizeDynamicStep(AbstractDynamicStep):
@@ -501,9 +505,11 @@ VALUE ###\n'
     def save(self):
         """Saves the data for the current iteration"""
 
+        today = datetime.today().strftime(DATE_FORMAT)
+
         current_path = os.path.join(
             os.path.dirname(self.original_xdl._xdl_file),
-            'iterations',
+            f'iterations_{today}',
             str(self.state['iteration'])
         )
         os.makedirs(current_path, exist_ok=True)
