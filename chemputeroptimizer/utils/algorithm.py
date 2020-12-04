@@ -256,5 +256,6 @@ class AlgorithmAPI():
             full_matrix,
             fmt='%.04f',
             delimiter=',',
-            header=header,
+            header=header.rstrip(', '), # stripping the last delimiter
+            comments='', # removing prepended #
         )
