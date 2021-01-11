@@ -537,4 +537,9 @@ VALUE ###\n'
             current_path,
             original_filename[:-4] + '_data.csv',
         )
+
+        # checking if data's been loaded
+        if self.algorithm_class.result_matrix is None:
+            self.algorithm_class.load_data(self.parameters,
+                                           self.state['current_result'])
         self.algorithm_class.save(alg_file)
