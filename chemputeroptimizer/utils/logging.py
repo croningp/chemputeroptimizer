@@ -6,6 +6,9 @@ def get_logger(level=logging.DEBUG):
     logger = logging.getLogger('optimizer')
     logger.setLevel(logging.DEBUG)
 
+    # resetting handlers
+    logger.handlers = []
+
     ff = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
