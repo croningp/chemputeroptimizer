@@ -506,6 +506,9 @@ reaction mixture!')
                 )
             ]
 
+        # for the interactive analysis
+        return []
+
     def nmr_precheck(self, graph: MultiDiGraph) -> None:
         """ Inserts additional steps into Analysis if needed for NMR analysis.
         """
