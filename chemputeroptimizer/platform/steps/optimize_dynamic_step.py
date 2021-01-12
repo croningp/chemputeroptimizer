@@ -102,10 +102,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
                 )
         self.parameters = param_template
 
-    def update_steps_parameters(self, result: Dict) -> None:
+    def update_steps_parameters(self) -> None:
         """Updates the parameter template and corresponding procedure steps"""
-
-        self.algorithm_class.load_data(self.parameters, result)
 
         new_setup = self.algorithm_class.get_next_setup()  # OrderedDict
 
@@ -129,8 +127,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
 
     def _update_xdl(self):
-        """Creates a new copy of xdl procedure with updated parameters and
-        saves the .xdl file"""
+        """Creates a new copy of xdl procedure with updated parameters."""
 
         # making copy of the raw xdl before any preparations
         # to make future procedure updates possible
@@ -154,8 +151,6 @@ class OptimizeDynamicStep(AbstractDynamicStep):
                           id(self.working_xdl_copy))
 
         self.working_xdl_copy = new_xdl
-
-        self.save()
 
         self.working_xdl_copy.prepare_for_execution(
             self.graph,
@@ -410,6 +405,13 @@ VALUE ###\n'
             else:
                 break
 
+        # updating the algorithm class
+        self.algorithm_class.load_data(self.parameters,
+                                       self.state['current_result'])
+
+        # saving
+        self.save()
+
         self.state['updated'] = False
 
     def on_final_analysis(self, spectrum):
@@ -426,7 +428,12 @@ VALUE ###\n'
         # final parsing occurs in SpectraAnalyzer.final_analysis
         result = self._analyzer.final_analysis(self.reference, self.target)
 
+        # loading the result in the algorithm class
+        self.algorithm_class.load_data(self.parameters, result)
         self.state['current_result'] = result
+
+        # saving
+        self.save()
 
         # setting the updated tag to false, to update the
         # procedure when finished
@@ -478,7 +485,7 @@ VALUE ###\n'
             self._check_wastes_empty(self._platform_controller)
 
             if not self.state['updated']:
-                self.update_steps_parameters(self.state['current_result'])
+                self.update_steps_parameters()
                 self._update_state()
 
             if self._check_termination():
