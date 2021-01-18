@@ -52,7 +52,7 @@ class SMBO(AbstractAlgorithm):
         if results is not None and results.size != 0:
             results = results[-1].tolist()
             if len(results) == 1:
-                self.skopt_optimizer.tell(parameters, results[0])
+                self.skopt_optimizer.tell(parameters, -results[0])
             else:
                 raise ValueError('Only one result is supported for SMBO algorithm!')
         return np.array(self.skopt_optimizer.ask())
