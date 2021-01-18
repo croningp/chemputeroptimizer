@@ -1,5 +1,5 @@
 from typing import Any, Tuple, Dict
-from time import sleep, strftime
+from time import sleep
 from xdl.steps.base_steps import AbstractBaseStep
 
 # time the IDEX valve is left in sampling position
@@ -40,10 +40,10 @@ class RunHPLC(AbstractBaseStep):
         # Handle cleaning and file name
         if self.is_cleaning:
             hplc.switch_method(self.cleaning_method)
-            fname = f"BLANK_{chempiler.exp_name}_{strftime(r'%Y-%m-%d-%H-%M')}"
+            fname = f"BLANK_{chempiler.exp_name}"
         else:
             hplc.switch_method(self.run_method)
-            fname = f"RUN_{chempiler.exp_name}_{strftime(r'%Y-%m-%d-%H-%M')}"
+            fname = f"RUN_{chempiler.exp_name}"
 
         # prepare run
         hplc.preprun()
@@ -51,7 +51,6 @@ class RunHPLC(AbstractBaseStep):
         # wait until ready
         while not hplc.status()[0] == 'PRERUN':
             sleep(CHECK_STATUS_INTERVAL)
-        
         # start run
         hplc.run_method(hplc.data_dir, fname)
         idex.sample(SAMPLE_TIME)
@@ -62,16 +61,16 @@ class RunHPLC(AbstractBaseStep):
 
         hplc.standby()
 
-        hplc.get_spectrum()
-        
-        # processing individual spectrums
-        for spectrum in hplc.spectra:
-            hplc.spectra[spectrum].default_processing()
+        if not self.is_cleaning:
+            hplc.get_spectrum()
 
-        # copying
-        spectra = {
-            channel: spectrum.copy()
-            for channel, spectrum in hplc.spectra.items()
-        }
-        self.on_finish(spectra)
+            # processing individual spectrums
+            for spectrum in hplc.spectra:
+                hplc.spectra[spectrum].default_processing()
+
+            # copy only channel of interest
+            spectrum = hplc.spectra[self.channel].copy()
+
+            self.on_finish(spectrum)
+
         return True

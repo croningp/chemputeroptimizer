@@ -12,6 +12,7 @@ import numpy as np
 from AnalyticalLabware import (
     RamanSpectrum,
     SpinsolveNMRSpectrum,
+    AgilentHPLCChromatogram
 )
 from AnalyticalLabware.analysis.utils import find_nearest_value_index
 
@@ -131,6 +132,9 @@ class SpectraAnalyzer():
         """
 
         # spectra specific analysis
+        if isinstance(self.spectra[-1], AgilentHPLCChromatogram):
+            return self._hplc_analysis(reference, target)
+
         if isinstance(self.spectra[-1], SpinsolveNMRSpectrum):
             return self._nmr_analysis(reference, target)
 
@@ -294,3 +298,22 @@ target peak, check below:\n regions: %s, peak: %s',
                     )
 
                     return {target_parameter: result}
+
+    def _hplc_analysis(self, reference, target):
+        """
+        Calculates Fitness = AUC_target / AUC_istandard.
+        In future, consider minimizing side products.
+        """
+        self.logger.debug('Processing spectrum from HPLC')
+        # looking only in the most recent uploaded spectrum
+        spec = self.spectra[-1]
+
+        for objective in target:
+            if 'spectrum' in objective:
+                if 'peak-area' in objective:
+                    _, _, peak_position = objective.split('_')
+                    AUC_target = spec.integrate_peak(float(peak_position))
+                    AUC_istandard = spec.integrate_peak(float(reference))
+                    fitness = AUC_target / AUC_istandard
+
+                    return {objective: fitness}

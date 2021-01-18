@@ -10,7 +10,7 @@ from networkx import MultiDiGraph
 
 from xdl.constants import JSON_PROP_TYPE
 from xdl.steps.base_steps import AbstractStep, Step
-from xdl.steps.special_steps import Callback, Repeat
+from xdl.steps.special_steps import Callback, Repeat, Await, Async
 
 from chemputerxdl.utils.execution import (
     get_nearest_node,
@@ -404,11 +404,16 @@ reaction mixture!')
                 dispense_speed=HPLC_INJECTION_SPEED,
             ),
             # Running analysis
-            RunHPLC(
-                hplc=self.instrument,
-                valve=self.distribution_valve,
-                on_finish=self.on_finish,
-                **self.method_props
+            Async(
+                pid="HPLC",
+                children=[
+                    RunHPLC(
+                        hplc=self.instrument,
+                        valve=self.distribution_valve,
+                        on_finish=self.on_finish,
+                        **self.method_props
+                    ),
+                ]
             ),
             # Discarding the rest
             Transfer(
@@ -488,6 +493,10 @@ reaction mixture!')
                     to_vessel=self.distribution_valve,
                     volume=HPLC_INJECTION_VOLUME,
                     dispense_speed=HPLC_INJECTION_SPEED,
+                ),
+                # wait for HPLC analysis to finish
+                Await(
+                    pid="HPLC"
                 ),
                 # blank run
                 RunHPLC(
