@@ -138,7 +138,8 @@ class SpectraAnalyzer():
         if isinstance(self.spectra[-1], SpinsolveNMRSpectrum):
             return self._nmr_analysis(reference, target)
 
-        if reference is not None:
+        if reference is not None and \
+            'Sim' not in self.spectra[-1].__class__.__name__:
             raise NotImplementedError('Supplying reference is not currently \
 supported.')
 

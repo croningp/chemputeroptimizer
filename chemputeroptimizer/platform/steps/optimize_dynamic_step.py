@@ -6,6 +6,7 @@ import time
 
 from datetime import datetime
 from typing import List, Callable, Optional, Dict, Any
+from hashlib import sha256
 
 import AnalyticalLabware
 
@@ -36,6 +37,7 @@ from .utils import (
     get_waste_containers,
 )
 from ...utils import SpectraAnalyzer, AlgorithmAPI
+from ...utils.client import proc_data
 
 
 # for saving iterations
@@ -273,6 +275,11 @@ Enter to continue\n'
 
         self.logger.debug('Preparing Optimize dynamic step for execution.')
 
+        # calculating procedure hash
+        self.proc_hash = sha256(
+            self.original_xdl.as_string().encode('utf-8')
+        ).hexdigest()
+
         # saving graph for future xdl updates
         self._graph = graph
 
@@ -280,7 +287,11 @@ Enter to continue\n'
         self._get_params_template()
 
         # initializing algorithm
-        self.algorithm_class.initialize(self.parameters)
+        self.algorithm_class.initialize(proc_data(
+            proc_hash=self.proc_hash,
+            parameters=self.parameters,
+            target=self.target,
+        ))
 
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)

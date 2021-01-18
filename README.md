@@ -38,13 +38,14 @@ Optionally some steps may be wrapped *FinalAnalysis* step with supported analyti
 **Note**
 You can omit both OptimizeStep and FinalAnalysis wrappers and run optimization of any procedure interactively by instantiating *ChemputerOptimizer* with `interactive=True` attribute.
 
+### Optimizer Client
+ChemputerOptimizer now supports interaction with  Summit benchmarking framework (through [SummitServer](https://gitlab.com/croningroup/personal/ail/summitserver)). List of available algorithms is stored in [/client.py](/chemputeroptimizer/utils/client.py). To use them, run SummitServer main loop on chosen host and change the corresponding constants in `client.py`.
+
 ## Features
 
-### v0.2
+### v0.2.1
 
-* HPLC and NMR analysis integrated
-
-* Processing of NMR spectra added
+* Optimizer Client for [SummitServer](https://gitlab.com/croningroup/personal/ail/summitserver) interaction
 
 ## Development
 

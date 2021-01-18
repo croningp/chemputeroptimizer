@@ -3,22 +3,22 @@ Module for interfacing algorithms for optimisation.
 """
 
 import logging
+import os
+import json
 
 from collections import OrderedDict
 
 import numpy as np
 
 from ..algorithms import (
-    ModifiedNelderMead,
-    SNOBFIT,
     Random_,
     SMBO,
     GA,
 )
+from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
+
 
 ALGORITHMS = {
-    'nelder-mead': ModifiedNelderMead,
-    'snobfit': SNOBFIT,
     'random': Random_,
     'smbo': SMBO,
     'ga': GA,
@@ -44,6 +44,10 @@ class AlgorithmAPI():
         self._method_name = None
         self._method_config = None
 
+        self.client = None
+        self.proc_hash = None
+        self.strategy = None
+
     @property
     def method_name(self):
         """Name of the selected algorithm."""
@@ -51,7 +55,7 @@ class AlgorithmAPI():
 
     @method_name.setter
     def method_name(self, method_name):
-        if method_name not in ALGORITHMS:
+        if method_name not in list(ALGORITHMS) + SERVER_SUPPORTED_ALGORITHMS:
             raise KeyError(f'{method_name} is not a valid algorithm name')
 
         self._method_name = method_name
@@ -66,10 +70,14 @@ class AlgorithmAPI():
         try:
             for param in config:
                 assert param in ALGORITHMS[self._method_name].DEFAULT_CONFIG
+
+        except KeyError:
+            # in case algorithm is used from optimizer server
+            pass
+
         except AssertionError:
             raise KeyError(f'{param} is not a valid parameter for \
 {self._method_name}')
-
 
     def _load_method(self, method_name, config, constraints):
         """Loads corresponding algorithm class.
@@ -102,13 +110,31 @@ class AlgorithmAPI():
     def initialize(self, data):
         """First call to initialize the optimization algorithm class."""
 
-        self.load_data(data)
+        self.load_data(data['parameters'])
+        self.proc_hash = data['hash']
 
-        self._load_method(
-            self.method_name,
-            self.method_config,
-            self.setup_constraints.values()
-        )
+        # running optimize client
+        if self.method_name in SERVER_SUPPORTED_ALGORITHMS:
+
+            # initialize client
+            self.client = OptimizerClient()
+
+            # forging initialization message
+            init_msg = data.copy()
+            init_msg['algorithm'] = {'name': self.method_name}
+            if self.method_config:
+                init_msg['algorithm'].update(self.method_config)
+
+            # initializing
+            self.client.initialize(init_msg)
+
+        else:
+            # running a local optimization algorithm
+            self._load_method(
+                self.method_name,
+                self.method_config,
+                self.setup_constraints.values()
+            )
 
     def load_data(self, data, result=None):
         """Loads the experimental data dictionary.
@@ -223,18 +249,45 @@ class AlgorithmAPI():
 
         self.logger.info('Optimizing parameters.')
 
-        self._calculated = self.algorithm.suggest(
-            self.parameter_matrix,
-            self.result_matrix,
-            self.setup_constraints.values()
-        )
+        if self.method_name in SERVER_SUPPORTED_ALGORITHMS:
+            # working with remote server
+            self.logger.info('Querying remote server.')
+            # forging query msg
+            query_data = {
+                'hash': self.proc_hash,
+                'parameters': self.current_setup
+            }
+            if self.current_result:
+                query_data.update(result=self.current_result)
 
-        self.logger.info(
-            'Finished optimization, new parameters list in log file.')
-        self.logger.debug('Parameters array: %s', list(self._calculated))
+            self.logger.debug('Query data: %s', query_data)
 
-        # updating the current setup attribute
-        self._remap_data(self._calculated)
+            reply = self.client.query(query_data)
+
+            # checking for exception on server side
+            if 'exception' in reply:
+                self.logger.exception('Exception on remote server, \
+see below:\n%s', reply['exception'])
+                # returning previous setup
+                return self.current_setup
+
+            # else updating
+            self.strategy = reply.pop('strategy')
+            self.current_setup = OrderedDict(reply)
+
+        else:
+            self._calculated = self.algorithm.suggest(
+                self.parameter_matrix,
+                self.result_matrix,
+                self.setup_constraints.values()
+            )
+
+            self.logger.info(
+                'Finished optimization, new parameters list in log file.')
+            self.logger.debug('Parameters array: %s', list(self._calculated))
+
+            # updating the current setup attribute
+            self._remap_data(self._calculated)
 
         return self.current_setup
 
@@ -257,5 +310,14 @@ class AlgorithmAPI():
             fmt='%.04f',
             delimiter=',',
             header=header.rstrip(', '), # stripping the last delimiter
-            comments='', # removing prepended #
+            comments='', # removing prepended "#"
         )
+
+        # backing up server strategy
+        if self.strategy is not None:
+            file_path = os.path.join(
+                os.path.dirname(path),
+                'latest_strategy.json'
+            )
+            with open(file_path, 'w') as fobj:
+                json.dump(self.strategy, fobj, indent=4)
