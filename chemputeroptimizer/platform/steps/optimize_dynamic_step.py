@@ -240,7 +240,13 @@ Enter to continue\n'
         No need to call the method, since the simulate method is overwritten.
         """
 
-    def simulate(self, platform_controller):
+    def simulate(
+            self,
+            platform_controller: Any,
+            logger: logging.Logger = None,
+            level: int = 0,
+            step_indexes: List[int] = None,
+    ):
         """Run the optimization routine in the simulation mode.
 
         Since the optimizer handles simulation mode correctly, including various
