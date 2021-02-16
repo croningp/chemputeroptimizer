@@ -1,0 +1,11 @@
+{
+    "max_iterations": 5.0,
+    "target": {
+        "spectrum_peak-area_-114": "inf"
+    },
+    "algorithm": {
+        "name": "smbo",
+        "n_initial_points": 2
+    },
+    "reference": -119.2
+}

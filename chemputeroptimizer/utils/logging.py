@@ -5,6 +5,10 @@ def get_logger(level=logging.DEBUG):
 
     logger = logging.getLogger('optimizer')
     logger.setLevel(logging.DEBUG)
+    logger.handlers = []
+
+    # resetting handlers
+    logger.handlers = []
 
     # resetting handlers
     logger.handlers = []

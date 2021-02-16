@@ -1,0 +1,113 @@
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor"
+    />
+    <Component
+      id="product_flask"
+      type="ChemputerFlask"
+    />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      id="benzaldehyde"
+    />
+    <Reagent
+      id="methanol"
+    />
+    <Reagent
+      id="benzylamine"
+    />
+    <Reagent
+      id="trifluoroacetic acid"
+    />
+    <Reagent
+      id="isocyanide"
+    />
+    <Reagent
+      id="DCM"
+    />
+  </Reagents>
+
+  <Procedure>
+    <Add
+      vessel="reactor"
+      reagent="benzaldehyde"
+      volume="1 mL"
+      priming_volume="0"
+    />
+    <Add
+      vessel="reactor"
+      reagent="methanol"
+      volume="1 mL"
+      priming_volume="0"
+    />
+    <Add
+      vessel="reactor"
+      reagent="benzylamine"
+      volume="1 mL"
+      priming_volume="0"
+    />
+    <Stir
+      vessel="reactor"
+      time="10 mins"
+    />
+    <Add
+      vessel="reactor"
+      reagent="trifluoroacetic acid"
+      volume="1 mL"
+      priming_volume="0"
+    />
+    <Wait
+      time="5 mins"
+    />
+    <Add
+      vessel="reactor"
+      reagent="isocyanide"
+      volume="1 mL"
+      priming_volume="0"
+    />
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="25.0 °C"
+      stir="True"
+      purpose="reaction"
+    />
+    <Stir
+      vessel="reactor"
+      time="12 hrs"
+    />
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="25.0 °C"
+      continue_heatchill="false"
+      stir="True"
+    />
+    <Add
+      vessel="reactor"
+      reagent="DCM"
+      volume="5 mL"
+    />
+    <FinalAnalysis
+      vessel="reactor"
+      method="NMR"
+      sample_volume="2.5 ml"
+      cleaning_solvent="DCM"
+      method_props="{'protocol': '1D FLUORINE HDEC', 'protocol_options': {'centerFrequency': -85, 'PulselengthScale': 1, 'decouplePower': 0, 'AcquisitionTime': 1.64, 'RepetitionTime': 15, 'PulseAngle': 90, 'Number': 16}}"
+    />
+    <Transfer
+      from_vessel="reactor"
+      to_vessel="product_flask"
+      volume="all"
+    />
+    <CleanVessel
+      vessel="reactor"
+      solvent="DCM"
+      temp="22"
+    />
+  </Procedure>
+
+</Synthesis>

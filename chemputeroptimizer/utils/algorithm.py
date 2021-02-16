@@ -99,7 +99,11 @@ class AlgorithmAPI():
         """Public method for switching the algorithm."""
 
         if not constraints:
+<<<<<<< HEAD
             constraints = self.setup_constraints
+=======
+            constraints = self.setup_constraints.values()
+>>>>>>> AIL/examples
 
         self._load_method(
             method_name,

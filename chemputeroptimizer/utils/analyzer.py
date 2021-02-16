@@ -220,11 +220,19 @@ supported.')
         # generating regions of interest first, best result achieved when
         # searching in "smoothed" and "derivative" modes
         regions = spec.generate_peak_regions(
+<<<<<<< HEAD
             magnitude=False,
             derivative=True,
             smoothed=True,
             d_merge=0.01,
             d_expand=0.005
+=======
+            magnitude=True,
+            derivative=True,
+            smoothed=True,
+            d_merge=0.01,
+            d_expand=0.0075
+>>>>>>> AIL/examples
         )
         self.logger.debug('Found regions, %s', spec.x[regions])
 
