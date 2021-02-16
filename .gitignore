@@ -9,10 +9,7 @@ documentation/_build
 __pycache__/
 *.egg-info
 .mypy_cache/
-<<<<<<< HEAD
-=======
 *.ipynb
->>>>>>> AIL/examples
 
 
 # other shite
@@ -29,11 +26,7 @@ new_xdl.xdl
 
 # log files
 *.log
-<<<<<<< HEAD
-**/iterations
-=======
 **/iterations*
->>>>>>> AIL/examples
 *.tsv
 
 # analytical data
@@ -44,11 +37,7 @@ new_xdl.xdl
 *.dx
 *.jpg
 *.script
-<<<<<<< HEAD
-
-=======
 *.7z
 
 tests/example
 **/_archive
->>>>>>> AIL/examples
