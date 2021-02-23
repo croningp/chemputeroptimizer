@@ -12,28 +12,33 @@
 
   <Reagents>
     <Reagent
-      id="benzaldehyde" />
+      name="benzaldehyde" />
     <Reagent
-      id="methanol" />
+      name="methanol" />
     <Reagent
-      id="benzylamine" />
+      name="benzylamine" />
     <Reagent
-      id="fluorobenzoic acid" />
+      name="fluorobenzoic acid" />
     <Reagent
-      id="isocyanide" />
+      name="isocyanide" />
     <Reagent
-      id="DCM" />
+      name="DCM" />
     <Reagent
-      id="reference" />
+      name="reference" />
   </Reagents>
 
   <Procedure>
+    <ResetHandling
+      solvent="methanol"
+      volume="3 mL"
+      repeats="3"
+    />
     <Add
       vessel="reactor"
       reagent="benzaldehyde"
       volume="0.2 mL"
       port="0"
-      priming_volume="1" />
+      priming_volume="0.2" />
     <OptimizeStep
       id="1"
       optimize_properties="{'volume': {'max_value': 5.0, 'min_value': 0.0}}">
@@ -42,7 +47,7 @@
         reagent="methanol"
         volume="1 mL"
         port="0"
-        priming_volume="1" />
+        priming_volume="0.2" />
     </OptimizeStep>
     <OptimizeStep
       id="2"
@@ -53,8 +58,13 @@
         volume="0.22 mL"
         stir="True"
         port="0"
-        priming_volume="1" />
+        priming_volume="0.2" />
     </OptimizeStep>
+    <ResetHandling
+      solvent="methanol"
+      volume="3 mL"
+      repeats="3"
+    />
     <OptimizeStep
       id="3"
       optimize_properties="{'time': {'max_value': 1800.0, 'min_value': 0.0}}">
@@ -71,8 +81,13 @@
         volume="1 mL"
         stir="True"
         port="0"
-        priming_volume="1" />
+        priming_volume="0.2" />
     </OptimizeStep>
+    <ResetHandling
+      solvent="methanol"
+      volume="3 mL"
+      repeats="3"
+    />
     <Wait
       time="5 mins" />
     <OptimizeStep
@@ -84,7 +99,21 @@
         volume="0.23 mL"
         stir="True"
         port="0"
-        priming_volume="1" />
+        priming_volume="0.2" />
+    </OptimizeStep>
+    <ResetHandling
+      solvent="methanol"
+      volume="3 mL"
+      repeats="3"
+    />
+    <OptimizeStep
+      id="7"
+      optimize_properties="{'temp': {'max_value': 60.0, 'min_value': 25.0}}">
+      <HeatChillToTemp
+        vessel="reactor"
+        temp="25.0"
+        stir="True"
+        purpose="reaction" />
     </OptimizeStep>
     <OptimizeStep
       id="8"
@@ -93,13 +122,23 @@
         vessel="reactor"
         time="18 hrs" />
     </OptimizeStep>
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="25.0"
+      continue_heatchill="False"
+      stir="True" />
     <Add
       vessel="reactor"
       reagent="reference"
       volume="5 mL"
       port="0"
-      priming_volume="1"
+      priming_volume="0.2"
       stir="True"/>
+    <ResetHandling
+      solvent="DCM"
+      volume="3 mL"
+      repeats="3"
+    />
     <FinalAnalysis
       vessel="reactor"
       method="NMR"
@@ -112,6 +151,11 @@
       volume="all"
       from_port="0"
       to_port="0" />
+    <ResetHandling
+      solvent="DCM"
+      volume="3 mL"
+      repeats="3"
+    />
     <CleanVessel
       vessel="reactor"
       solvent="DCM"
