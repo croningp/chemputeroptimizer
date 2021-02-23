@@ -11,7 +11,8 @@
       "name": "reactor",
       "current_volume": 0,
       "max_volume": 20,
-      "necks": 2
+      "necks": 2,
+      "can_filter": false
     },
     {
       "type": "valve",
@@ -20,10 +21,11 @@
       "internalId": 13,
       "label": "valve_Z",
       "id": "valve_Z",
+      "start_keepalive": false,
       "class": "ChemputerValve",
       "name": "valve_Z",
       "address": "192.168.1.23",
-      "start_keepalive": false
+      "current_volume": 0
     },
     {
       "type": "pump",
@@ -32,12 +34,12 @@
       "internalId": 14,
       "label": "pump_Z",
       "id": "pump_Z",
+      "start_keepalive": false,
       "class": "ChemputerPump",
       "name": "pump_Z",
       "address": "192.168.1.211",
       "max_volume": 5,
-      "current_volume": 0,
-      "start_keepalive": false
+      "current_volume": 0
     },
     {
       "type": "waste",
@@ -50,7 +52,8 @@
       "name": "waste_Z",
       "current_volume": 0,
       "max_volume": 2000,
-      "necks": 1
+      "necks": 1,
+      "can_filter": false
     },
     {
       "type": "valve",
@@ -59,10 +62,11 @@
       "internalId": 16,
       "label": "valve_H",
       "id": "valve_H",
+      "start_keepalive": false,
       "class": "ChemputerValve",
       "name": "valve_H",
       "address": "192.168.1.22",
-      "start_keepalive": false
+      "current_volume": 0
     },
     {
       "type": "pump",
@@ -71,12 +75,12 @@
       "internalId": 17,
       "label": "pump_H",
       "id": "pump_H",
+      "start_keepalive": false,
       "class": "ChemputerPump",
       "name": "pump_H",
       "address": "192.168.1.212",
       "max_volume": 5,
-      "current_volume": 0,
-      "start_keepalive": false
+      "current_volume": 0
     },
     {
       "type": "waste",
@@ -89,7 +93,8 @@
       "name": "waste_H",
       "current_volume": 0,
       "max_volume": 2000,
-      "necks": 1
+      "necks": 1,
+      "can_filter": false
     },
     {
       "type": "valve",
@@ -98,10 +103,11 @@
       "internalId": 19,
       "label": "valve_G",
       "id": "valve_G",
+      "start_keepalive": false,
       "class": "ChemputerValve",
       "name": "valve_G",
       "address": "192.168.1.21",
-      "start_keepalive": false
+      "current_volume": 0
     },
     {
       "type": "pump",
@@ -110,12 +116,12 @@
       "internalId": 25,
       "label": "pump_G",
       "id": "pump_G",
+      "start_keepalive": false,
       "class": "ChemputerPump",
       "name": "pump_G",
       "address": "192.168.1.13",
       "max_volume": 10,
-      "current_volume": 0,
-      "start_keepalive": false
+      "current_volume": 0
     },
     {
       "type": "waste",
@@ -128,7 +134,8 @@
       "name": "waste_G",
       "current_volume": 0,
       "max_volume": 2000,
-      "necks": 1
+      "necks": 1,
+      "can_filter": false
     },
     {
       "type": "heater",
@@ -141,7 +148,8 @@
       "name": "stirrer_reactor",
       "address": "192.168.1.206",
       "connection_mode": "tcpip",
-      "port": 5000
+      "port": 5000,
+      "temp_sensor": "external"
     },
     {
       "type": "flask",
@@ -154,7 +162,8 @@
       "current_volume": 250,
       "class": "ChemputerFlask",
       "chemical": "DCM",
-      "name": "flask_DCM"
+      "name": "flask_DCM",
+      "can_filter": false
     },
     {
       "type": "flask",
@@ -167,7 +176,8 @@
       "current_volume": 5,
       "class": "ChemputerFlask",
       "chemical": "benzaldehyde",
-      "name": "flask_benzaldehyde"
+      "name": "flask_benzaldehyde",
+      "can_filter": false
     },
     {
       "type": "flask",
@@ -180,7 +190,8 @@
       "current_volume": 5,
       "class": "ChemputerFlask",
       "chemical": "benzylamine",
-      "name": "flask_benzylamine"
+      "name": "flask_benzylamine",
+      "can_filter": false
     },
     {
       "type": "flask",
@@ -193,7 +204,8 @@
       "current_volume": 5,
       "class": "ChemputerFlask",
       "chemical": "isocyanide",
-      "name": "flask_isocyanide"
+      "name": "flask_isocyanide",
+      "can_filter": false
     },
     {
       "type": "flask",
@@ -206,7 +218,8 @@
       "current_volume": 250,
       "class": "ChemputerFlask",
       "chemical": "methanol",
-      "name": "flask_methanol"
+      "name": "flask_methanol",
+      "can_filter": false
     },
     {
       "type": "flask",
@@ -219,7 +232,8 @@
       "current_volume": 5,
       "class": "ChemputerFlask",
       "chemical": "fluorobenzoic acid",
-      "name": "flask_fluorobenzoic acid"
+      "name": "flask_fluorobenzoic acid",
+      "can_filter": false
     },
     {
       "type": "flask",
@@ -232,7 +246,8 @@
       "current_volume": 2000,
       "class": "ChemputerFlask",
       "chemical": "nitrogen",
-      "name": "flask_nitrogen"
+      "name": "flask_nitrogen",
+      "can_filter": false
     },
     {
       "id": "product_flask",
