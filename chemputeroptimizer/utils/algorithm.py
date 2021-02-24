@@ -299,10 +299,10 @@ see below:\n%s', reply['exception'])
         header = ''
 
         for key in self.current_setup:
-            header += f'{key}, '
+            header += f'{key},'
 
         for key in self.current_result:
-            header += f'{key}, '
+            header += f'{key},'
 
         np.savetxt(
             path,

@@ -4,3 +4,6 @@ class OptimizerError(Exception):
 
 class ParameterError(Exception):
     pass
+
+class OptimizerNotPreparedError(Exception):
+    pass
