@@ -2,18 +2,18 @@
 Module to run chemical reaction optimization.
 """
 
-import logging
+# std lib
 import json
 import os
-
-from typing import Dict, Union
+from typing import Dict
 from copy import deepcopy
+from csv import reader as csv_reader
 
-import AnalyticalLabware
-
+# xdl
 from xdl import XDL
 from xdl.steps import Step
 
+# relative
 from .platform import OptimizerPlatform
 from .platform.steps import (
     OptimizeDynamicStep,
@@ -28,7 +28,11 @@ from .constants import (
     DEFAULT_OPTIMIZATION_PARAMETERS,
     SUPPORTED_FINAL_ANALYSIS_STEPS,
 )
-from .utils.errors import OptimizerError, ParameterError
+from .utils.errors import (
+    OptimizerError,
+    ParameterError,
+    OptimizerNotPreparedError,
+)
 from .utils import (
     get_logger,
     interactive_optimization_config,
@@ -37,7 +41,7 @@ from .utils import (
 )
 
 
-class ChemputerOptimizer(object):
+class ChemputerOptimizer():
     """
     Main class to run the chemical reaction optimization.
 
@@ -93,6 +97,9 @@ loading.', optimize_steps)
             raise OptimizerError('No OptimizeSteps found or given!')
 
         self._initalise_optimize_step()
+
+        # placeholder
+        self.prepared = False
 
     def _check_final_analysis_steps(self) -> None:
         """Checks for FinalAnalysis steps in the procedure
@@ -249,7 +256,8 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
                     self._xdl_object.steps[i] = self._create_optimize_step(
                         step, i, params)
-                    self._optimization_steps.update({f'{step.name}_{i}': f'{params}'})
+                    self._optimization_steps.update(
+                        {f'{step.name}_{i}': f'{params}'})
 
     def _create_optimize_step(
             self,
@@ -298,18 +306,28 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
     def prepare_for_optimization(
             self,
             opt_params=None,
+            previous_results=None,
     ) -> None:
         """Get the Optimize step and the respective parameters
 
         Args:
             opt_params (str, Optional): Path to .json configuration. If omitted,
-                will use default. If running in interactive mode, will ask for user input.
+                will use default. If running in interactive mode, will ask for
+                user input.
+            previous_results (str, Optional): Path to .csv file with previous
+                results. If given, will update the algorithm class and the
+                given xdl.
 
         Raises:
-            OptimizerError: If invalid dictionary is provided for to load configuration
-                or invalid path to .json configuration.
-            ParameterError: If supplied parameter is not valid for the optimization.
+            OptimizerError: If invalid dictionary is provided for to load
+                configuration or invalid path to .json configuration.
+            ParameterError: If supplied parameter is not valid for the
+                optimization.
         """
+
+        if self.prepared:
+            self.logger.warning('Already prepared!')
+            return
 
         if self.interactive:
             opt_params = interactive_optimization_config()
@@ -355,7 +373,56 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         self.optimizer.prepare_for_execution(self.graph,
                                              self._xdl_object.executor,)
 
+        self.prepared = True
+
+        if previous_results is not None:
+            self.load_previous_results(results=previous_results)
+
     def optimize(self, chempiler):
         """Execute the Optimize step and follow the optimization routine"""
 
         self.optimizer.execute(chempiler)
+
+    def load_previous_results(self,
+                              results: str, update_xdl: bool = True) -> None:
+        """ Loads previous results and updates the current working xdl.
+
+        Args:
+            results (str): Path to .csv file with the results from the previous
+                iterations. Should contain first row as names of the procedure
+                parameters.
+            update_xdl (bool): If true will update the loaded xdl.
+        """
+        if not self.prepared:
+            raise OptimizerNotPreparedError('Optimizer not prepared! Please \
+run "prepare_for_optimization" method first.')
+
+        try:
+            with open(results, newline='') as results_fobj:
+                results = list(csv_reader(results_fobj))
+        except FileNotFoundError:
+            raise FileNotFoundError(f'Ensure file {results} exists!')
+
+        # checking for entries
+        try:
+            assert(set(results[0][:-1]) == set(self.algorithm.setup_constraints))
+        except AssertionError:
+            raise ParameterError('Wrong parameters found in results file:\n{}.\
+Must contain:\n{}'.format(set(results[0]), set(self.algorithm.setup_constraints)))
+
+        for row in results[1:]: # skipping header row
+            # converting
+            # dropping last column as result
+            #TODO change here when deal with multiobjective optimization
+            data = {
+                key: {'current_value': float(value)}
+                for key, value in zip(results[0][:-1], row[:-1])
+            }
+            result = {
+                results[0][-1]: float(row[-1])
+            }
+            self.algorithm.load_data(data=data, result=result)
+
+        # when data is loaded, update the xdl
+        if update_xdl:
+            self.optimizer.update_steps_parameters()
