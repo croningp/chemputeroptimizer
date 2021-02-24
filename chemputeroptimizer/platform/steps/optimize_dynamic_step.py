@@ -125,9 +125,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self.state['iteration'] += 1
         self.state['updated'] = True
 
-        # reset the iterator for the next iteration
+        # reset the cursor for the next iteration
         self._cursor = 0
-        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
 
     def _update_xdl(self):
         """Creates a new copy of xdl procedure with updated parameters."""
@@ -161,6 +160,11 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             device_modules=[AnalyticalLabware]
         )
         self._update_analysis_steps()
+
+        # updating xdl steps iterator
+        # starting from 0 as the update xdl only happens
+        # when new procedure is uploaded
+        self._xdl_iter = iter(self.working_xdl_copy.steps)
 
     def _check_flasks_full(self, platform_controller):
         """Ensure solvent and reagents flasks are full for the next iteration"""
