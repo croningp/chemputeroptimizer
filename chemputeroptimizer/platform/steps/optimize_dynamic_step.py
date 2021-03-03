@@ -316,7 +316,10 @@ Enter to continue\n'
         self._update_analysis_steps()
 
         # load necessary tools
-        self._analyzer = SpectraAnalyzer()
+        self._analyzer = SpectraAnalyzer(
+            max_spectra=int(self.max_iterations), # obtained from loading config
+            data_path=os.path.dirname(self.original_xdl._xdl_file)
+        )
 
         # iterating over xdl to allow checkpoints
         self._cursor = 0

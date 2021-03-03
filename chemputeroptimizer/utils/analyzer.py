@@ -216,6 +216,11 @@ supported.')
         self.logger.debug('Processing spectrum from NMR')
         # looking only in the most recent uploaded spectrum
         spec = self.spectra[-1]
+        spec.save_data()
+
+        # referencing spectrum by shifting closest peak to the given
+        # reference position
+        spec.reference_spectrum(reference, 'closest')
 
         # generating regions of interest first, best result achieved when
         # searching in "smoothed" and "derivative" modes
