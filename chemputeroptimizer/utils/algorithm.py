@@ -79,6 +79,9 @@ class AlgorithmAPI():
             raise KeyError(f'{param} is not a valid parameter for \
 {self._method_name}')
 
+        # actually setting the configuration
+        self._method_config = config
+
     def _load_method(self, method_name, config, constraints):
         """Loads corresponding algorithm class.
 

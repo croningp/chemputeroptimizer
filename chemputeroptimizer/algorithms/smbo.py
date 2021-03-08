@@ -33,6 +33,11 @@ class SMBO(AbstractAlgorithm):
         "base_estimator": "GP",
         "acq_func": "EI",
         "n_initial_points": 5,
+        # below are defaults for the skopt Optimizer
+        "acq_optimizer": "auto",
+        "random_state": None,
+        "acq_func_kwargs": None,
+        "acq_optimizer_kwargs": None,
     }
 
     def __init__(self, dimensions, config=None):
