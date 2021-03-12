@@ -1,9 +1,8 @@
 """
-Module for comparing several spectra.
+Module for processing, analysis and comparison of several spectra.
 """
 import logging
 
-from typing import Dict
 from collections import deque
 
 import numpy as np
@@ -16,6 +15,10 @@ from AnalyticalLabware import (
 )
 from AnalyticalLabware.analysis.utils import find_nearest_value_index
 
+from .processing_constants import (
+    DEFAULT_NMR_REGIONS_DETECTION,
+    TARGET_THRESHOLD_DISTANCE,
+)
 
 def find_point_in_regions(regions, point):
     """ Help function to find if the point belong to any given region
@@ -45,6 +48,90 @@ def find_point_in_regions(regions, point):
 
     # returning the matching arguments
     return np.nonzero(region_map)[0]
+
+def resolve_point_between_regions(regions, point, method='mean'):
+    """ Help function to resolve a single point found in several regions.
+
+    The resolving method depends on "method" argument, "mean" - by default -
+    computes the mean of each region and returns the one, which mean is closest
+    to the point of interest.
+
+    Args:
+        regions (:obj:np.array): 2D M x 2 array with peak regions indexes (rows)
+            as left and right borders (columns).
+        point (int): Point of interest.
+        method (str): Method to resolve the regions if the target point is
+            found in several regions. "mean" (default) returns the region,
+            which mean is closest to the point of interest.
+
+    Returns:
+        :obj:np.array: Single region from several regions passed.
+
+    Example:
+        >>> regions = np.array([[-113.9, -114.22], [-114.18, -114.48]])
+        >>> point = -114.2
+        >>> resolve_point_between_regions(regions, point, "mean")
+        array([-114.18, -114.48], dtype=float32)
+    """
+
+    if method == 'mean':
+        # Compute mean along vertical axis
+        regions_means = regions.mean(axis=1)
+        # Compute absolute differences
+        diff_map = np.abs(regions_means - point)
+        return regions[np.argmin(diff_map)]
+
+    print('Other methods are not supported')
+    return regions[-1]
+
+def find_closest_region(regions, point, method='mean', threshold=0.0):
+    """ Help function to find a region, closest to the point of interest.
+
+    The resolving method depends on "method" argument, "mean" - by default -
+    computes the mean of each region and returns the one, which mean is closest
+    to the point of interest.
+
+    Args:
+        regions (:obj:np.array): 2D M x 2 array with peak regions indexes (rows)
+            as left and right borders (columns).
+        point (int): Point of interest.
+        method (str): Method to resolve the regions if the target point is nt
+            found in any region. "mean" (default) returns the region, which mean
+            is closest to the point of interest; "left" will return the region,
+            which left border is closest to the point; "right" - for right
+            border.
+        threshold (float): Maximum distance to consider point *close* to the
+            region.
+
+    Returns:
+        :obj:np.array: Single region from several regions passed. If the maximum
+            distance between closest region and point of interest is greater
+            than the threshold - an empty array is returned.
+
+    Example:
+        >>> regions = np.array([[-113.9, -114.22], [-114.18, -114.48]])
+        >>> point = -114.5
+        >>> find_closest_region(regions, point, "mean")
+        array([-114.18, -114.48], dtype=float32)
+    """
+
+    if method == 'mean':
+        # Computing mean
+        regions_ = regions.mean(axis=1)
+    elif method == 'left':
+        # First (left) border for all regions
+        regions_ = regions[:, 0]
+    elif method == 'right':
+        # Second (right) border for all regions
+        regions_ = regions[:, 1]
+    else:
+        print('Other methods are not supported')
+        return regions[-1]
+
+    diff_map = np.abs(regions_ - point)
+    if not (diff_map < threshold).any():
+        return np.array([])
+    return regions[np.argmin(diff_map)]
 
 class SpectraAnalyzer():
     """General class for analyzing spectra differences.
@@ -222,14 +309,14 @@ supported.')
         # reference position
         spec.reference_spectrum(reference, 'closest')
 
-        # generating regions of interest first, best result achieved when
-        # searching in "smoothed" and "derivative" modes
+        # Selecting best parameters for a given nuclei
+        regions_generation_params = DEFAULT_NMR_REGIONS_DETECTION.get(
+            spec.parameters['rxChannel'],
+            {} # if current nuclei not registered in defaults
+        )
+        # generating regions of interest first
         regions = spec.generate_peak_regions(
-            magnitude=True,
-            derivative=True,
-            smoothed=True,
-            d_merge=0.01,
-            d_expand=0.0075
+            **regions_generation_params
         )
         self.logger.debug('Found regions, %s', spec.x[regions])
 
@@ -280,15 +367,39 @@ fallback to integrating the peak')
                             spec.x[regions[peak_index_region]]
                         )
                     elif peak_index_region.size == 0:
-                        # no matching region, no peak found
+                        # no matching region
                         self.logger.warning('No matching region for peak %s, \
-no product formed or processing error, check manually.', peak_position)
-                        result = 0
+checking closest', peak_position)
+                        # checking for closest region
+                        closest_region = find_closest_region(
+                            regions=regions,
+                            point=peak_index,
+                            method='mean',
+                            threshold=TARGET_THRESHOLD_DISTANCE
+                        )
+                        if closest_region.size == 0:
+                            # if closest peak still far apart,
+                            # i.e. further than the threshold distance
+                            self.logger.warning('All regions are to far from \
+peak %s, either no product formed or target peak shifted, check manually. \
+\n found regions: %s', peak_position, spec.x[regions])
+                            result = 0
+
+                        else:
+                            # found closest, just integrating it
+                            result = spec.integrate_area(
+                                spec.x[closest_region]
+                            )
                     else:
                         self.logger.warning('More than one region matched the \
-target peak, check below:\n regions: %s, peak: %s',
-                                            peak_index_region,
-                                            peak_position)
+target peak, resolving')
+                        # resolving between several regions
+                        peak_index_region = resolve_point_between_regions(
+                            regions=regions,
+                            point=peak_index,
+                            method='mean',
+                        )
+                        # integrating the best fit region
                         result = spec.integrate_peak(float(peak_position))
 
                     return {target_parameter: result/reference_value}
