@@ -13,13 +13,13 @@ class AbstractAlgorithm(ABC):
     the experimental parameters, save the iteration for further access.
 
     Attributes:
-        dimensions (Iterable[Iterable[float, float]], optinal): Search space
+        dimensions (Iterable[Iterable[float, float]], optional): Search space
             dimensions, e.g. list of (min, max) tuples for each input data point.
-        config (Dict, optional): All neccessary attributes for specific
+        config (Dict, optional): All necessary attributes for specific
             algorithm. If not supplied, default class attribute is
             used instead.
     """
-    # all config attributes neccessary for specific algorithm
+    # all config attributes necessary for specific algorithm
     DEFAULT_CONFIG = {}
 
     def __init__(self, dimensions=None, config=None):
