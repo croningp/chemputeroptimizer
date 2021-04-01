@@ -5,7 +5,7 @@ Module to run chemical reaction optimization.
 # std lib
 import json
 import os
-from typing import Dict
+from typing import Dict, Any
 from copy import deepcopy
 from csv import reader as csv_reader
 
@@ -22,6 +22,7 @@ from .platform.steps import (
 )
 from .platform.steps.utils import (
     find_last_meaningful_step,
+    extract_optimization_params,
 )
 from .constants import (
     SUPPORTED_STEPS_PARAMETERS,
@@ -38,6 +39,11 @@ from .utils import (
     interactive_optimization_config,
     interactive_optimization_steps,
     AlgorithmAPI,
+)
+# Optimizer Client specific
+from .utils.client import (
+    proc_data,
+    calculate_procedure_hash,
 )
 
 
@@ -96,7 +102,7 @@ loading.', optimize_steps)
             # TODO public methods for loading optimization steps
             raise OptimizerError('No OptimizeSteps found or given!')
 
-        self._initalise_optimize_step()
+        self._initialize_optimize_step()
 
         # placeholder
         self.prepared = False
@@ -153,7 +159,7 @@ method', last_meaningful_step.name, position)
                 )
             )
 
-    def _initalise_optimize_step(self) -> None:
+    def _initialize_optimize_step(self) -> None:
         """Initialize Optimize Dynamic step with relevant optimization parameters"""
 
         self.optimizer = OptimizeDynamicStep(
@@ -364,10 +370,22 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         # updating algorithmAPI
         algorithm_parameters = opt_params.pop('algorithm')
         algorithm_name = algorithm_parameters.pop('name')
-        self.algorithm.method_name = algorithm_name
-        self.algorithm.method_config = algorithm_parameters
+        procedure_hash = calculate_procedure_hash(self._xdl_object.as_string())
+        procedure_parameters = extract_optimization_params(
+            self._xdl_object
+        )
+        procedure_target = opt_params['target']
+        self.initialize_algorithm(
+            algorithm_name=algorithm_name,
+            algorithm_config=algorithm_parameters,
+            proc_hash=procedure_hash,
+            proc_params=procedure_parameters,
+            proc_target=procedure_target,
+        )
 
         self.logger.debug('Loaded the following parameter dict %s', opt_params)
+
+        self._validate_batch_size(opt_params['batch_size'])
 
         self.optimizer.load_optimization_config(**opt_params)
         self.optimizer.prepare_for_execution(self.graph,
@@ -382,6 +400,45 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         """Execute the Optimize step and follow the optimization routine"""
 
         self.optimizer.execute(chempiler)
+
+    def initialize_algorithm(
+        self,
+        algorithm_name: str,
+        algorithm_config: Dict[str, Any],
+        proc_hash: str,
+        proc_params: Dict[str, Dict[str, Any]],
+        proc_target: Dict[str, Any],
+    ) -> None:
+        """Initialize the AlgorithmAPI and underlying algorithm class.
+
+        Load the algorithm name and configuration. Initialize the underlying
+        algorithm class with procedure parameters and target.
+
+        Args:
+            algorithm_name (str): Name of the optimization algorithm.
+            algorithm_config (Dict[str, Any]): Configuration dictionary for the
+                optimization algorithm.
+            proc_hash (str): Digest of a procedure hash calculated using sha256
+                algorithm, as a string of hexadecimal digits. Used with
+                Optimizer Client to match identical procedures for parallel
+                optimization.
+            proc_params (Dict[str, Dict[str, Any]]): Nested dictionary with
+                parameters keys and values as their constraints.
+            proc_target (Dict[str, Any]): Dictionary with the target parameters
+                for the given procedure.
+        """
+        # Updating placeholders
+        self.algorithm.method_name = algorithm_name
+        self.algorithm.method_config = algorithm_config
+
+        # Initialing the optimization algorithm
+        # Special function (proc_data) to forge nested dictionary
+        # Used for Optimizer Client
+        self.algorithm.initialize(proc_data(
+            proc_hash=proc_hash,
+            parameters=proc_params,
+            target=proc_target,
+        ))
 
     def load_previous_results(self,
                               results: str, update_xdl: bool = True) -> None:
@@ -401,7 +458,8 @@ run "prepare_for_optimization" method first.')
             with open(results, newline='') as results_fobj:
                 results = list(csv_reader(results_fobj))
         except FileNotFoundError:
-            raise FileNotFoundError(f'Ensure file {results} exists!')
+            raise FileNotFoundError(
+                f'Ensure file {results} exists!') from None
 
         # checking for entries
         try:
@@ -423,6 +481,35 @@ Must contain:\n{}'.format(set(results[0]), set(self.algorithm.setup_constraints)
             }
             self.algorithm.load_data(data=data, result=result)
 
+        # Setting the flag to load all data into algorithm
+        self.algorithm.preload = True
+
         # when data is loaded, update the xdl
         if update_xdl:
             self.optimizer.update_steps_parameters()
+
+    def _validate_batch_size(self, batch_size: int) -> bool:
+        """ Validate the give batch size against the procedure and graph.
+
+        Args:
+            batch_size (int): Number of batches to run the optimization in
+                parallel.
+
+        Returns:
+            bool: True if current procedure can run in parallel with given
+                batch size and graph.
+
+        Raises:
+            OptimizerError: If the current procedure cannot be executed in
+                parallel on a given graph.
+        """
+
+        if batch_size == 1:
+            # Non-parallel optimization
+            # Skip validation
+            pass
+        else:
+            #TODO
+            raise OptimizerError('Cannot run more than one batch!')
+
+        return True

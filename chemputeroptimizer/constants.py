@@ -63,4 +63,5 @@ DEFAULT_OPTIMIZATION_PARAMETERS = {
         'name': 'random',
         },
     'reference': None,
+    'batch_size': 1,
 }

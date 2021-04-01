@@ -13,7 +13,7 @@ import numpy as np
 from ..algorithms import (
     Random_,
     SMBO,
-    GA,
+    # GA,
 )
 from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
 
@@ -21,7 +21,7 @@ from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
 ALGORITHMS = {
     'random': Random_,
     'smbo': SMBO,
-    'ga': GA,
+    # 'ga': GA,
 }
 
 
@@ -47,6 +47,9 @@ class AlgorithmAPI():
         self.client = None
         self.proc_hash = None
         self.strategy = None
+
+        # To know when algorithm is first initialized
+        self.preload = False
 
     @property
     def method_name(self):
@@ -77,7 +80,7 @@ class AlgorithmAPI():
 
         except AssertionError:
             raise KeyError(f'{param} is not a valid parameter for \
-{self._method_name}')
+{self._method_name}') from None
 
         # actually setting the configuration
         self._method_config = config
@@ -247,10 +250,32 @@ class AlgorithmAPI():
             )
         )
 
-    def get_next_setup(self):
-        """Finds the next parameters set based on the experimental data"""
+    def get_next_setup(
+        self,
+        n_batches: int = 1,
+    ):
+        """Finds the next parameters set based on the experimental data.
+
+        Args:
+            n_batches (int): Number of latest experiments (batches) and, as a
+                consequence, number of new parameter sets to return. If preload
+                parameter is set, will load all experimental data, but only
+                output "n_batches" new setups.
+        """
 
         self.logger.info('Optimizing parameters.')
+
+        # Number of points to return from the algorithm
+        # Normally equals to number of batches
+        n_returns = n_batches
+
+        if self.preload:
+            # Feeding all experimental data to algorithm
+            # Usually happens if new algorithm is loaded, or
+            # A number of previously run experiments needs to be loaded
+            n_batches = -1
+            # Resetting
+            self.preload = False
 
         if self.method_name in SERVER_SUPPORTED_ALGORITHMS:
             # working with remote server
@@ -258,10 +283,20 @@ class AlgorithmAPI():
             # forging query msg
             query_data = {
                 'hash': self.proc_hash,
-                'parameters': self.current_setup
+                # Dict[str, np.array]
+                'parameters': dict(zip(
+                    self.current_setup,
+                    self.parameter_matrix.T.tolist()
+                )),
+                'n_batches': n_batches,
             }
             if self.current_result:
-                query_data.update(result=self.current_result)
+                query_data.update(
+                    result=dict(zip(
+                        self.current_result,
+                        self.result_matrix.T.tolist()
+                        ))
+                )
 
             self.logger.debug('Query data: %s', query_data)
 
@@ -282,8 +317,10 @@ see below:\n%s', reply['exception'])
             self._calculated = self.algorithm.suggest(
                 self.parameter_matrix,
                 self.result_matrix,
-                self.setup_constraints.values()
-            )
+                self.setup_constraints.values(),
+                n_batches=n_batches,
+                n_returns=n_returns,
+            )[0] # TODO change here when working with batches
 
             self.logger.info(
                 'Finished optimization, new parameters list in log file.')

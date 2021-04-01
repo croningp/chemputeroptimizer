@@ -28,6 +28,7 @@ new_xdl.xdl
 *.log
 **/iterations*
 *.tsv
+*.csv
 
 # analytical data
 *.pickle

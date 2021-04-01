@@ -1,7 +1,10 @@
-from typing import List, Dict, Tuple, Optional
+""" Utility function for the Optimizer and Optimize Dynamic Step."""
+
+from typing import List, Dict, Tuple, Optional, Any
 
 from xdl.steps import Step
 from xdl.constants import INERT_GAS_SYNONYMS
+from xdl import XDL
 
 from chemputerxdl.constants import (
     CHEMPUTER_FLASK,
@@ -15,7 +18,7 @@ from ...constants import ANALYTICAL_INSTRUMENTS
 from .steps_analysis.constants import SHIMMING_SOLVENTS
 
 
-def find_instrument(graph: MultiDiGraph, method: str) -> str:
+def find_instrument(graph: MultiDiGraph, method: str) -> Optional[str]:
     """Get the analytical instrument for the given method
 
     Args:
@@ -31,7 +34,7 @@ def find_instrument(graph: MultiDiGraph, method: str) -> str:
 def find_last_meaningful_step(
         procedure: List[Step],
         meaningful_steps: List[str]
-    ) -> Step:
+    ) -> Optional[Step]:
     """Get the last step significant for the synthetic procedure.
 
     Mainly used for including of the FinalAnalysis step.
@@ -50,7 +53,7 @@ def find_last_meaningful_step(
 
 def get_reagent_flasks(
         graph: MultiDiGraph
-    ) -> List[Dict]:
+    ) -> Optional[List[Dict]]:
     """Get the list of reagent and solvent flasks from the graph
 
     Reagent and solvent flasks are assumed to have valid "chemical" attribute.
@@ -72,7 +75,7 @@ def get_reagent_flasks(
 
 def get_waste_containers(
     graph: MultiDiGraph,
-) -> List[Dict]:
+) -> Optional[List[Dict]]:
     """Get the list of waste containers on the graph
 
     Returns:
@@ -87,7 +90,7 @@ def get_waste_containers(
 
     return waste_containers
 
-def get_dilution_flask(graph: MultiDiGraph) -> str:
+def get_dilution_flask(graph: MultiDiGraph) -> Optional[str]:
     """ Get an empty flask with a stirrer attached to it.
 
         Used to dilute the analyte before injecting into analytical instrument.
@@ -109,7 +112,8 @@ def get_dilution_flask(graph: MultiDiGraph) -> str:
 
     return None
 
-def find_shimming_solvent_flask(graph) -> Optional[Tuple[str, float]]:
+def find_shimming_solvent_flask(
+    graph: MultiDiGraph) -> Optional[Tuple[str, float]]:
     """
     Returns flask with the solvent suitable for shimming and corresponding
     reference peak in ppm.
@@ -131,3 +135,42 @@ def find_shimming_solvent_flask(graph) -> Optional[Tuple[str, float]]:
             return chemicals_flasks[solvent], SHIMMING_SOLVENTS[solvent]
 
     return None
+
+def extract_optimization_params(xdl: XDL) -> Dict[str, Dict[str, Any]]:
+    """Get dictionary of all parameters to be optimized.
+
+    Updates parameters attribute in form:
+        (Dict): Nested dictionary of optimizing steps and corresponding
+            parameters of the form:
+            {
+                "step_ID-parameter": {
+                    "max_value": <maximum parameter value>,
+                    "min_value": <minimum parameter value>,
+                    "current_value": <parameter value>,
+                }
+            }
+
+    Example:
+        {
+            "HeatChill_1-temp": {
+                "max_value": 70,
+                "min_value": 25,
+                "current_value": 35,
+            }
+        }
+    """
+    param_template = {}
+
+    for i, step in enumerate(xdl.steps):
+        if step.name == 'OptimizeStep':
+            param_template.update(
+                {
+                    f'{step.children[0].name}_{i}-{param}': {
+                        **step.optimize_properties[param],
+                        'current_value': step.children[0].properties[param]
+                    }
+                    for param in step.optimize_properties
+                }
+            )
+
+    return param_template

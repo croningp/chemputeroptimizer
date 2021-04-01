@@ -7,6 +7,7 @@ import threading
 import selectors
 
 from queue import Queue, Empty
+from hashlib import sha256
 
 
 SERVER_SUPPORTED_ALGORITHMS = [
@@ -33,6 +34,19 @@ def proc_data(proc_hash, parameters, result=None, target=None):
     if target:
         data_msg.update(target=target)
     return data_msg
+
+def calculate_procedure_hash(procedure: str) -> str:
+    """ Calculate procedure hash using sha256 algorithm.
+
+    Args:
+        procedure (str): XDL procedure as a string.
+
+    Returns:
+        str: Hash digest value as a string of hexadecimal digits.
+    """
+    # TODO Clean up the procedure from optimization parameters
+    # To allow several procedures with different starting points to match.
+    return sha256(procedure.encode('utf-8')).hexdigest()
 
 class OptimizerClient:
     """ Client part of the optimization framework interaction. """
@@ -133,6 +147,7 @@ class OptimizerClient:
         except Empty:
             self.logger.error('No reply received within %d seconds',
                               DEFAULT_TIMEOUT)
+            reply = b'{"exception": "No reply received from server"}'
 
         # decoding
         reply = json.loads(reply.decode(STANDARD_ENCODING))

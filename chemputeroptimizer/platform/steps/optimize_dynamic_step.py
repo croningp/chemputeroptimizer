@@ -35,6 +35,7 @@ from .utils import (
     find_instrument,
     get_reagent_flasks,
     get_waste_containers,
+    extract_optimization_params,
 )
 from ...utils import SpectraAnalyzer, AlgorithmAPI
 from ...utils.client import proc_data
@@ -68,42 +69,10 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         self.logger = logging.getLogger('optimizer.dynamic_step')
 
-    def _get_params_template(self) -> None:
-        """Get dictionary of all parameters to be optimized.
+    def _extract_parameters(self) -> None:
+        """Extract optimization parameters from original xdl procedure."""
 
-        Updates parameters attribute in form:
-            (Dict): Nested dictionary of optimizing steps and corresponding parameters of the form:
-                {
-                    "step_ID-parameter": {
-                        "max_value": <maximum parameter value>,
-                        "min_value": <minimum parameter value>,
-                        "current_value": <parameter value>,
-                    }
-                }
-
-        Example:
-            {
-                "HeatChill_1-temp": {
-                    "max_value": 70,
-                    "min_value": 25,
-                    "current_value": 35,
-                }
-            }
-        """
-        param_template = {}
-
-        for i, step in enumerate(self.original_xdl.steps):
-            if step.name == 'OptimizeStep':
-                param_template.update(
-                    {
-                        f'{step.children[0].name}_{i}-{param}': {
-                            **step.optimize_properties[param],
-                            'current_value': step.children[0].properties[param]
-                        }
-                        for param in step.optimize_properties
-                    }
-                )
-        self.parameters = param_template
+        self.parameters = extract_optimization_params(self.original_xdl)
 
     def update_steps_parameters(self) -> None:
         """Updates the parameter template and corresponding procedure steps"""
@@ -285,23 +254,11 @@ Enter to continue\n'
 
         self.logger.debug('Preparing Optimize dynamic step for execution.')
 
-        # calculating procedure hash
-        self.proc_hash = sha256(
-            self.original_xdl.as_string().encode('utf-8')
-        ).hexdigest()
-
         # saving graph for future xdl updates
         self._graph = graph
 
         # getting parameters from the *raw* xdl
-        self._get_params_template()
-
-        # initializing algorithm
-        self.algorithm_class.initialize(proc_data(
-            proc_hash=self.proc_hash,
-            parameters=self.parameters,
-            target=self.target,
-        ))
+        self._extract_parameters()
 
         # working with _protected copy to avoid step reinstantiating
         self.working_xdl_copy = xdl_copy(self.original_xdl)
