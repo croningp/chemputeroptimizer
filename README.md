@@ -43,16 +43,10 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.2.2
+### v0.2.3
 
-* Loading results from previous experiments (as `.csv` files):
-```python
-chemputeroptimizer.load_previous_results(results="previous_results.csv")
-```
-or
-```python
-chemputeroptimizer.prepare_for_optimization(previous_results="previous_results.csv")
-```
+* Fixed the bug with preloading results from previous iterations
+* `Reproduce` algorithm to check the reaction for reproducibility
 
 ## Development
 
