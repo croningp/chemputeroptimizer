@@ -231,6 +231,7 @@ class SpectraAnalyzer():
 supported.')
 
         for target_parameter in target:
+            # Mainly simulation processing
             if 'spectrum' in target_parameter:
                 if 'peak-area' in target_parameter:
                     # simple case, searching for peak property on a spectrum
@@ -249,6 +250,15 @@ supported.')
                     )
 
                     return {target_parameter: result}
+            elif 'novelty' in target_parameter:
+                # Counting peaks, giving full area not to update
+                # Peaks properties of the spectrum
+                peaks = self.spectra[-1].find_peaks(
+                    area=(self.spectra[-1].x.min(), self.spectra[-1].x.max())
+                )
+                # n_peaks x 5 matrix of found peaks, see corresponding method
+                # In AnalyticalLabware Spectrum class
+                return {target_parameter: peaks.shape[0]}
 
         return {'final_parameter': -1}
 
@@ -404,7 +414,7 @@ target peak, resolving')
 
                     return {target_parameter: result/reference_value}
 
-                if 'integration-area' in target_parameter:
+                elif 'integration-area' in target_parameter:
                     # splitting "spectrum_integration-area_lll-rrr"
                     _, _, region = target_parameter.split('_')
                     left_w, right_w = region.split('-')
@@ -415,6 +425,11 @@ target peak, resolving')
                     )
 
                     return {target_parameter: result}
+
+            elif 'novelty' in target_parameter:
+                # Searching for "novelty" - number of new peak regions
+                # Regions reported as regions x borders matrix
+                return regions.shape[0]
 
     def _hplc_analysis(self, reference, target):
         """
@@ -434,3 +449,9 @@ target peak, resolving')
                     fitness = AUC_target / AUC_istandard
 
                     return {objective: fitness}
+            elif 'novelty' in objective:
+                # TODO add best method for peak searching on the chromotogram
+                peaks = spec.find_peaks(
+                    area=(spec.x.min(), spec.x.max())
+                )
+                return {objective: peaks.shape[0]}

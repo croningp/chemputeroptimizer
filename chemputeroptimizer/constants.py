@@ -52,6 +52,7 @@ TARGET_PARAMETERS = [
     'final_parameter',
     'spectrum_peak-area_XXX', # peak X coordinate (XXX)
     'spectrum_integration-area_LLL-RRR', # area left (LLL) and right (RRR) border
+    'novelty', # e.g. number of new peaks on the product spectrum
 ]
 
 DEFAULT_OPTIMIZATION_PARAMETERS = {
