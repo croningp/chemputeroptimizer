@@ -185,7 +185,7 @@ class AlgorithmAPI():
                     {param: (param_set['min_value'], param_set['max_value'])})
 
         # appending the final result
-        if result:
+        if result is not None:
             self.current_result.update(result)
             # parsing data only if result was supplied
             self._parse_data()
