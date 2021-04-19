@@ -429,7 +429,7 @@ target peak, resolving')
             elif 'novelty' in target_parameter:
                 # Searching for "novelty" - number of new peak regions
                 # Regions reported as regions x borders matrix
-                return regions.shape[0]
+                return {target_parameter: regions.shape[0]}
 
     def _hplc_analysis(self, reference, target):
         """
