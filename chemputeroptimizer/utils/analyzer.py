@@ -40,6 +40,10 @@ def find_point_in_regions(regions, point):
         # regions[1] -> [7, 12]
     """
 
+    # If 0 regions given, just return empty array
+    if not regions.size > 0:
+        return np.array([], dtype='int64')
+
     # subtracting and mapping vs 0
     binary_map = np.array(regions - point < 0)
 
