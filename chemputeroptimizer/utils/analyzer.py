@@ -40,6 +40,10 @@ def find_point_in_regions(regions, point):
         # regions[1] -> [7, 12]
     """
 
+    # If 0 regions given, just return empty array
+    if not regions.size > 0:
+        return np.array([], dtype='int64')
+
     # subtracting and mapping vs 0
     binary_map = np.array(regions - point < 0)
 
@@ -429,7 +433,7 @@ target peak, resolving')
             elif 'novelty' in target_parameter:
                 # Searching for "novelty" - number of new peak regions
                 # Regions reported as regions x borders matrix
-                return regions.shape[0]
+                return {target_parameter: regions.shape[0]}
 
     def _hplc_analysis(self, reference, target):
         """
