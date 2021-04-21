@@ -8,8 +8,8 @@ from collections import deque
 import numpy as np
 
 # AnalyticalLabware spectrum classes
-from AnalyticalLabware import (
-    RamanSpectrum,
+from AnalyticalLabware.devices import (
+    # RamanSpectrum,
     SpinsolveNMRSpectrum,
     AgilentHPLCChromatogram
 )

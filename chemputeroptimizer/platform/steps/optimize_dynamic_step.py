@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import List, Callable, Optional, Dict, Any
 from hashlib import sha256
 
-import AnalyticalLabware
+from AnalyticalLabware.devices import chemputer_devices
 
 from xdl import XDL
 from xdl.errors import XDLError
@@ -126,7 +126,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         self.working_xdl_copy.prepare_for_execution(
             self.graph,
             interactive=False,
-            device_modules=[AnalyticalLabware]
+            device_modules=[chemputer_devices]
         )
         self._update_analysis_steps()
 
@@ -266,7 +266,7 @@ Enter to continue\n'
         self.working_xdl_copy.prepare_for_execution(
             self.graph,
             interactive=False,
-            device_modules=[AnalyticalLabware]
+            device_modules=[chemputer_devices]
         )
 
         # additional preparations for the analysis steps
