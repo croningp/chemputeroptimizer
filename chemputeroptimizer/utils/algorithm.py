@@ -14,6 +14,8 @@ from ..algorithms import (
     Random_,
     SMBO,
     # GA,
+    Reproduce,
+    FromCSV
 )
 from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
 
@@ -22,6 +24,8 @@ ALGORITHMS = {
     'random': Random_,
     'smbo': SMBO,
     # 'ga': GA,
+    'reproduce': Reproduce,
+    'fromcsv': FromCSV,
 }
 
 

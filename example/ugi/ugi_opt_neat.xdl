@@ -39,6 +39,11 @@
       volume="0.2 mL"
       port="0"
       priming_volume="0.2" />
+    <ResetHandling
+      solvent="methanol"
+      volume="3 mL"
+      repeats="3"
+    />
     <OptimizeStep
       id="1"
       optimize_properties="{'volume': {'max_value': 5.0, 'min_value': 0.0}}">
@@ -144,7 +149,8 @@
       method="NMR"
       sample_volume="2.5"
       cleaning_solvent="DCM"
-      method_props="{'protocol': '1D FLUORINE HDEC', 'protocol_options': {'centerFrequency': -110, 'PulselengthScale': 1, 'decouplePower': 0, 'AcquisitionTime': 1.64, 'RepetitionTime': 15, 'PulseAngle': 90, 'Number': 32}}" />
+      method_props="{'protocol': '1D FLUORINE HDEC', 'protocol_options': {'centerFrequency': -110, 'PulselengthScale': 1, 'decouplePower': 0, 'AcquisitionTime': 1.64, 'RepetitionTime': 15, 'PulseAngle': 90, 'Number': 32}}"
+      force_shimming="True" />
     <Transfer
       from_vessel="reactor"
       to_vessel="product_flask"
