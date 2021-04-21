@@ -96,7 +96,10 @@ class Analyze(AbstractStep):
         'dilution_solvent_vessel': str,
         'distribution_valve': str,
         'injection_waste': str,
+        # NMR specific
         'force_shimming': bool,
+        'shimming_solvent_flask': str,
+        'shimming_reference_peak': float, # for correct shimming
     }
 
     INTERNAL_PROPS = [
@@ -111,6 +114,8 @@ class Analyze(AbstractStep):
         'dilution_solvent_vessel',
         'distribution_valve',
         'injection_waste',
+        'shimming_solvent_flask',
+        'shimming_reference_peak',
     ]
 
     DEFAULT_PROPS = {
@@ -268,6 +273,10 @@ reaction mixture!')
         # TODO support other steps wrapped with FinalAnalysis, i.e. Filter, Dry
         # required additional preparation of the sample, e.g. dissolution
 
+        # Shimming
+        if self.method == 'NMR' and self.force_shimming:
+            steps.extend(self._get_shimming_steps())
+
         # additional preparations if dilution is specified
         if self.dilution_volume is not None:
             steps.extend([
@@ -380,6 +389,51 @@ reaction mixture!')
                 aspiration_speed=SAMPLE_SPEED_SLOW,
             ),
         ]
+
+    def _get_shimming_steps(self) -> List:
+        """Return steps needed to perform the NMR shimming."""
+
+        return [
+                Transfer(
+                    from_vessel=self.shimming_solvent_flask,
+                    to_vessel=self.injection_pump,
+                    volume=self.sample_excess_volume + self.sample_volume,
+                    aspiration_speed=SAMPLE_SPEED_MEDIUM,
+                ),
+                # Injecting into the instrument
+                Transfer(
+                    from_vessel=self.injection_pump,
+                    to_vessel=self.instrument,
+                    volume=self.sample_volume,
+                    aspiration_speed=SAMPLE_SPEED_MEDIUM,
+                    dispense_speed=SAMPLE_SPEED_MEDIUM,
+                ),
+                # Discarding excess
+                Transfer(
+                    from_vessel=self.injection_pump,
+                    to_vessel=self.injection_waste,
+                    volume=self.sample_excess_volume,
+                ),
+                # Running the instrument
+                ShimNMR(
+                    nmr=self.instrument,
+                    reference_peak=self.shimming_reference_peak,
+                ),
+                # Discarding sample
+                Transfer(
+                    from_vessel=self.instrument,
+                    to_vessel=self.injection_waste,
+                    volume=self.sample_volume*2, # twice excess to remove all
+                    aspiration_speed=SAMPLE_SPEED_SLOW,
+                ),
+                # Repeat again
+                Transfer(
+                    from_vessel=self.instrument,
+                    to_vessel=self.injection_waste,
+                    volume=self.sample_volume*2, # twice excess to remove all
+                    aspiration_speed=SAMPLE_SPEED_SLOW,
+                ),
+            ]
 
     def _get_hplc_steps(self) -> List:
         """ Return steps relevant for the HPLC analysis.
@@ -519,7 +573,7 @@ reaction mixture!')
         return []
 
     def nmr_precheck(self, graph: MultiDiGraph) -> None:
-        """ Inserts additional steps into Analysis if needed for NMR analysis.
+        """ Additional checks needed for the NMR analysis.
         """
 
         shimming_solvent_flask, reference_peak = \
@@ -531,7 +585,6 @@ reaction mixture!')
         except AssertionError:
             self.logger.critical('Found no solvents suitable for shimming the \
 NMR. If the procedure is longer than 24 hours shimming will be required!')
-        shimming_steps = []
 
         # Checking for the last shimming
         if not check_last_shimming_results() or self.force_shimming:
@@ -539,50 +592,9 @@ NMR. If the procedure is longer than 24 hours shimming will be required!')
             if shimming_solvent_flask is None:
                 raise OptimizerError('No solvents suitable for shimming the \
 NMR found, but shimming is required!')
-            shimming_steps.extend([
-                Transfer(
-                    from_vessel=shimming_solvent_flask,
-                    to_vessel=self.injection_pump,
-                    volume=self.sample_excess_volume + self.sample_volume,
-                    aspiration_speed=SAMPLE_SPEED_MEDIUM,
-                ),
-                # Injecting into the instrument
-                Transfer(
-                    from_vessel=self.injection_pump,
-                    to_vessel=self.instrument,
-                    volume=self.sample_volume,
-                    aspiration_speed=SAMPLE_SPEED_MEDIUM,
-                    dispense_speed=SAMPLE_SPEED_MEDIUM,
-                ),
-                # Discarding excess
-                Transfer(
-                    from_vessel=self.injection_pump,
-                    to_vessel=self.injection_waste,
-                    volume=self.sample_excess_volume,
-                ),
-                # Running the instrument
-                ShimNMR(
-                    nmr=self.instrument,
-                    reference_peak=reference_peak,
-                ),
-                # Discarding sample
-                Transfer(
-                    from_vessel=self.instrument,
-                    to_vessel=self.injection_waste,
-                    volume=self.sample_volume*2, # twice excess to remove all
-                    aspiration_speed=SAMPLE_SPEED_SLOW,
-                ),
-                # Repeat again
-                Transfer(
-                    from_vessel=self.instrument,
-                    to_vessel=self.injection_waste,
-                    volume=self.sample_volume*2, # twice excess to remove all
-                    aspiration_speed=SAMPLE_SPEED_SLOW,
-                ),
-            ])
+            # Else force shimming
+            self.force_shimming = True
 
-        # reversing steps for correct insertion
-        shimming_steps.reverse()
-
-        for step in shimming_steps:
-            self.steps.insert(0, step)
+        # If all okay -> setup the step attributes
+        self.shimming_solvent_flask = shimming_solvent_flask
+        self.shimming_reference_peak = reference_peak
