@@ -1,11 +1,10 @@
 {
-    "max_iterations": 4.0,
+    "max_iterations": 5.0,
     "target": {
         "novelty": Infinity
     },
     "algorithm": {
-        "name": "fromcsv",
-        "csv_path": "./params.csv"
+        "name": "random"
     },
     "reference": 87.0,
     "batch_size": 1
