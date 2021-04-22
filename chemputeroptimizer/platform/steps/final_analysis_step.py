@@ -70,6 +70,8 @@ class FinalAnalysis(Analyze):
         'distribution_valve': str,
         'injection_waste': str,
         'force_shimming': bool,
+        'shimming_solvent_flask': str,
+        'shimming_reference_peak': float, # for correct shimming
     }
 
     INTERNAL_PROPS = [
@@ -84,6 +86,8 @@ class FinalAnalysis(Analyze):
         'dilution_solvent_vessel',
         'distribution_valve',
         'injection_waste',
+        'shimming_solvent_flask',
+        'shimming_reference_peak',
     ]
 
     DEFAULT_PROPS = {
@@ -118,6 +122,8 @@ class FinalAnalysis(Analyze):
             dilution_vessel: Optional[str] = None,
             injection_waste: Optional[str] = None,
             distribution_valve: Optional[str] = None,
+            shimming_solvent_flask: Optional[str] = None,
+            shimming_reference_peak: Optional[float] = None,
 
             **kwargs
         ) -> None:

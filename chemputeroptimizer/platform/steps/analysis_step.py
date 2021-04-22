@@ -150,6 +150,8 @@ class Analyze(AbstractStep):
             dilution_vessel: Optional[str] = None,
             injection_waste: Optional[str] = None,
             distribution_valve: Optional[str] = None,
+            shimming_solvent_flask: Optional[str] = None,
+            shimming_reference_peak: Optional[float] = None,
 
             **kwargs
         ) -> None:
