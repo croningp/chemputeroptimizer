@@ -60,8 +60,6 @@
         stir="True"
         priming_volume="0.2 mL" />
     </OptimizeStep>
-    <ResetHandling
-      solvent="THF" />
     <OptimizeStep
       id="3"
       optimize_properties="{'volume': {'max_value': 0.37, 'min_value': 0.0}}">
@@ -74,8 +72,6 @@
         stir="True"
         priming_volume="0.2 mL" />
     </OptimizeStep>
-    <ResetHandling
-      solvent="THF" />
     <OptimizeStep
       id="5"
       optimize_properties="{'volume': {'max_value': 0.23, 'min_value': 0.0}}">
@@ -88,8 +84,6 @@
         stir="True"
         priming_volume="0.2 mL" />
     </OptimizeStep>
-    <ResetHandling
-      solvent="THF" />
     <OptimizeStep
       id="7"
       optimize_properties="{'volume': {'max_value': 0.45, 'min_value': 0.0}}">
