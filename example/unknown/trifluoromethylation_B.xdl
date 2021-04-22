@@ -116,6 +116,7 @@
         vessel="reactor"
         temp="22 °C"
         stir="True"
+        stir_speed="450 RPM"
         purpose="reaction" />
     </OptimizeStep>
     <OptimizeStep
@@ -151,12 +152,14 @@
       optimize_properties="{'time': {'max_value': 18000.0, 'min_value': 300.0}}">
       <Stir
         vessel="reactor"
-        time="5 min" />
+        time="5 min"
+        stir_speed="450 RPM" />
     </OptimizeStep>
     <HeatChillToTemp
       vessel="reactor"
       temp="22 °C"
       stir="True"
+      stir_speed="450 RPM"
       purpose="reaction"
       continue_heatchill="False" />
     <OptimizeStep
