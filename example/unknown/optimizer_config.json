@@ -1,5 +1,5 @@
 {
-    "max_iterations": 20.0,
+    "max_iterations": 7.0,
     "target": {
         "novelty": Infinity
     },
