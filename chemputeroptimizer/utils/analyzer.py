@@ -4,6 +4,7 @@ Module for processing, analysis and comparison of several spectra.
 import logging
 
 from collections import deque
+from AnalyticalLabware.analysis.spec_utils import expand_regions
 
 import numpy as np
 
@@ -18,6 +19,12 @@ from AnalyticalLabware.analysis.utils import find_nearest_value_index
 from .processing_constants import (
     DEFAULT_NMR_REGIONS_DETECTION,
     TARGET_THRESHOLD_DISTANCE,
+    NOVELTY_REGIONS_ANALYSIS,
+)
+from .novelty_search import (
+    expand_peak_regions,
+    calculate_information_score,
+    calculate_novelty_coefficient,
 )
 
 def find_point_in_regions(regions, point):
@@ -157,8 +164,8 @@ class SpectraAnalyzer():
         # Storing spectral data
         self.spectra = deque(maxlen=max_spectra)
 
-        # Dictionary to store regions of interest from loaded spectra
-        self.regions = {}
+        # Regions of interest from loaded spectra
+        self.regions = []
 
         # Future arguments for peaks classification
         self.starting_material = None
@@ -431,9 +438,9 @@ target peak, resolving')
                     return {target_parameter: result}
 
             elif 'novelty' in target_parameter:
-                # Searching for "novelty" - number of new peak regions
-                # Regions reported as regions x borders matrix
-                return {target_parameter: regions.shape[0]}
+                # Details in the corresponding note
+                novelty = self._nmr_novelty_analysis(spec)
+                return {target_parameter: novelty}
 
     def _hplc_analysis(self, reference, target):
         """
@@ -459,3 +466,27 @@ target peak, resolving')
                     area=(spec.x.min(), spec.x.max())
                 )
                 return {objective: peaks.shape[0]}
+
+    def _nmr_novelty_analysis(self, spec):
+        """Calculates novelty score for the given spectrum."""
+
+        self.logger.debug('Looking for novelty in NMR spectrum')
+
+        # Generating regions according to novelty standard
+        regions_generation_params = DEFAULT_NMR_REGIONS_DETECTION.get(
+            spec.parameters['rxChannel'],
+            {} # if current nuclei not registered in defaults
+        )
+        regions = spec.generate_peak_regions(**regions_generation_params)
+
+        regions_expanded = expand_peak_regions(regions)
+        # Rounding to neglect small differences in ppm scales
+        # Across several spectra
+        regions_expanded_xs = np.around(spec.x[regions_expanded], 4)
+        information_score = calculate_information_score(spec, regions)
+        # Using previously measured spectra as reference
+        novelty_coefficient = calculate_novelty_coefficient(
+            regions_expanded_xs, self.regions
+        )
+
+        return information_score*novelty_coefficient
