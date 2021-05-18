@@ -42,6 +42,7 @@ new_xdl.xdl
 
 tests/example
 **/_archive
+pg/
 
 # state file
 **/chemputer_state.json

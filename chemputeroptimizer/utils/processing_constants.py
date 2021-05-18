@@ -14,5 +14,15 @@ DEFAULT_NMR_REGIONS_DETECTION = {
     },
 }
 
+NOVELTY_REGIONS_ANALYSIS = {
+    '19F': {
+        'magnitude': False,
+        'derivative': True,
+        'smoothed': False,
+        'd_merge': 0.1,
+        'd_expand': 0.1,
+    }
+}
+
 # Maximum distance to peak to region (in ppm)
 TARGET_THRESHOLD_DISTANCE = 0.5
