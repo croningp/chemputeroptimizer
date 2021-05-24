@@ -64,6 +64,8 @@ def calculate_information_score(
 
     # Calculating the score
     area_diffs = np.abs(areas - areas_hmean)
+    # Setting all 0 diffs to 10 for highest score
+    area_diffs[area_diffs == 0] = 10
     regions_scores = regions_sizes * 1/np.log10(area_diffs)
     final_score = np.sum(regions_scores) * len(peak_regions)
 
