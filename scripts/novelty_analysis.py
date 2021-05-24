@@ -7,6 +7,7 @@ All functions are written to process 19F NMR with fluorobenzene as reference.
 from pathlib import Path
 import argparse
 import random
+import json
 
 # Data io
 import pandas as pd
@@ -122,3 +123,12 @@ for iteration, spec in specs.items():
 print(df)
 
 df.to_csv('Results.csv', index=False)
+
+known_regions = {
+    iteration: region_map.tolist()
+    for i, (iteration, region_map) in enumerate(zip(specs, peaks_regions_map))
+    if i in random_ids
+}
+
+with open('known_regions.json', 'w') as fobj:
+    json.dump(known_regions, fobj)
