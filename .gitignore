@@ -43,6 +43,8 @@ new_xdl.xdl
 tests/example
 **/_archive
 pg/
+scripts/*
+!scripts/novelty_analysis.py
 
 # state file
 **/chemputer_state.json

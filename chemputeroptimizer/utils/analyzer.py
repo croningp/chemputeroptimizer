@@ -473,7 +473,7 @@ target peak, resolving')
         self.logger.debug('Looking for novelty in NMR spectrum')
 
         # Generating regions according to novelty standard
-        regions_generation_params = DEFAULT_NMR_REGIONS_DETECTION.get(
+        regions_generation_params = NOVELTY_REGIONS_ANALYSIS.get(
             spec.parameters['rxChannel'],
             {} # if current nuclei not registered in defaults
         )
