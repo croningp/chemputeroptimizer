@@ -1,0 +1,127 @@
+<?xdl version="0.2.1" ?>
+
+<Synthesis>
+  <Hardware>
+    <Component
+      type="reactor"
+      id="reactor" />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      name="methanol" />
+    <Reagent
+      name="4-formylbenzonitrile" />
+    <Reagent
+      name="tosmic" />
+    <Reagent
+      name="dbu" />
+    <Reagent
+      name="p-anisidine" />
+  </Reagents>
+
+  <Procedure>
+    <CleanBackbone
+       solvent="methanol"/>
+    <Add
+      stir="True"
+      volume="4.1 mL"
+      vessel="reactor"
+      reagent="4-formylbenzonitrile" />
+    <OptimizeStep
+      id="1"
+      optimize_properties="{'volume': {'max_value': 6.15, 'min_value': 4.1}}">
+      <Add
+        stir="True"
+        volume="4.1 mL"
+        vessel="reactor"
+        reagent="p-anisidine" />
+    </OptimizeStep>
+    <CleanBackbone
+       solvent="methanol"/>
+    <OptimizeStep
+      id="2"
+      optimize_properties="{'temp': {'max_value': 60.0, 'min_value': 25.0}}">
+      <HeatChillToTemp
+        vessel="reactor"
+        temp="60.0"
+        stir="True"
+        purpose="reaction" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="3"
+      optimize_properties="{'time': {'max_value': 10800, 'min_value': 1800}}">
+      <Stir
+        time="1800"
+        vessel="reactor" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="4"
+      optimize_properties="{'temp': {'max_value': 60.0, 'min_value': 25.0}}">
+      <HeatChillToTemp
+        vessel="reactor"
+        temp="60.0"
+        stir="True"
+        purpose="reaction" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="5"
+      optimize_properties="{'volume': {'max_value': 6.15, 'min_value': 4.1}}">
+      <Add
+        stir="True"
+        volume="5.04 mL"
+        vessel="reactor"
+        reagent="tosmic" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="6"
+      optimize_properties="{'volume': {'max_value': 0.461, 'min_value': 0.154}}">
+      <Add
+        stir="True"
+        volume="0.461 mL"
+        vessel="reactor"
+        reagent="dbu" />
+    </OptimizeStep>
+    <CleanBackbone
+       solvent="methanol"/>
+    <OptimizeStep
+      id="7"
+      optimize_properties="{'temp': {'max_value': 60.0, 'min_value': 25.0}}">
+      <HeatChillToTemp
+        vessel="reactor"
+        temp="60.0"
+        stir="True"
+        purpose="reaction" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="8"
+      optimize_properties="{'time': {'max_value': 86400, 'min_value': 14400}}">
+      <Stir
+        time="14400"
+        vessel="reactor" />
+    </OptimizeStep>
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="25.0"
+      continue_heatchill="False"
+      stir="True" />
+    <FinalAnalysis
+      vessel="reactor"
+      method="HPLC"
+      method_props="{'run_method':'AH_default', 'cleaning_method':'AH_cleaning', 'channel':'B'}"
+      sample_volume="1.0"
+      dilution_vessel="dilution"
+      dilution_volume="19.0"
+      dilution_solvent="acetonitrile"
+      cleaning_solvent="methanol"
+    />
+    <CleanVessel
+      vessel="reactor"
+      solvent="methanol"
+      volume="15 mL"
+      temp= "22.0"
+      repeats= "3" />
+
+  </Procedure>
+
+</Synthesis>
