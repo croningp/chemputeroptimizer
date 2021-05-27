@@ -513,8 +513,6 @@ VALUE ###\n'
             # Final parsing occurs in SpectraAnalyzer.final_analysis
             result = self._analyzer.final_analysis(self.reference, self.target)
 
-            # # Loading the result in the algorithm class
-            # self.algorithm_class.load_data(self.parameters, result) TODO
             # Updating state
             self.state['current_result'][batch_id] = result
 
@@ -583,6 +581,11 @@ VALUE ###\n'
             self._check_wastes_empty(self._platform_controller)
 
             if not self.state['updated']:
+                # Loading results into algorithmAPI
+                self.algorithm_class.load_data(
+                    self.parameters,
+                    self.state['current_result']
+                )
                 self.update_steps_parameters()
                 self._update_state()
 
@@ -643,8 +646,8 @@ VALUE ###\n'
             original_filename[:-4] + '_data.csv',
         )
 
-        # checking if data's been loaded
-        if self.algorithm_class.result_matrix is None:
-            self.algorithm_class.load_data(self.parameters,
-                                           self.state['current_result'])
-        self.algorithm_class.save(alg_file)
+        # checking if data's been loaded TODO
+        # if self.algorithm_class.result_matrix is None:
+        #     self.algorithm_class.load_data(self.parameters,
+        #                                    self.state['current_result'])
+        # self.algorithm_class.save(alg_file)
