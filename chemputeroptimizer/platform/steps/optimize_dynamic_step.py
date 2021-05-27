@@ -366,9 +366,15 @@ Enter to continue\n'
         # Tracking of flask usage
         self._previous_volume = {}
 
+        # Current result per batch
+        current_result = {key: -1 for key in self.target}
+
         self.state = {
             'iteration': 1,
-            'current_result': {key: -1 for key in self.target},
+            'current_result': {
+                f'batch {i}': current_result
+                for i in range(1, self.batch_size + 1)
+            },
             'updated': True,
             'done': False,
         }
@@ -510,7 +516,7 @@ VALUE ###\n'
             # # Loading the result in the algorithm class
             # self.algorithm_class.load_data(self.parameters, result) TODO
             # Updating state
-            self.state['current_result'] = {batch_id: result}
+            self.state['current_result'][batch_id] = result
 
             # Saving
             self.save()
