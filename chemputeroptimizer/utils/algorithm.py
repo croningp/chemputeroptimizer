@@ -6,7 +6,7 @@ import logging
 import os
 import json
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional, List, Any
 
 import numpy as np
 
@@ -38,7 +38,7 @@ class AlgorithmAPI():
         self.logger = logging.getLogger('optimizer.algorithm')
 
         # Current parameters setup
-        self.current_setup: Dict[str, Dict[str, Dict[str, float]]] = {}
+        self.current_setup: Dict[str, Dict[str, float]] = {}
         # Dictionary with data points constraints
         self.setup_constraints: Dict[str, Tuple(float, float)] = {}
         # Current result parameters
@@ -49,7 +49,7 @@ class AlgorithmAPI():
         self.algorithm: AbstractAlgorithm = None
 
         self._method_name: str = None
-        self._method_config: str = None
+        self._method_config: Dict[str, Any] = None
 
         self.client: OptimizerClient = None
         self.proc_hash: str = None
@@ -150,52 +150,49 @@ class AlgorithmAPI():
                 self.setup_constraints.values()
             )
 
-    def load_data(self, data, result=None):
-        """Loads the experimental data dictionary.
-
-        Updates:
-            current_setup (OrderedDict): current parameters setup ('param', <value>)
-            setup_constraints (OrderedDict): constraints of the parameters
-                setup ('param', (<min_value>, <max_value>))
-            current_result (OrderedDict): current results of the experiment
-                ('result_param', <value>)
+    def load_data(
+        self,
+        data: Dict[str, Dict[str, Dict[str, float]]],
+        result: Optional[Dict[str, Dict[str, float]]] = None,
+    ):
+        """Loads the experimental data dictionaries.
 
         Args:
-            data (Dict): Nested dictionary containing all input parameters.
-            result (Dict): Nested dictionary contaning all result parameters
-                with desired target value.
+            data (Dict[str, Dict[str, Dict[str, float]]]): Nested dictionary
+                containing all input parameters, grouped by batches.
+            result (Optional, Dict[str, Dict[str, float]]): Nested dictionary
+                contaning all result parameters with desired target value,
+                grouped by batches.
 
-        Example:
-            data = {
-                    "HeatChill_1-temp": {
-                        "value": 35,
-                        "max": 70,
-                        "min": 25,
-                    }
-                }
-
-            result = {
-                    "final_yield": {
-                        "value": 0.75,
-                        "target": 0.95,
-                    }
-                }
+        Updates internal attributes:
+            current_setup (Dict[str, Dict[str, float]]): current parameters
+                setup as {'param': <value>}, grouped by batch.
+            setup_constraints (Dict[str, Tuple(float, float)]): constraints of
+                the parameters setup {'param': (<min_value>, <max_value>)}.
+            current_result (Dict[str, float]): current results of the
+                experiment {'result_param': <value>}, grouped by batch.
         """
 
-        # stripping input from parameter constraints
-        for param, param_set in data.items():
-            self.current_setup.update({param: param_set['current_value']})
+        # Stripping input from parameter constraints
+        for batch_id, batch_data in data.items():
+            self.current_setup[batch_id] = {}
+            for param, param_set in batch_data.items():
+                self.current_setup[batch_id].update(
+                    {param: param_set['current_value']}
+                )
 
-        # saving constraints
+        # Saving constraints
         if not self.setup_constraints:
-            for param, param_set in data.items():
+            # Using only first batch, assuming a) it is always present;
+            # b) constraints are same across batches
+            for param, param_set in data['batch 1'].items():
                 self.setup_constraints.update(
                     {param: (param_set['min_value'], param_set['max_value'])})
 
-        # appending the final result
+        # Appending the final result if given
         if result is not None:
             self.current_result.update(result)
-            # parsing data only if result was supplied
+            # Parsing data only if the result was supplied
             self._parse_data()
 
     def _parse_data(self):
@@ -204,9 +201,10 @@ class AlgorithmAPI():
         Create the following arrays for the first experiment and add the
         subsequent data as rows:
             self.parameter_matrix: (n x i) size matrix where n is number of
-                experiments and i is number of experimental parameters;
+                experiments (* by number of batches) and i is number of
+                experimental parameters.
             self.result_matrix: (n x j) size matrix where j is number of the
-                target parameters;
+                target parameters.
 
         Example:
             The experimental result:
@@ -219,32 +217,45 @@ class AlgorithmAPI():
                 self.result_matrix = np.array([0.75])
         """
 
-        # loading first value
+        # Loading first value
         if self.parameter_matrix is None and self.result_matrix is None:
-            # experiments as rows, data points as columns
-            self.parameter_matrix = np.array(
-                list(self.current_setup.values()),
-                ndmin=2)
-            self.result_matrix = np.array(
-                list(self.current_result.values()),
-                ndmin=2)
+            parameters: List[List[float]] = []
+            results: List[List[float]] = []
 
-        # stacking with previous results
+            # Iterating over batches
+            for batch_id in self.current_setup:
+                # List of lists!
+                parameters.append(list(self.current_setup[batch_id].values()))
+                results.append(list(self.current_result[batch_id].values()))
+
+            # Converting to arrays
+            # Experiments as rows, data points as columns
+            self.parameter_matrix = np.array(parameters)
+            self.result_matrix = np.array(results)
+
+        # Stacking with previous results
         else:
+            parameters: List[List[float]] = []
+            results: List[List[float]] = []
+
+            # Iterating over batches
+            for batch_id in self.current_setup:
+                # List of lists!
+                parameters.append(list(self.current_setup[batch_id].values()))
+                results.append(list(self.current_result[batch_id].values()))
+
+            # Stacking
             self.parameter_matrix = np.vstack(
                 (
                     self.parameter_matrix,
-                    list(self.current_setup.values())
+                    parameters,
                 )
             )
-
-            if self._calculated is not None:
-                assert (self.parameter_matrix[-1] == self._calculated).all()
 
             self.result_matrix = np.vstack(
                 (
                     self.result_matrix,
-                    list(self.current_result.values())
+                    results,
                 )
             )
 
@@ -328,7 +339,7 @@ see below:\n%s', reply['exception'])
                 self.setup_constraints.values(),
                 n_batches=n_batches,
                 n_returns=n_returns,
-            )[0] # TODO change here when working with batches
+            )
 
             self.logger.info(
                 'Finished optimization, new parameters list in log file.')
