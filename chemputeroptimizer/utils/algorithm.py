@@ -6,7 +6,7 @@ import logging
 import os
 import json
 
-from typing import Dict, Tuple, Optional, List, Any
+from typing import Dict, Tuple, Optional, List, Any, Iterable
 
 import numpy as np
 
@@ -59,30 +59,30 @@ class AlgorithmAPI():
         self.preload: bool = False
 
     @property
-    def method_name(self):
+    def method_name(self) -> str:
         """Name of the selected algorithm."""
         return self._method_name
 
     @method_name.setter
-    def method_name(self, method_name):
+    def method_name(self, method_name: str):
         if method_name not in list(ALGORITHMS) + SERVER_SUPPORTED_ALGORITHMS:
             raise KeyError(f'{method_name} is not a valid algorithm name')
 
         self._method_name = method_name
 
     @property
-    def method_config(self):
+    def method_config(self) -> Dict[str, Any]:
         "Dictionary containing all necessary configuration for an algorithm."
         return self._method_config
 
     @method_config.setter
-    def method_config(self, config):
+    def method_config(self, config: Dict[str, Any]):
         try:
             for param in config:
                 assert param in ALGORITHMS[self._method_name].DEFAULT_CONFIG
 
         except KeyError:
-            # in case algorithm is used from optimizer server
+            # In case algorithm is used from optimizer server
             pass
 
         except AssertionError:
@@ -92,11 +92,18 @@ class AlgorithmAPI():
         # actually setting the configuration
         self._method_config = config
 
-    def _load_method(self, method_name, config, constraints):
+    def _load_method(
+        self,
+        method_name: str,
+        constraints: Iterable[Tuple[float, float]],
+        config: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """Loads corresponding algorithm class.
 
         Args:
             method_name (str): Name of the chosen algorithm.
+            config (Dict[str, Any]): Configuration dictionary for the chosen
+                algorithm.
             constraints (Iterable[Iterable[float, float]]: Nested list
                 of constraints, mapped by order to experimental
                 parameters.
@@ -109,16 +116,30 @@ class AlgorithmAPI():
         except KeyError:
             raise KeyError(f'Algorithm {method_name} not found.') from None
 
-    def switch_method(self, method_name, config=None, constraints=None):
-        """Public method for switching the algorithm."""
+    def switch_method(
+        self,
+        method_name: str,
+        config: Optional[Dict[str, Any]] = None,
+        constraints: Optional[Iterable[Tuple[float, float]]] = None
+    ) -> None:
+        """Public method for switching the algorithm.
 
-        if not constraints:
+        Args:
+            method_name (str): Name of the chosen algorithm.
+            config (Dict[str, Any]): Configuration dictionary for the chosen
+                algorithm. Optional, if omitted - default is used.
+            constraints (Iterable[Tuple[float, float]]: Nested list
+                of constraints, mapped by order to experimental
+                parameters. Optional, if omitted - previous setting is used.
+        """
+
+        if constraints is None:
             constraints = self.setup_constraints.values()
 
         self._load_method(
-            method_name,
-            config,
-            constraints
+            method_name=method_name,
+            constraints=constraints,
+            config=config,
         )
 
     def initialize(self, data):
@@ -145,9 +166,9 @@ class AlgorithmAPI():
         else:
             # running a local optimization algorithm
             self._load_method(
-                self.method_name,
-                self.method_config,
-                self.setup_constraints.values()
+                method_name=self.method_name,
+                config=self.method_config,
+                constraints=self.setup_constraints.values()
             )
 
     def load_data(
@@ -183,7 +204,8 @@ class AlgorithmAPI():
 
         # Saving constraints
         if not self.setup_constraints:
-            # Using only first batch, assuming a) it is always present;
+            # Using only first batch, assuming:
+            # a) it is always present;
             # b) constraints are same across batches
             for param, param_set in data['batch 1'].items():
                 self.setup_constraints.update(
@@ -205,16 +227,6 @@ class AlgorithmAPI():
                 experimental parameters.
             self.result_matrix: (n x j) size matrix where j is number of the
                 target parameters.
-
-        Example:
-            The experimental result:
-                {"Add_1_volume": 1.5,
-                "HeatChill_1_temp": 35,
-                "final_yield": 0.75}
-
-            will be dumped into the following np.arrays matrixes:
-                self.parameter_matrix = np.array([1.5, 35.]);
-                self.result_matrix = np.array([0.75])
         """
 
         # Loading first value
