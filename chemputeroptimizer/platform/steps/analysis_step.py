@@ -83,6 +83,7 @@ class Analyze(AbstractStep):
         'on_finish': Callable,
         'reference_step': JSON_PROP_TYPE,
         'method_props': JSON_PROP_TYPE,
+        'batch_id': str,
         # method related
         'cleaning_solvent': str,
         'cleaning_solvent_vessel': str,
@@ -116,6 +117,7 @@ class Analyze(AbstractStep):
         'injection_waste',
         'shimming_solvent_flask',
         'shimming_reference_peak',
+        'batch_id',
     ]
 
     DEFAULT_PROPS = {
@@ -152,6 +154,7 @@ class Analyze(AbstractStep):
             distribution_valve: Optional[str] = None,
             shimming_solvent_flask: Optional[str] = None,
             shimming_reference_peak: Optional[float] = None,
+            batch_id: Optional[str] = None,
 
             **kwargs
         ) -> None:
@@ -325,7 +328,7 @@ reaction mixture!')
         if self.method == 'interactive':
             return [
                 Callback(
-                    fn=self.on_finish,
+                    fn=self.on_finish(self.batch_id),
                 )
             ]
 
@@ -335,7 +338,7 @@ reaction mixture!')
             return [
                 RunRaman(
                     raman=self.instrument,
-                    on_finish=self.on_finish,
+                    on_finish=self.on_finish(self.batch_id),
                 )
             ]
 
@@ -380,7 +383,7 @@ reaction mixture!')
             # Running the instrument
             RunNMR(
                 nmr=self.instrument,
-                on_finish=self.on_finish,
+                on_finish=self.on_finish(self.batch_id),
                 **self.method_props,
             ),
             # Transferring the sample volume (+extra 20%) back to the vessel
@@ -466,7 +469,7 @@ reaction mixture!')
                     RunHPLC(
                         hplc=self.instrument,
                         valve=self.distribution_valve,
-                        on_finish=self.on_finish,
+                        on_finish=self.on_finish(self.batch_id),
                         **self.method_props
                     ),
                 ]
@@ -558,7 +561,7 @@ reaction mixture!')
                 RunHPLC(
                     hplc=self.instrument,
                     valve=self.distribution_valve,
-                    on_finish=self.on_finish,
+                    on_finish=self.on_finish(self.batch_id),
                     is_cleaning=True,
                     **self.method_props
                 ),

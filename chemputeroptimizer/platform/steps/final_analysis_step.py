@@ -56,6 +56,7 @@ class FinalAnalysis(Analyze):
         'on_finish': Callable,
         'reference_step': JSON_PROP_TYPE,
         'method_props': JSON_PROP_TYPE,
+        'batch_id': str,
         # method related
         'cleaning_solvent': str,
         'cleaning_solvent_vessel': str,
@@ -88,6 +89,7 @@ class FinalAnalysis(Analyze):
         'injection_waste',
         'shimming_solvent_flask',
         'shimming_reference_peak',
+        'batch_id',
     ]
 
     DEFAULT_PROPS = {
@@ -124,6 +126,7 @@ class FinalAnalysis(Analyze):
             distribution_valve: Optional[str] = None,
             shimming_solvent_flask: Optional[str] = None,
             shimming_reference_peak: Optional[float] = None,
+            batch_id: Optional[str] = None,
 
             **kwargs
         ) -> None:

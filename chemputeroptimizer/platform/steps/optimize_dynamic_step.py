@@ -1,3 +1,5 @@
+from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
+from xdl.steps.special.callback import Callback
 from chemputeroptimizer.utils import interactive
 import logging
 import os
@@ -156,6 +158,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             interactive=False,
             device_modules=[chemputer_devices]
         )
+
+        self._update_analysis_steps()
 
     def _update_state(self):
         """Updates state attribute when procedure is over"""
@@ -345,6 +349,7 @@ Enter to continue\n'
             interactive=False,
             device_modules=[chemputer_devices]
         )
+        self._update_analysis_steps()
 
         # Load necessary tools
         self._analyzer = SpectraAnalyzer(
@@ -376,10 +381,10 @@ Enter to continue\n'
 
         analysis_method = None
 
-        cleaning_schedule = get_cleaning_schedule(self.working_xdl_copy)
+        cleaning_schedule = get_cleaning_schedule(self.working_xdl)
         organic_cleaning_solvents = cleaning_schedule[0]
 
-        for step in self.working_xdl_copy.steps:
+        for step in self.working_xdl.steps:
             if step.name == 'FinalAnalysis':
                 analysis_method = step.method
                 if analysis_method == 'interactive':
@@ -388,7 +393,7 @@ Enter to continue\n'
                 step.on_finish = self.on_final_analysis
 
         # Looking for Analyze steps:
-        for i, step in enumerate(self.working_xdl_copy.steps):
+        for i, step in enumerate(self.working_xdl.steps):
             if step.name == 'Analyze' or step.name == 'FinalAnalysis':
                 # Updating the cleaning solvent
                 if step.cleaning_solvent is None:
@@ -397,7 +402,7 @@ Enter to continue\n'
                 # The reason for an extra call here is to update the vessel for
                 # the cleaning solvent which may only be given after the whole
                 # procedure was prepared and the cleaning schedule is set
-                self.working_xdl_copy.executor.add_internal_properties_to_step(
+                self.working_xdl.executor.add_internal_properties_to_step(
                     self._graph,
                     step
                 )
@@ -418,7 +423,7 @@ Enter to continue\n'
         instrument = find_instrument(graph, method)
 
         if method == 'Raman':
-            self.working_xdl_copy.steps.insert(
+            self.working_xdl.steps.insert(
                 0,
                 RunRaman(
                     raman=instrument,
@@ -470,30 +475,49 @@ VALUE ###\n'
 
         self.state['updated'] = False
 
-    def on_final_analysis(self, spectrum):
-        """Callback function for when spectra has been recorded at end of
-        procedure. Updates the state (current result) parameter.
+    def on_final_analysis(
+        self,
+        batch_id: Optional[str] = None
+    ) -> Callable[[AbstractSpectrum], None]:
+        """Factory for callback update functions.
+
+        Creates callback function for when spectra has been recorded at end of
+        procedure. Updates the state (current result) parameter for the given
+        batch id.
 
         Args:
-            spectrum (:obj:AbstractSpectrum): Spectrum object, contaning methods
-                for performing basic processing and analysis.
+            batch_id (str): Batch id to assign the result to.
         """
 
-        self._analyzer.load_spectrum(spectrum)
+        if batch_id is None:
+            batch_id = 'batch 1'
 
-        # final parsing occurs in SpectraAnalyzer.final_analysis
-        result = self._analyzer.final_analysis(self.reference, self.target)
+        def update_result(spectrum: AbstractSpectrum) -> None:
+            """Closure function to update the result for a given batch id.
 
-        # loading the result in the algorithm class
-        self.algorithm_class.load_data(self.parameters, result)
-        self.state['current_result'] = result
+            Args:
+                spectrum (:obj:AbstractSpectrum): Spectrum object, contaning
+                    methods for performing basic processing and analysis.
+            """
 
-        # saving
-        self.save()
+            self._analyzer.load_spectrum(spectrum)
 
-        # setting the updated tag to false, to update the
-        # procedure when finished
-        self.state['updated'] = False
+            # Final parsing occurs in SpectraAnalyzer.final_analysis
+            result = self._analyzer.final_analysis(self.reference, self.target)
+
+            # # Loading the result in the algorithm class
+            # self.algorithm_class.load_data(self.parameters, result) TODO
+            # Updating state
+            self.state['current_result'] = {batch_id: result}
+
+            # Saving
+            self.save()
+
+            # Setting the updated tag to false, to update the
+            # procedure when finished
+            self.state['updated'] = False
+
+        return update_result
 
     def _check_termination(self):
 
@@ -559,7 +583,7 @@ VALUE ###\n'
 
         # creating new iterator from last cursor position
         self._cursor -= 1
-        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
+        self._xdl_iter = iter(self.working_xdl.steps[self._cursor:])
         self.execute(platform_controller, logger=logger, level=level)
 
     def cleaning_steps(self):
@@ -580,7 +604,7 @@ VALUE ###\n'
         original_filename = os.path.basename(self.original_xdl._xdl_file)
 
         # saving xdl
-        self.working_xdl_copy.save(
+        self.working_xdl.save(
             os.path.join(
                 current_path,
                 original_filename[:-4] + '_' + str(self.state['iteration']) +

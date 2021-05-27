@@ -210,6 +210,11 @@ def forge_xdl_batches(
             new_xdl.steps[step_id].children[0].properties[param] = \
                 parameters[batch_id][record]['current_value']
 
+        # Appending batch id to the FinalAnalysis method if present
+        for step in new_xdl.steps:
+            if step.name == 'FinalAnalysis' or step.name == 'Analyze':
+                step.properties['batch_id'] = batch_id
+
         xdls.append(new_xdl)
 
     return xdls
