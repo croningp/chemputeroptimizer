@@ -30,15 +30,15 @@ from chemputerxdl.executor.cleaning import (
     get_cleaning_schedule,
 )
 
-from .steps_analysis import *
+from .steps_analysis import RunRaman
 from .utils import (
     find_instrument,
+    forge_xdl_batches,
     get_reagent_flasks,
     get_waste_containers,
     extract_optimization_params,
 )
 from ...utils import SpectraAnalyzer, AlgorithmAPI
-from ...utils.client import proc_data
 
 
 # for saving iterations
@@ -72,7 +72,51 @@ class OptimizeDynamicStep(AbstractDynamicStep):
     def _extract_parameters(self) -> None:
         """Extract optimization parameters from original xdl procedure."""
 
-        self.parameters = extract_optimization_params(self.original_xdl)
+        parameters: Dict[str, Dict[str, Dict[str, float]]] = {}
+
+        # Appending parameters batchwise
+        for batch_number in range(1, self.batch_size + 1):
+            # Will be same for all batches, but updates later on
+            parameters[f'batch {batch_number}'] = extract_optimization_params(
+                self.original_xdl
+            )
+
+        self.parameters = parameters
+
+    def _forge_batches(self, xdl: XDL) -> List[XDL]:
+        """Forge XDL batches from a single xdl. If number of batches is more
+        than 1 - additional parameters will be requested from algorithmAPI.
+
+        Args:
+            xdl (XDL): An original xdl file to take the parameters from.
+
+        Returns:
+            List[XDL]: List of xdl objects, which differ by their parameters
+                for optimization.
+        """
+
+        # Special case, single batch -> no update needed
+        if self.batch_size == 1:
+            return [xdl]
+
+        # Querying the parameters from the algorithm if more than one batch
+        # self.parameters already split batchwise
+        self.algorithm_class.load_data(self.parameters)
+
+        new_setup = self.algorithm_class.get_next_setup(
+            n_batches=self.batch_size - 1  # Another one - original procedure
+        )
+
+        # Updating parameters dictionary
+        for batch_id, batch_setup in new_setup.items():
+            # Batchwise!
+            for step_id, param_value in batch_setup.items():
+                self.parameters[batch_id][step_id].update(
+                    current_value = param_value,
+                )
+
+        # Forging and returning the xdls list
+        return forge_xdl_batches(self.original_xdl, self.parameters)
 
     def update_steps_parameters(self) -> None:
         """Updates the parameter template and corresponding procedure steps"""

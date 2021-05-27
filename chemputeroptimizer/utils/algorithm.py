@@ -142,6 +142,8 @@ class AlgorithmAPI():
             config=config,
         )
 
+        self.preload = True
+
     def initialize(self, data):
         """First call to initialize the optimization algorithm class."""
 

@@ -5,6 +5,7 @@ from typing import List, Dict, Tuple, Optional, Any
 from xdl.steps import Step
 from xdl.constants import INERT_GAS_SYNONYMS
 from xdl import XDL
+from xdl.utils.copy import xdl_copy
 
 from chemputerxdl.constants import (
     CHEMPUTER_FLASK,
@@ -174,3 +175,41 @@ def extract_optimization_params(xdl: XDL) -> Dict[str, Dict[str, Any]]:
             )
 
     return param_template
+
+def forge_xdl_batches(
+    xdl: XDL,
+    parameters: Dict[str, Dict[str, Dict[str, float]]],
+) -> List[XDL]:
+    """Create several xdls from their batches parameters.
+
+    Args:
+        xdl (XDL): Original xdl to take copies from.
+        parameters (Dict[str, Dict[str, Dict[str, float]]]): Batch-wise nested
+            dictionary with parameters for the xdl steps.
+
+    Returns:
+        List[XDL]: List of xdl objects, which differ by their parameters for
+            optimization.
+    """
+    xdls: List[XDL] = []
+
+    for batch_id, batch_params in parameters:
+
+        # Protect the original xdl
+        new_xdl = xdl_copy(xdl)
+
+        # Update the actual steps properties
+        for record in batch_params:
+            # Slicing for step index
+            step_id = int(record[record.index('_') + 1:record.index('-')])
+            # Slicing for parameter name
+            param = record[record.index('-') + 1:]
+            # Updating the parameter of the copied xdl
+            # This step should be the OptimizeStep wrapper with its children
+            # As the actual step to change the property
+            new_xdl.steps[step_id].children[0].properties[param] = \
+                parameters[batch_id][record]['current_value']
+
+        xdls.append(new_xdl)
+
+        return xdls
