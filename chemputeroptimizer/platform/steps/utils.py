@@ -193,7 +193,7 @@ def forge_xdl_batches(
     """
     xdls: List[XDL] = []
 
-    for batch_id, batch_params in parameters:
+    for batch_id, batch_params in parameters.items():
 
         # Protect the original xdl
         new_xdl = xdl_copy(xdl)
@@ -212,4 +212,4 @@ def forge_xdl_batches(
 
         xdls.append(new_xdl)
 
-        return xdls
+    return xdls

@@ -371,9 +371,9 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         algorithm_parameters = opt_params.pop('algorithm')
         algorithm_name = algorithm_parameters.pop('name')
         procedure_hash = calculate_procedure_hash(self._xdl_object.as_string())
-        procedure_parameters = extract_optimization_params(
-            self._xdl_object
-        )
+        procedure_parameters = {
+            'batch 1': extract_optimization_params(self._xdl_object)
+        }
         procedure_target = opt_params['target']
         self.initialize_algorithm(
             algorithm_name=algorithm_name,

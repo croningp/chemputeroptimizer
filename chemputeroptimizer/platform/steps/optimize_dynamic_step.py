@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 from typing import List, Callable, Optional, Dict, Any
 from hashlib import sha256
+from AnalyticalLabware import devices
 
 from AnalyticalLabware.devices import chemputer_devices
 
@@ -38,7 +39,7 @@ from .utils import (
     get_waste_containers,
     extract_optimization_params,
 )
-from ...utils import SpectraAnalyzer, AlgorithmAPI
+from ...utils import SpectraAnalyzer, AlgorithmAPI, simulate_schedule
 
 
 # for saving iterations
@@ -83,7 +84,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         self.parameters = parameters
 
-    def _forge_batches(self, xdl: XDL) -> List[XDL]:
+    def _forge_batches(self) -> List[XDL]:
         """Forge XDL batches from a single xdl. If number of batches is more
         than 1 - additional parameters will be requested from algorithmAPI.
 
@@ -97,7 +98,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         # Special case, single batch -> no update needed
         if self.batch_size == 1:
-            return [xdl]
+            return [xdl_copy(self.original_xdl)]
 
         # Querying the parameters from the algorithm if more than one batch
         # self.parameters already split batchwise
@@ -298,35 +299,40 @@ Enter to continue\n'
 
         self.logger.debug('Preparing Optimize dynamic step for execution.')
 
-        # saving graph for future xdl updates
+        # Saving graph for future xdl updates
         self._graph = graph
 
-        # getting parameters from the *raw* xdl
+        # Getting parameters from the *raw* xdl
         self._extract_parameters()
 
-        # working with _protected copy to avoid step reinstantiating
-        self.working_xdl_copy = xdl_copy(self.original_xdl)
+        # Forging the xdl batches
+        xdl_batches = self._forge_batches()
 
-        self.working_xdl_copy.prepare_for_execution(
+        # Getting the scheduled xdl from batches
+        self.working_xdl = simulate_schedule(
+            xdls=xdl_batches,
+            graph=graph,
+            device_modules=[chemputer_devices]
+        )
+
+        # Preparing for execution
+        self.working_xdl.prepare_for_execution(
             self.graph,
             interactive=False,
             device_modules=[chemputer_devices]
         )
 
-        # additional preparations for the analysis steps
-        self._update_analysis_steps()
-
-        # load necessary tools
+        # Load necessary tools
         self._analyzer = SpectraAnalyzer(
             max_spectra=int(self.max_iterations), # obtained from loading config
             data_path=os.path.dirname(self.original_xdl._xdl_file)
         )
 
-        # iterating over xdl to allow checkpoints
+        # Iterating over xdl to allow checkpoints
         self._cursor = 0
-        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
+        self._xdl_iter = iter(self.working_xdl.steps[self._cursor:])
 
-        # tracking of flask usage
+        # Tracking of flask usage
         self._previous_volume = {}
 
         self.state = {
