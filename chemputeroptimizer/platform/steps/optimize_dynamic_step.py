@@ -1,3 +1,4 @@
+from chemputeroptimizer.utils import interactive
 import logging
 import os
 import json
@@ -122,21 +123,44 @@ class OptimizeDynamicStep(AbstractDynamicStep):
     def update_steps_parameters(self) -> None:
         """Updates the parameter template and corresponding procedure steps"""
 
-        new_setup = self.algorithm_class.get_next_setup()  # OrderedDict
+        # Queyring new setup
+        new_setup = self.algorithm_class.get_next_setup()
 
-        for step_id_param, step_id_param_value in new_setup.items():
-            self.parameters[step_id_param].update(
-                {'current_value': step_id_param_value})
+        # Updating self.parameters to the new setup
+        for batch_id, batch_setup in new_setup.items():
+            # Batchwise!
+            for step_id, param_value in batch_setup.items():
+                self.parameters[batch_id][step_id].update(
+                    current_value = param_value,
+                )
 
         self.logger.debug('New parameters from algorithm:\n %s',
                           dict(new_setup))
 
-        self._update_xdl()
+        # Forging xdl batch
+        xdl_batches = forge_xdl_batches(
+            xdl=self.original_xdl,
+            parameters=self.parameters,
+        )
+
+        # Scheduling
+        self.working_xdl = simulate_schedule(
+            xdls=xdl_batches,
+            graph=self._graph,
+            device_modules=[chemputer_devices]
+        )
+
+        # Preparing the xdl for execution
+        self.working_xdl.prepare_for_execution(
+            self.graph,
+            interactive=False,
+            device_modules=[chemputer_devices]
+        )
 
     def _update_state(self):
         """Updates state attribute when procedure is over"""
 
-        self.state['iteration'] += 1
+        self.state['iteration'] += self.batch_size
         self.state['updated'] = True
 
         # reset the cursor for the next iteration
