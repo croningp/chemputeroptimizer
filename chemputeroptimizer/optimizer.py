@@ -510,6 +510,7 @@ Must contain:\n{}'.format(set(results[0]), set(self.algorithm.setup_constraints)
             pass
         else:
             #TODO
-            raise OptimizerError('Cannot run more than one batch!')
+            # raise OptimizerError('Cannot run more than one batch!')
+            pass
 
         return True
