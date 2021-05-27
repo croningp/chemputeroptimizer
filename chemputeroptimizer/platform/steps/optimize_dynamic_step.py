@@ -161,6 +161,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
         self._update_analysis_steps()
 
+        self._xdl_iter = iter(self.working_xdl.steps)
+
     def _update_state(self):
         """Updates state attribute when procedure is over"""
 
@@ -529,21 +531,31 @@ VALUE ###\n'
             self.logger.info('Max iterations reached. Done.')
             return True
 
-        params = []
+        results = []
 
-        for target_parameter in self.target:
-            self.logger.info(
-                'Target parameter (%s) is %.02f.',
-                target_parameter,
-                self.state['current_result'][target_parameter],
-            )
+        for batch_id, batch_result in self.state['current_result'].items():
 
-            params.append(
-                float(self.state['current_result'][target_parameter]) >
-                float(self.target[target_parameter])
-            )
+            batch_results = []
 
-        return all(params)
+            # Results per batch
+            for target_parameter in self.target:
+                self.logger.info(
+                    'Target parameter (%s) for %s is %.02f',
+                    target_parameter,
+                    batch_id,
+                    batch_result[target_parameter]
+                )
+
+                batch_results.append(
+                    float(batch_result[target_parameter]) >
+                    float(self.target[target_parameter])
+                )
+
+            # True only if all results gave true for the batch
+            results.append(all(batch_results))
+
+        # Returns True if any of the batches met all target parameters
+        return any(results)
 
     def on_start(self):
 
