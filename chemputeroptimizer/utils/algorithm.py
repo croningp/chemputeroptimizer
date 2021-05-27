@@ -268,20 +268,15 @@ class AlgorithmAPI():
             # Updating
             self.current_setup[batch_id] = dict(zip(batch_data, data))
 
-    def get_next_setup(
-        self,
-        n_batches: int = 1,
-    ):
+    def get_next_setup(self) -> Dict[str, Dict[str, float]]:
         """Finds the next parameters set based on the experimental data.
 
-        Args:
-            n_batches (int): Number of latest experiments (batches) and, as a
-                consequence, number of new parameter sets to return. If preload
-                parameter is set, will load all experimental data, but only
-                output "n_batches" new setups.
+        Number of batches is inherited from the current setup.
         """
 
         self.logger.info('Optimizing parameters.')
+
+        n_batches = len(self.current_setup)
 
         # Number of points to return from the algorithm
         # Normally equals to number of batches
