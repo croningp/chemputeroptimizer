@@ -6,7 +6,7 @@ import logging
 import os
 import json
 
-from collections import OrderedDict
+from typing import Dict, Tuple
 
 import numpy as np
 
@@ -15,7 +15,8 @@ from ..algorithms import (
     SMBO,
     # GA,
     Reproduce,
-    FromCSV
+    FromCSV,
+    AbstractAlgorithm,
 )
 from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
 
@@ -36,24 +37,26 @@ class AlgorithmAPI():
 
         self.logger = logging.getLogger('optimizer.algorithm')
 
-        # OrderedDict used to preserve the order when parsing to a np.array
-        self.current_setup = OrderedDict() # current parameters setup
-        self.setup_constraints = OrderedDict() # dictionary with data points constraints
-        self.current_result = OrderedDict() # current result parameters
-        self.parameter_matrix = None
-        self.result_matrix = None
-        self._calculated = None
-        self.algorithm = None
+        # Current parameters setup
+        self.current_setup: Dict[str, Dict[str, Dict[str, float]]] = {}
+        # Dictionary with data points constraints
+        self.setup_constraints: Dict[str, Tuple(float, float)] = {}
+        # Current result parameters
+        self.current_result: Dict[str, Dict[str, float]] = {}
+        self.parameter_matrix: np.ndarray = None
+        self.result_matrix: np.ndarray = None
+        self._calculated:  np.ndarray = None
+        self.algorithm: AbstractAlgorithm = None
 
-        self._method_name = None
-        self._method_config = None
+        self._method_name: str = None
+        self._method_config: str = None
 
-        self.client = None
-        self.proc_hash = None
-        self.strategy = None
+        self.client: OptimizerClient = None
+        self.proc_hash: str = None
+        self.strategy: Dict = None   # TODO explicit dict typing for strategy
 
         # To know when algorithm is first initialized
-        self.preload = False
+        self.preload: bool = False
 
     @property
     def method_name(self):
@@ -101,7 +104,8 @@ class AlgorithmAPI():
         try:
             self.algorithm = ALGORITHMS[method_name](
                 constraints,
-                config)
+                config
+            )
         except KeyError:
             raise KeyError(f'Algorithm {method_name} not found.') from None
 
@@ -247,7 +251,7 @@ class AlgorithmAPI():
     def _remap_data(self, data_set):
         """Maps the data with the parameters."""
 
-        self.current_setup = OrderedDict(
+        self.current_setup = dict(
             zip(
                 self.current_setup,
                 data_set
@@ -315,7 +319,7 @@ see below:\n%s', reply['exception'])
 
             # else updating
             self.strategy = reply.pop('strategy')
-            self.current_setup = OrderedDict(reply)
+            self.current_setup = dict(reply)
 
         else:
             self._calculated = self.algorithm.suggest(
