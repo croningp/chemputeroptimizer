@@ -33,7 +33,7 @@ ALGORITHMS = {
 class AlgorithmAPI():
     """General class to provide interface for algorithmic optimization."""
 
-    def __init__(self):
+    def __init__(self) -> None:
 
         self.logger = logging.getLogger('optimizer.algorithm')
 
@@ -154,7 +154,7 @@ class AlgorithmAPI():
         self,
         data: Dict[str, Dict[str, Dict[str, float]]],
         result: Optional[Dict[str, Dict[str, float]]] = None,
-    ):
+    ) -> None:
         """Loads the experimental data dictionaries.
 
         Args:
@@ -195,7 +195,7 @@ class AlgorithmAPI():
             # Parsing data only if the result was supplied
             self._parse_data()
 
-    def _parse_data(self):
+    def _parse_data(self) -> None:
         """Parse the experimental data.
 
         Create the following arrays for the first experiment and add the
@@ -259,15 +259,14 @@ class AlgorithmAPI():
                 )
             )
 
-    def _remap_data(self, data_set):
+    def _remap_data(self, data_set: np.ndarray) -> None:
         """Maps the data with the parameters."""
 
-        self.current_setup = dict(
-            zip(
-                self.current_setup,
-                data_set
-            )
-        )
+        # Iterating over batches
+        for (batch_id, batch_data), data \
+                in zip(self.current_setup.items(), data_set):
+            # Updating
+            self.current_setup[batch_id] = dict(zip(batch_data, data))
 
     def get_next_setup(
         self,
