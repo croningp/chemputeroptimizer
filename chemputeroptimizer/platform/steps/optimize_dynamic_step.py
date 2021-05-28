@@ -168,9 +168,10 @@ class OptimizeDynamicStep(AbstractDynamicStep):
                 device_modules=[chemputer_devices]
             )
 
-        self._update_analysis_steps()
+            # Creating iterator only if working with single batch
+            self._xdl_iter = iter(self.working_xdl.steps)
 
-        self._xdl_iter = iter(self.working_xdl.steps)
+        self._update_analysis_steps()
 
     def _update_state(self):
         """Updates state attribute when procedure is over"""
@@ -328,6 +329,11 @@ Enter to continue\n'
                 device_modules=[chemputer_devices]
             )
 
+            # Iterating over xdl to allow checkpoints
+            # Only if working with single batch
+            self._cursor = 0
+            self._xdl_iter = iter(self.working_xdl.steps[self._cursor:])
+
         self._update_analysis_steps()
 
         # Load necessary tools
@@ -335,10 +341,6 @@ Enter to continue\n'
             max_spectra=int(self.max_iterations), # obtained from loading config
             data_path=Path(self.original_xdl._xdl_file).parent
         )
-
-        # Iterating over xdl to allow checkpoints
-        self._cursor = 0
-        self._xdl_iter = iter(self.working_xdl.steps[self._cursor:])
 
         # Tracking of flask usage
         self._previous_volume = {}
@@ -552,27 +554,57 @@ Enter to continue\n'
             return [next_step]
 
         except StopIteration:
-            # procedure is over, checking and restarting
+            # Procedure is over, checking and restarting
 
             self._check_flasks_full(self._platform_controller)
             self._check_wastes_empty(self._platform_controller)
 
-            if not self.state['updated']:
-                # Loading results into algorithmAPI
-                self.algorithm_class.load_data(
-                    self.parameters,
-                    self.state['current_result']
-                )
-                # Updating xdls for the next round of iterations
-                self.update_steps_parameters()
-                self._update_state()
-                # Saving
-                self.save()
+            # All necessary updates wrapped in single method
+            self.on_iteration_complete()
 
             if self._check_termination():
                 return []
 
             return self.on_continue()
+
+        # Happens if xdl iterator is not set, when working with several batches
+        except AttributeError:
+
+            # If optimization is over
+            if self._check_termination():
+                return []
+
+            steps = self.working_xdl.steps
+
+            # Appending special callback step to update the state after
+            # All batches within iteration are complete
+            steps.append(Callback(
+                self.on_iteration_complete,
+            ))
+
+            return steps
+
+    def on_iteration_complete(self):
+        """Special callback function to update the ODS state at the end of
+        single iteration.
+        """
+
+        if not self.state['updated']:
+            # Loading results into algorithmAPI
+            self.algorithm_class.load_data(
+                self.parameters,
+                self.state['current_result']
+            )
+            # Updating xdls for the next round of iterations
+            self.update_steps_parameters()
+            self._update_state()
+            # Saving
+            self.save()
+
+        # Reset async steps
+        # This is very important to prevent accumulating async steps from
+        # Previous iterations
+        self.async_steps = []
 
     def on_finish(self):
         return []
