@@ -78,7 +78,6 @@ class FinalAnalysis(Analyze):
     INTERNAL_PROPS = [
         'instrument',
         'reference_step',
-        'cleaning_solvent',
         'priming_waste',
         'injection_pump',
         'sample_excess_volume',
@@ -105,6 +104,7 @@ class FinalAnalysis(Analyze):
             self,
             vessel: str,
             method: str,
+            cleaning_solvent: str,
             sample_volume: Optional[float] = None,
             on_finish: Optional[Callable] = 'default',
             method_props: JSON_PROP_TYPE = 'default',
@@ -115,7 +115,6 @@ class FinalAnalysis(Analyze):
             # Internal properties
             instrument: Optional[str] = None,
             reference_step: Optional[JSON_PROP_TYPE] = None,
-            cleaning_solvent: Optional[str] = None,
             priming_waste: Optional[str] = None,
             injection_pump: Optional[str] = None,
             sample_excess_volume: Optional[float] = 'default',

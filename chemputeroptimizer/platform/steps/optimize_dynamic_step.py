@@ -351,31 +351,26 @@ Enter to continue\n'
 
         analysis_method = None
 
-        cleaning_schedule = get_cleaning_schedule(self.working_xdl)
-        organic_cleaning_solvents = cleaning_schedule[0]
+        def assign_callback(steps: List[Step]) -> None:
+            """Recursive function to traverse down the steps and assign given
+            callback to the found FinalAnalysis or Analyze step."""
+
+            if not steps:
+                return
+
+            for step in steps:
+                if step.name == 'FinalAnalysis' or step.name == 'Analyze':
+                    nonlocal analysis_method
+                    analysis_method = step.method
+                    if analysis_method == 'interactive':
+                        step.on_finish = self.interactive_final_analysis_callback
+                        continue
+                    step.on_finish = self.on_final_analysis
+                else:
+                    assign_callback(step.steps)
 
         for step in self.working_xdl.steps:
-            if step.name == 'FinalAnalysis':
-                analysis_method = step.method
-                if analysis_method == 'interactive':
-                    step.on_finish = self.interactive_final_analysis_callback
-                    continue
-                step.on_finish = self.on_final_analysis
-
-        # Looking for Analyze steps:
-        for i, step in enumerate(self.working_xdl.steps):
-            if step.name == 'Analyze' or step.name == 'FinalAnalysis':
-                # Updating the cleaning solvent
-                if step.cleaning_solvent is None:
-                    step.cleaning_solvent = organic_cleaning_solvents[i]
-
-                # The reason for an extra call here is to update the vessel for
-                # the cleaning solvent which may only be given after the whole
-                # procedure was prepared and the cleaning schedule is set
-                self.working_xdl.executor.add_internal_properties_to_step(
-                    self._graph,
-                    step
-                )
+            assign_callback(step.steps)
 
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
