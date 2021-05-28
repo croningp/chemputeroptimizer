@@ -147,19 +147,26 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             parameters=self.parameters,
         )
 
-        # Scheduling
-        self.working_xdl = get_schedule(
-            xdls=xdl_batches,
-            graph=self._graph,
-            device_modules=[chemputer_devices]
-        ).to_xdl()
+        # Scheduling only optimization is running in more than 1 batch
+        if len(xdl_batches) > 1:
 
-        # Preparing the xdl for execution
-        # self.working_xdl.prepare_for_execution(
-        #     self.graph,
-        #     interactive=False,
-        #     device_modules=[chemputer_devices]
-        # )
+            # Scheduling
+            self.working_xdl = get_schedule(
+                xdls=xdl_batches,
+                graph=self._graph,
+                device_modules=[chemputer_devices]
+            ).to_xdl()
+
+        else:
+
+            self.working_xdl = xdl_batches[0]
+
+            # Preparing the xdl for execution
+            self.working_xdl.prepare_for_execution(
+                self.graph,
+                interactive=False,
+                device_modules=[chemputer_devices]
+            )
 
         self._update_analysis_steps()
 
@@ -302,19 +309,25 @@ Enter to continue\n'
         # Forging the xdl batches
         xdl_batches = self._forge_batches()
 
-        # Getting the scheduled xdl from batches
-        self.working_xdl = get_schedule(
-            xdls=xdl_batches,
-            graph=graph,
-            device_modules=[chemputer_devices]
-        ).to_xdl()
+        # Scheduling only optimization is running in more than 1 batch
+        if len(xdl_batches) > 1:
+            # Scheduling
+            self.working_xdl = get_schedule(
+                xdls=xdl_batches,
+                graph=self._graph,
+                device_modules=[chemputer_devices]
+            ).to_xdl()
 
-        # Preparing for execution
-        # self.working_xdl.prepare_for_execution(
-        #     self.graph,
-        #     interactive=False,
-        #     device_modules=[chemputer_devices]
-        # )
+        else:
+            self.working_xdl = xdl_batches[0]
+
+            # Preparing the xdl for execution
+            self.working_xdl.prepare_for_execution(
+                self.graph,
+                interactive=False,
+                device_modules=[chemputer_devices]
+            )
+
         self._update_analysis_steps()
 
         # Load necessary tools
@@ -353,26 +366,24 @@ Enter to continue\n'
 
         analysis_method = None
 
-        def assign_callback(steps: List[Step]) -> None:
+        def assign_callback(step: Step) -> None:
             """Recursive function to traverse down the steps and assign given
             callback to the found FinalAnalysis or Analyze step."""
 
-            if not steps:
+            if step.name == 'FinalAnalysis' or step.name == 'Analyze':
+                nonlocal analysis_method
+                analysis_method = step.method
+                if analysis_method == 'interactive':
+                    step.on_finish = self.interactive_final_analysis_callback
+                    return
+                step.on_finish = self.on_final_analysis
                 return
 
-            for step in steps:
-                if step.name == 'FinalAnalysis' or step.name == 'Analyze':
-                    nonlocal analysis_method
-                    analysis_method = step.method
-                    if analysis_method == 'interactive':
-                        step.on_finish = self.interactive_final_analysis_callback
-                        continue
-                    step.on_finish = self.on_final_analysis
-                else:
-                    assign_callback(step.steps)
+            for substep in step.steps:
+                assign_callback(substep)
 
         for step in self.working_xdl.steps:
-            assign_callback(step.steps)
+            assign_callback(step)
 
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
