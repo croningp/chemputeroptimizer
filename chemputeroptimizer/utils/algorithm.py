@@ -374,10 +374,12 @@ see below:\n%s', reply['exception'])
 
         header = ''
 
-        for key in self.current_setup:
+        # Pick a header from batch 1, assuming all batches have same parameters
+        # And "batch 1" is always present
+        for key in self.current_setup['batch 1']:
             header += f'{key},'
 
-        for key in self.current_result:
+        for key in self.current_result['batch 1']:
             header += f'{key},'
 
         np.savetxt(
