@@ -517,7 +517,7 @@ VALUE ###\n'
             self.state['current_result'][batch_id] = result
 
             # Saving
-            self.save()
+            self.save_batch(batch_id)
 
             # Setting the updated tag to false, to update the
             # procedure when finished
@@ -651,3 +651,33 @@ VALUE ###\n'
         #     self.algorithm_class.load_data(self.parameters,
         #                                    self.state['current_result'])
         # self.algorithm_class.save(alg_file)
+
+    def save_batch(self, batch_id: str) -> None:
+        """Save individual batch data.
+
+        Args:
+            batch_id (str): Individual batch id to store the data from.
+        """
+
+        today = datetime.today().strftime(DATE_FORMAT)
+
+        current_path = os.path.join(
+            os.path.dirname(self.original_xdl._xdl_file),
+            f'batches_{today}',
+            str(self.state['iteration'])
+        )
+        os.makedirs(current_path, exist_ok=True)
+
+        original_filename = os.path.basename(self.original_xdl._xdl_file)
+
+        # Forging batch data
+        batch_data: Dict[str, Dict[str, float]] = {}
+        batch_data.update(self.parameters[batch_id])
+        batch_data.update(self.state['current_result'][batch_id])
+
+        # Saving
+        batch_data_path = os.path.join(
+            current_path, f'{original_filename} {batch_id}')
+
+        with open(batch_data_path, 'w') as fobj:
+            json.dump(batch_data, fobj)
