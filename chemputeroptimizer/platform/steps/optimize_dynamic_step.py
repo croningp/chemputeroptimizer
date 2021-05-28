@@ -17,6 +17,7 @@ from AnalyticalLabware.devices import chemputer_devices
 from xdl import XDL
 from xdl.errors import XDLError
 from xdl.utils.copy import xdl_copy
+
 from xdl.steps.base_steps import (
     AbstractStep,
     AbstractDynamicStep,
@@ -33,6 +34,7 @@ from chemputerxdl.steps import (
 from chemputerxdl.executor.cleaning import (
     get_cleaning_schedule,
 )
+from chemputerxdl.scheduling.scheduling import get_schedule
 
 from .steps_analysis import RunRaman
 from .utils import (
@@ -146,18 +148,18 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         )
 
         # Scheduling
-        self.working_xdl = simulate_schedule(
+        self.working_xdl = get_schedule(
             xdls=xdl_batches,
             graph=self._graph,
             device_modules=[chemputer_devices]
-        )
+        ).to_xdl()
 
         # Preparing the xdl for execution
-        self.working_xdl.prepare_for_execution(
-            self.graph,
-            interactive=False,
-            device_modules=[chemputer_devices]
-        )
+        # self.working_xdl.prepare_for_execution(
+        #     self.graph,
+        #     interactive=False,
+        #     device_modules=[chemputer_devices]
+        # )
 
         self._update_analysis_steps()
 
@@ -301,18 +303,18 @@ Enter to continue\n'
         xdl_batches = self._forge_batches()
 
         # Getting the scheduled xdl from batches
-        self.working_xdl = simulate_schedule(
+        self.working_xdl = get_schedule(
             xdls=xdl_batches,
             graph=graph,
             device_modules=[chemputer_devices]
-        )
+        ).to_xdl()
 
         # Preparing for execution
-        self.working_xdl.prepare_for_execution(
-            self.graph,
-            interactive=False,
-            device_modules=[chemputer_devices]
-        )
+        # self.working_xdl.prepare_for_execution(
+        #     self.graph,
+        #     interactive=False,
+        #     device_modules=[chemputer_devices]
+        # )
         self._update_analysis_steps()
 
         # Load necessary tools
