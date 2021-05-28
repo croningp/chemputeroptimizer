@@ -2,12 +2,12 @@ from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
 from xdl.steps.special.callback import Callback
 from chemputeroptimizer.utils import interactive
 import logging
-import os
 import json
 import re
 import time
 
 from datetime import datetime
+from pathlib import Path
 from typing import List, Callable, Optional, Dict, Any
 from hashlib import sha256
 from AnalyticalLabware import devices
@@ -356,7 +356,7 @@ Enter to continue\n'
         # Load necessary tools
         self._analyzer = SpectraAnalyzer(
             max_spectra=int(self.max_iterations), # obtained from loading config
-            data_path=os.path.dirname(self.original_xdl._xdl_file)
+            data_path=Path(self.original_xdl._xdl_file).parent
         )
 
         # Iterating over xdl to allow checkpoints
@@ -512,6 +512,9 @@ VALUE ###\n'
 
             # Final parsing occurs in SpectraAnalyzer.final_analysis
             result = self._analyzer.final_analysis(self.reference, self.target)
+            for key, value in result.items():
+                value = value * int(batch_id[-1])
+                result[key] = value
 
             # Updating state
             self.state['current_result'][batch_id] = result
@@ -586,8 +589,11 @@ VALUE ###\n'
                     self.parameters,
                     self.state['current_result']
                 )
+                # Updating xdls for the next round of iterations
                 self.update_steps_parameters()
                 self._update_state()
+                # Saving
+                self.save()
 
             if self._check_termination():
                 return []
@@ -615,42 +621,33 @@ VALUE ###\n'
 
         today = datetime.today().strftime(DATE_FORMAT)
 
-        current_path = os.path.join(
-            os.path.dirname(self.original_xdl._xdl_file),
+        xdl_path = Path(self.original_xdl._xdl_file)
+        iterations_path = xdl_path.parent.joinpath(
             f'iterations_{today}',
             str(self.state['iteration'])
         )
-        os.makedirs(current_path, exist_ok=True)
 
-        original_filename = os.path.basename(self.original_xdl._xdl_file)
+        iterations_path.mkdir(parents=True, exist_ok=True)
 
-        # saving xdl
-        self.working_xdl.save(
-            os.path.join(
-                current_path,
-                original_filename[:-4] + '_' + str(self.state['iteration']) +
-                '.xdl',
-            ))
+        # Saving xdl
+        working_xdl_path = iterations_path.joinpath(
+            xdl_path.stem + '_' + str(self.state['iteration'])
+        ).with_suffix('.xdl')
+        self.working_xdl.save(working_xdl_path)
 
-        # saving parameters
-        params_file = os.path.join(
-            current_path,
-            original_filename[:-4] + '_params.json',
-        )
+        # Saving parameters
+        params_file = iterations_path.joinpath(
+            xdl_path.stem + '_params',
+        ).with_suffix('.json')
         with open(params_file, 'w') as f:
             json.dump(self.parameters, f, indent=4)
 
-        # saving algorithmic data
-        alg_file = os.path.join(
-            current_path,
-            original_filename[:-4] + '_data.csv',
-        )
+        # Saving algorithmic data
+        alg_file = iterations_path.joinpath(
+            xdl_path.stem + '_data',
+        ).with_suffix('.csv')
 
-        # checking if data's been loaded TODO
-        # if self.algorithm_class.result_matrix is None:
-        #     self.algorithm_class.load_data(self.parameters,
-        #                                    self.state['current_result'])
-        # self.algorithm_class.save(alg_file)
+        self.algorithm_class.save(alg_file)
 
     def save_batch(self, batch_id: str) -> None:
         """Save individual batch data.
@@ -661,14 +658,13 @@ VALUE ###\n'
 
         today = datetime.today().strftime(DATE_FORMAT)
 
-        current_path = os.path.join(
-            os.path.dirname(self.original_xdl._xdl_file),
-            f'batches_{today}',
+        xdl_path = Path(self.original_xdl._xdl_file)
+        iterations_path = xdl_path.parent.joinpath(
+            f'iterations_{today}',
             str(self.state['iteration'])
         )
-        os.makedirs(current_path, exist_ok=True)
 
-        original_filename = os.path.basename(self.original_xdl._xdl_file)
+        iterations_path.mkdir(parents=True, exist_ok=True)
 
         # Forging batch data
         batch_data: Dict[str, Dict[str, float]] = {}
@@ -676,8 +672,8 @@ VALUE ###\n'
         batch_data.update(self.state['current_result'][batch_id])
 
         # Saving
-        batch_data_path = os.path.join(
-            current_path, f'{original_filename} {batch_id}')
+        batch_data_path = iterations_path.joinpath(
+            xdl_path.stem + ' ' + batch_id).with_suffix('.json')
 
         with open(batch_data_path, 'w') as fobj:
-            json.dump(batch_data, fobj)
+            json.dump(batch_data, fobj, indent=4)
