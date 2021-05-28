@@ -14,7 +14,6 @@ from ..algorithms import (
     Random_,
     SMBO,
     # GA,
-    Reproduce,
     FromCSV,
     AbstractAlgorithm,
 )
@@ -25,7 +24,7 @@ ALGORITHMS = {
     'random': Random_,
     'smbo': SMBO,
     # 'ga': GA,
-    'reproduce': Reproduce,
+    'reproduce': lambda *args, **kwargs: None,
     'fromcsv': FromCSV,
 }
 
@@ -348,6 +347,12 @@ see below:\n%s', reply['exception'])
             # else updating
             self.strategy = reply.pop('strategy')
             self.current_setup = dict(reply)
+
+        elif self.method_name == 'reproduce':
+            # Special case for "reproduce" algorithm
+            # Just return the current setup
+            # TODO this is a bit ugly, must find a better way!
+            return self.current_setup
 
         else:
             self._calculated = self.algorithm.suggest(
