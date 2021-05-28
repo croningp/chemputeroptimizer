@@ -403,47 +403,51 @@ Enter to continue\n'
             )
             self.logger.debug('Added extra RunRaman blank step.')
 
-    def interactive_final_analysis_callback(self):
+    def interactive_final_analysis_callback(
+        self, batch_id: Optional[str]) -> Callable[[AbstractSpectrum], None]:
         """Callback function to prompt user input for final analysis"""
 
-        msg = 'You are running FinalAnalysis step interactively.\n'
-        msg += f'Current procedure is running towards >{self.target}< parameters.\n'
-        msg += 'Please type the result of the analysis below\n'
-        msg += '***as <target_parameter>: <current_value>***\n'
+        if batch_id is None:
+            batch_id = 'batch 1'
 
-        while True:
-            answer = input(msg)
-            pattern = r'.*:.*'
-            match = re.fullmatch(pattern, answer)
-            if not match:
-                warning_msg = '\n### Please type "PARAMETER NAME": PARAMETER \
-VALUE ###\n'
-                self.logger.warning(warning_msg)
-                continue
-            param, param_value = match[0].split(':')
+        def interactive_update(spectrum: AbstractSpectrum = None) -> None:
 
-            try:
-                self.logger.info('Last value for %s is %.02f, updating.',
-                                 param, self.state['current_result'][param])
-                self.state['current_result'][param] = float(param_value)
-            except KeyError:
-                key_error_msg = f'{param} is not valid target parameter\n'
-                key_error_msg += 'try one of the following:\n'
-                key_error_msg += '>>>' + '  '.join(self.target.keys()) + '\n'
-                self.logger.warning(key_error_msg)
-            except ValueError:
-                self.logger.warning('Value must be float!')
-            else:
-                break
+            msg = 'You are running FinalAnalysis step interactively.\n'
+            msg += f'Current procedure is running towards >{self.target}< parameters.\n'
+            msg += 'Please type the result of the analysis below\n'
+            msg += '***as <target_parameter>: <current_value>***\n'
 
-        # updating the algorithm class
-        self.algorithm_class.load_data(self.parameters,
-                                       self.state['current_result'])
+            while True:
+                answer = input(msg)
+                pattern = r'.*:.*'
+                match = re.fullmatch(pattern, answer)
+                if not match:
+                    warning_msg = '\n### Please type "PARAMETER NAME": PARAMETER \
+    VALUE ###\n'
+                    self.logger.warning(warning_msg)
+                    continue
+                param, param_value = match[0].split(':')
 
-        # saving
-        self.save()
+                try:
+                    self.logger.info('Last value for %s is %.02f, updating.',
+                                    param, self.state['current_result'][batch_id][param])
+                    self.state['current_result'][batch_id][param] = float(param_value)
+                except KeyError:
+                    key_error_msg = f'{param} is not valid target parameter\n'
+                    key_error_msg += 'try one of the following:\n'
+                    key_error_msg += '>>>' + '  '.join(self.target.keys()) + '\n'
+                    self.logger.warning(key_error_msg)
+                except ValueError:
+                    self.logger.warning('Value must be float!')
+                else:
+                    break
 
-        self.state['updated'] = False
+            # saving
+            self.save_batch(batch_id)
+
+            self.state['updated'] = False
+
+        return interactive_update
 
     def on_final_analysis(
         self,
