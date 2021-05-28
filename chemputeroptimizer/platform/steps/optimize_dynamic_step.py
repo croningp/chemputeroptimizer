@@ -172,44 +172,6 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         # reset the cursor for the next iteration
         self._cursor = 0
 
-    def _update_xdl(self):
-        """Creates a new copy of xdl procedure with updated parameters."""
-
-        # making copy of the raw xdl before any preparations
-        # to make future procedure updates possible
-        new_xdl = xdl_copy(self.original_xdl)
-
-        for record in self.parameters:
-            # slicing the parameter name for step id:
-            step_id = int(record[record.index('_') + 1:record.index('-')])
-            # slicing for the parameter name
-            param = record[record.index('-') + 1:]
-            try:
-                new_xdl.steps[step_id].children[0].properties[
-                    param] = self.parameters[record]['current_value']
-            except KeyError:
-                raise KeyError(
-                    f'Not found the following steps in parameters dictionary: \
-{new_xdl.steps[step_id]}.'
-                ) from None
-
-        self.logger.debug('Created new xdl object (id %d)',
-                          id(self.working_xdl_copy))
-
-        self.working_xdl_copy = new_xdl
-
-        self.working_xdl_copy.prepare_for_execution(
-            self.graph,
-            interactive=False,
-            device_modules=[chemputer_devices]
-        )
-        self._update_analysis_steps()
-
-        # updating xdl steps iterator
-        # starting from 0 as the update xdl only happens
-        # when new procedure is uploaded
-        self._xdl_iter = iter(self.working_xdl_copy.steps)
-
     def _check_flasks_full(self, platform_controller):
         """Ensure solvent and reagents flasks are full for the next iteration"""
 
