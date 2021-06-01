@@ -132,7 +132,7 @@ class Analyze(AbstractStep):
             self,
             vessel: str,
             method: str,
-            cleaning_solvent: str,
+            cleaning_solvent: Optional[str] = None,
             sample_volume: Optional[float] = None,
             on_finish: Optional[Callable] = 'default',
             method_props: JSON_PROP_TYPE = 'default',
@@ -170,6 +170,10 @@ HPLC analysis.')
         if dilution_volume is not None and dilution_solvent is None:
             raise OptimizerError('Dilution solvent must be specified if volume\
 is given.')
+
+        if method != 'interactive' and self.cleaning_solvent is None:
+            raise OptimizerError('Cleaning solvent must be given if not \
+running in interactive mode!')
 
         super().__init__(locals())
 

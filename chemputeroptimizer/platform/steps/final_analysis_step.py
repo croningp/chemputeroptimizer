@@ -104,7 +104,7 @@ class FinalAnalysis(Analyze):
             self,
             vessel: str,
             method: str,
-            cleaning_solvent: str,
+            cleaning_solvent: Optional[str] = None,
             sample_volume: Optional[float] = None,
             on_finish: Optional[Callable] = 'default',
             method_props: JSON_PROP_TYPE = 'default',
