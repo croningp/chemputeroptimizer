@@ -225,7 +225,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                 optimized_step = step.children[0].name
                 if optimized_step not in SUPPORTED_STEPS_PARAMETERS:
                     raise OptimizerError(
-                        f'Step {step} is not supported for optimization')
+                        f'Step {optimized_step} is not supported for optimization')
 
                 for parameter in step.optimize_properties:
                     if parameter not in SUPPORTED_STEPS_PARAMETERS[optimized_step]:
