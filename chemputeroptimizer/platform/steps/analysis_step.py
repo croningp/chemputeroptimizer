@@ -171,11 +171,12 @@ HPLC analysis.')
             raise OptimizerError('Dilution solvent must be specified if volume\
 is given.')
 
+
+        super().__init__(locals())
+
         if method != 'interactive' and self.cleaning_solvent is None:
             raise OptimizerError('Cleaning solvent must be given if not \
 running in interactive mode!')
-
-        super().__init__(locals())
 
     def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
 
