@@ -27,7 +27,10 @@ from chemputerxdl.steps import (
     PrimePumpForAdd,
     Add,
     CleanVessel,
+    Unlock
 )
+
+from chemputerxdl.steps.base_step import ChemputerStep
 
 from .steps_analysis import RunNMR, RunRaman, RunHPLC
 from .steps_analysis.shim_nmr import ShimNMR, check_last_shimming_results
@@ -63,7 +66,7 @@ SAMPLE_SPEED_SLOW = 5
 HPLC_INJECTION_SPEED = 0.5
 
 
-class Analyze(AbstractStep):
+class Analyze(ChemputerStep, AbstractStep):
     """A generic step to perform an analysis of the chemicals in a given vessel
 
     Args:
@@ -575,6 +578,12 @@ reaction mixture!')
                     to_vessel=self.injection_waste,
                     volume=HPLC_SAMPLE_LOOP_CLEANING_VOLUME - \
                         HPLC_INJECTION_VOLUME
+                ),
+                Unlock(
+                    nodes=[
+                        self.injection_pump,
+                        self.distribution_valve,
+                        self.dilution_vessel]
                 )
             ]
 
