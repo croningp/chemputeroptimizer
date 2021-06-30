@@ -1,4 +1,4 @@
-from typing import Callable, Any
+from typing import Optional, Callable, Any
 
 from xdl.steps.base_steps import AbstractBaseStep
 
@@ -14,7 +14,7 @@ class RunRaman(AbstractBaseStep):
     def __init__(
             self,
             raman: str,
-            on_finish: Callable,
+            on_finish: Optional[Callable] = None,
             blank: bool = False,
             **kwargs
     ):
@@ -29,6 +29,9 @@ class RunRaman(AbstractBaseStep):
             raman.obtain_reference_spectrum()
         else:
             raman.get_spectrum()
-        raman.spectrum.default_processing()
-        self.on_finish(raman.spectrum.copy())
+            raman.spectrum.default_processing()
+
+        if self.on_finish:
+            self.on_finish(raman.spectrum.copy())
+
         return True
