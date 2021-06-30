@@ -8,6 +8,8 @@ from .steps import (
     Analyze,
 )
 
+from .steps.steps_analysis import RunNMR
+
 
 class OptimizerPlatform(ChemputerPlatform):
     @property
@@ -18,4 +20,5 @@ class OptimizerPlatform(ChemputerPlatform):
         step_lib['OptimizeDynamicStep'] = OptimizeDynamicStep
         step_lib['FinalAnalysis'] = FinalAnalysis
         step_lib['Analyze'] = Analyze
+        step_lib['RunNMR'] = RunNMR
         return step_lib

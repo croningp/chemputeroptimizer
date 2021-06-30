@@ -18,12 +18,18 @@ class RunNMR(AbstractBaseStep):
         'protocol_options': JSON_PROP_TYPE,
     }
 
+    DEFAULT_PROPS = {
+        # anonymous function to take 1 argument and return None
+        'on_finish': lambda spec: None,
+        'protocol_options': {}
+    }
+
     def __init__(
             self,
             nmr: str,
-            on_finish: Callable,
+            on_finish: Callable = 'default',
             protocol: str = None,
-            protocol_options: JSON_PROP_TYPE = None,
+            protocol_options: JSON_PROP_TYPE = 'default',
             **kwargs
     ):
         super().__init__(locals())

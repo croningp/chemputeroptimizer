@@ -340,19 +340,8 @@ Enter to continue\n'
 
     def _get_blank_spectrum(self, graph, method):
         """Step to measure blank spectrum"""
-
-        instrument = find_instrument(graph, method)
-
-        if method == 'Raman':
-            self.working_xdl_copy.steps.insert(
-                0,
-                RunRaman(
-                    raman=instrument,
-                    on_finish=lambda spec: None,
-                    blank=True
-                )
-            )
-            self.logger.debug('Added extra RunRaman blank step.')
+        # typically handled via an explicit step in the procedure
+        pass
 
     def interactive_final_analysis_callback(self):
         """Callback function to prompt user input for final analysis"""
