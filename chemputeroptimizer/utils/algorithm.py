@@ -188,6 +188,26 @@ class AlgorithmAPI():
                 self.setup_constraints.update(
                     {param: (param_set['min_value'], param_set['max_value'])})
 
+        # Special case: dealing with novelty search
+        # For which the results for all previous experiments
+        # Should be updated with each experiment
+        if result is not None and 'novelty' in result:
+            # Updating the result matrix with all, but last (current) result
+            try:
+                self.result_matrix = np.array(result['novelty'][:-1], ndmin=2).T
+                # Rewriting the result to contain only the current result
+                result['novelty'] = result['novelty'].pop(-1)
+
+                # In addition, reset the algorithm
+                self.switch_method(self.method_name, self.method_config)
+
+                # And set the preload flag, so that all previous result are used
+                self.preload = True
+            except TypeError:
+                # Happens only if the novelty result is float, i.e.
+                # When preloading the results from the previous experiments
+                pass
+
         # appending the final result
         if result is not None:
             self.current_result.update(result)

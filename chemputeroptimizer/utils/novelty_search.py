@@ -5,9 +5,6 @@ corresponding notes file.
 
 # for type check
 from typing import List
-from AnalyticalLabware.devices.Magritek.Spinsolve.spectrum import (
-    SpinsolveNMRSpectrum,
-)
 
 import numpy as np
 from scipy.stats import hmean as scipy_stats_hmean
@@ -38,16 +35,16 @@ def expand_peak_regions(peak_regions: np.ndarray) -> np.ndarray:
     return np.array(expanded_regions)
 
 def calculate_information_score(
-    spectrum: SpinsolveNMRSpectrum,
     peak_regions: np.ndarray,
+    regions_areas: np.ndarray,
 ) -> float:
     """Calculate information score for the given spectrum.
 
     Args:
-        spectrum (SpinsolveNMRSpectrum): spectrum to calculate the information
-            score for.
         peak_regions (np.ndarray): 2D Mx2 array of the indexes of the potential
             peak regions for the given spectrum.
+        regions_areas (np.ndarray): An array of the areas of the corresponding
+            peak regions.
 
     Returns:
         float: calculated information score.
@@ -56,14 +53,11 @@ def calculate_information_score(
     # Number of points in each region
     regions_sizes = peak_regions[:, 1] - peak_regions[:, 0]
 
-    # Flat array of the areas of found regions
-    areas = spectrum.integrate_regions(peak_regions)
-
     # Harmonic mean of all areas
-    areas_hmean = scipy_stats_hmean(areas)
+    areas_hmean = scipy_stats_hmean(regions_areas)
 
     # Calculating the score
-    area_diffs = np.abs(areas - areas_hmean)
+    area_diffs = np.abs(regions_areas - areas_hmean)
     # Setting all 0 diffs to 10 for highest score
     area_diffs[area_diffs == 0] = 10
     regions_scores = regions_sizes * 1/np.log10(area_diffs)
@@ -91,7 +85,7 @@ def calculate_novelty_coefficient(
     # Flattening all spectra regions
     spectra_regions = []
     for previous_region in cumulative_spectra_regions:
-        # Just in case exclude target spectrum if its present
+        # Just in case exclude target spectrum if it is present
         if np.array_equal(spectrum_peaks_region, previous_region):
             continue
         spectra_regions.extend(previous_region)

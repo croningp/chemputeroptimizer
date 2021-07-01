@@ -274,8 +274,8 @@ Enter to continue\n'
 
         # load necessary tools
         self._analyzer = SpectraAnalyzer(
-            max_spectra=int(self.max_iterations), # obtained from loading config
-            data_path=os.path.dirname(self.original_xdl._xdl_file)
+            data_path=os.path.dirname(self.original_xdl._xdl_file),
+            reference=self.reference,  # loaded from the config file
         )
 
         # iterating over xdl to allow checkpoints
