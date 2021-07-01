@@ -11,6 +11,6 @@
         "acq_func_kwargs": {"kappa": 10000},
 	    "random_state": 42
     },
-    "reference": 113.15,
+    "reference": -113.15,
     "batch_size": 1
 }

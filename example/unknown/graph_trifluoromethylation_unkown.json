@@ -214,8 +214,8 @@
       "label": "flask_THF",
       "id": "flask_THF",
       "internalId": 4,
-      "max_volume": 1000,
-      "current_volume": 1000,
+      "max_volume": 150,
+      "current_volume": 150,
       "class": "ChemputerFlask",
       "chemical": "THF",
       "name": "flask_THF",
@@ -292,8 +292,8 @@
       "class": "ChemputerFlask",
       "name": "flask_reference",
       "chemical": "reference",
-      "current_volume": 50,
-      "max_volume": 50,
+      "current_volume": 20,
+      "max_volume": 20,
       "can_filter": false
     },
     {
@@ -306,8 +306,8 @@
       "class": "ChemputerFlask",
       "name": "flask_TBAF (1 M in THF)",
       "chemical": "TBAF (1 M in THF)",
-      "current_volume": 50,
-      "max_volume": 50,
+      "current_volume": 20,
+      "max_volume": 20,
       "can_filter": false
     },
     {
