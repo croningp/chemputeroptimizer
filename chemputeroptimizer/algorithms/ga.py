@@ -6,6 +6,7 @@ import numpy as np
 
 from ..algorithms import AbstractAlgorithm
 
+from typing import Optional
 
 class GA(AbstractAlgorithm):
     """
@@ -158,30 +159,23 @@ class GA(AbstractAlgorithm):
 
         return self.population
 
-    def suggest(self, parameters=None, results=None, constraints=None):
+    def get_next_point(self, parameters=None, results=None):
         """Suggest next point to evaluate"""
-
-        if constraints is None:
-            constraints = self.dimensions
 
         if self.population is None:
             # initialise GA
             self.suggestions = self.initialise()
 
-        if results.size != 0:
+        if results is not None:
             # remember best solution
             self.elit = parameters[np.argmin(-results)]
             self.elit_result = np.amin(-results)
-
-        self.logger.debug('GA optimizer for the following parameters: \n\
-                          parameters: %s\nresults: %s\nconstraints: %s\n',
-                          parameters, results, constraints)
 
         # perform genetic operation until new suggestions are found
         while self.suggestions is None or self.suggestions.size == 0:
 
             # find fitness values for parameters in population
-            fitness = np.empty((0, results.shape[1]))
+            fitness = np.empty((0, 1))
             params = np.empty((0, self.num_genes))
             for idx, val in enumerate(parameters):
                 if np.any(np.all(val == self.population, axis=1)):
@@ -213,3 +207,25 @@ class GA(AbstractAlgorithm):
         next_, self.suggestions = self.suggestions[-1], self.suggestions[:-1]
 
         return next_
+
+
+    def suggest(
+        self,
+        parameters: Optional[np.ndarray] = None,
+        results: Optional[np.ndarray] = None,
+        constraints: Optional[np.ndarray] = None,
+        n_batches: int = 1,
+        n_returns: int = 1,
+    ):
+
+        self.logger.debug('GA optimizer for the following parameters: \n\
+                          parameters: %s\nresults: %s\nconstraints: %s\n',
+                          parameters, results, constraints)
+
+        points = np.empty((0, self.num_genes))
+
+        for _ in range(n_returns):
+            next_ = self.get_next_point(parameters, results)
+            points = np.vstack((points, next_))
+
+        return points
