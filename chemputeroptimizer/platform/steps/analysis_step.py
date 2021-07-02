@@ -526,7 +526,8 @@ reaction mixture!')
                     nodes=[
                         self.instrument,
                         self.injection_pump,
-                        self.cleaning_solvent_vessel
+                        self.cleaning_solvent_vessel,
+                        self.vessel,
                     ]
                 )
             ]

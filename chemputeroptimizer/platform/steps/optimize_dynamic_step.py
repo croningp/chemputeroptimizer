@@ -1,3 +1,4 @@
+from chemputeroptimizer.utils.errors import NoDataError
 from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
 from xdl.steps.special.callback import Callback
 from chemputeroptimizer.utils import interactive
@@ -151,15 +152,12 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         if len(xdl_batches) > 1:
 
             # Scheduling
-            xdl_schedule = get_schedule(
+            self._xdl_schedule = get_schedule(
                 xdls=xdl_batches,
                 graph=self._graph,
                 device_modules=[chemputer_devices]
             )
-            # save for debugging
-            xdl_schedule.save_json('schedule.json')
-            xdl_schedule.save_xdl('schedule.xdl')
-            self.working_xdl = xdl_schedule.to_xdl()
+            self.working_xdl = self._xdl_schedule.to_xdl()
 
         else:
 
@@ -318,14 +316,12 @@ Enter to continue\n'
         if len(xdl_batches) > 1:
 
             # Scheduling
-            xdl_schedule = get_schedule(
+            self._xdl_schedule = get_schedule(
                 xdls=xdl_batches,
                 graph=self._graph,
                 device_modules=[chemputer_devices]
             )
-            xdl_schedule.save_json('schedule.json')
-            xdl_schedule.save_xdl('schedule.xdl')
-            self.working_xdl = xdl_schedule.to_xdl()
+            self.working_xdl = self._xdl_schedule.to_xdl()
 
         else:
             self.working_xdl = xdl_batches[0]
@@ -365,6 +361,8 @@ Enter to continue\n'
             'updated': True,
             'done': False,
         }
+
+        self.save()
 
     def load_optimization_config(self, **kwargs):
         """Update the optimization configuration if required"""
@@ -657,11 +655,21 @@ Enter to continue\n'
             json.dump(self.parameters, f, indent=4)
 
         # Saving algorithmic data
-        alg_file = iterations_path.joinpath(
-            xdl_path.stem + '_data',
-        ).with_suffix('.csv')
+        try:
+            alg_file = iterations_path.joinpath(
+                xdl_path.stem + '_data',
+            ).with_suffix('.csv')
+            self.algorithm_class.save(alg_file)
+        except NoDataError:
+            pass
 
-        self.algorithm_class.save(alg_file)
+        # Saving the schedule
+        schedule_fp = iterations_path.joinpath(
+            xdl_path.stem + '_schedule'
+        ).with_suffix('.json')
+        self._xdl_schedule.save_json(
+            file_path=schedule_fp
+        )
 
     def save_batch(self, batch_id: str) -> None:
         """Save individual batch data.

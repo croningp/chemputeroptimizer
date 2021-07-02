@@ -18,6 +18,7 @@ from ..algorithms import (
     AbstractAlgorithm,
 )
 from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
+from .errors import NoDataError
 
 
 ALGORITHMS = {
@@ -374,6 +375,9 @@ see below:\n%s', reply['exception'])
 
     def save(self, path):
         """Saving full experiment matrix as csv table"""
+
+        if self.parameter_matrix is None or self.result_matrix is None:
+            raise NoDataError("Nothing to save, run the experiment first!")
 
         full_matrix = np.hstack((self.parameter_matrix, self.result_matrix))
 
