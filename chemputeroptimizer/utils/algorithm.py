@@ -13,7 +13,7 @@ import numpy as np
 from ..algorithms import (
     Random_,
     SMBO,
-    # GA,
+    GA,
     FromCSV,
     AbstractAlgorithm,
 )
@@ -23,7 +23,7 @@ from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
 ALGORITHMS = {
     'random': Random_,
     'smbo': SMBO,
-    # 'ga': GA,
+    'ga': GA,
     'reproduce': lambda *args, **kwargs: None,
     'fromcsv': FromCSV,
 }

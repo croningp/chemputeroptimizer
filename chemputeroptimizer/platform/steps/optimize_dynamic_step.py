@@ -151,11 +151,15 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         if len(xdl_batches) > 1:
 
             # Scheduling
-            self.working_xdl = get_schedule(
+            xdl_schedule = get_schedule(
                 xdls=xdl_batches,
                 graph=self._graph,
                 device_modules=[chemputer_devices]
-            ).to_xdl()
+            )
+            # save for debugging
+            xdl_schedule.save_json('schedule.json')
+            xdl_schedule.save_xdl('schedule.xdl')
+            self.working_xdl = xdl_schedule.to_xdl()
 
         else:
 
@@ -312,12 +316,16 @@ Enter to continue\n'
 
         # Scheduling only optimization is running in more than 1 batch
         if len(xdl_batches) > 1:
+
             # Scheduling
-            self.working_xdl = get_schedule(
+            xdl_schedule = get_schedule(
                 xdls=xdl_batches,
                 graph=self._graph,
                 device_modules=[chemputer_devices]
-            ).to_xdl()
+            )
+            xdl_schedule.save_json('schedule.json')
+            xdl_schedule.save_xdl('schedule.xdl')
+            self.working_xdl = xdl_schedule.to_xdl()
 
         else:
             self.working_xdl = xdl_batches[0]
