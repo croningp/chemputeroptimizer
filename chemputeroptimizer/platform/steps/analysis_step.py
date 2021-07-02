@@ -165,7 +165,9 @@ class Analyze(ChemputerStep, AbstractStep):
         if method not in SUPPORTED_ANALYTICAL_METHODS:
             raise OptimizerError(f'Specified method {method} is not supported')
 
-        if method == 'HPLC' and dilution_volume is None and dilution_volume < 5:
+        if (method == 'HPLC'
+                and dilution_volume is not None
+                and dilution_volume < 5):
             raise OptimizerError('Dilution volume must be at least 5 ml for\
 HPLC analysis.')
 
@@ -516,8 +518,18 @@ reaction mixture!')
                 ),
             ]
 
-            # Repeat cleaning twice
-            return [Repeat(children=cleaning_steps, repeats=2)]
+            return [
+                # Repeat cleaning twice
+                Repeat(children=cleaning_steps, repeats=2),
+                # Unlock all associated nodes
+                Unlock(
+                    nodes=[
+                        self.instrument,
+                        self.injection_pump,
+                        self.cleaning_solvent_vessel
+                    ]
+                )
+            ]
 
         if self.method == 'HPLC':
             return [
