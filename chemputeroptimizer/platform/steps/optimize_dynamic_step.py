@@ -494,9 +494,6 @@ Enter to continue\n'
 
             # Final parsing occurs in SpectraAnalyzer.final_analysis
             result = self._analyzer.final_analysis(self.reference, self.target)
-            for key, value in result.items():
-                value = value * int(batch_id[-1])
-                result[key] = value
 
             # Updating state
             self.state['current_result'][batch_id] = result
