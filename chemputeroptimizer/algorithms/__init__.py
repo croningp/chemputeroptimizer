@@ -4,3 +4,4 @@ from .random import Random_
 from .smbo import SMBO
 from .ga import GA
 from .read_csv import FromCSV
+from .doe import DOE
