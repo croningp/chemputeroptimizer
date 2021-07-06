@@ -76,6 +76,7 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
         self._should_end: bool = False
         self.finished: bool = False
         self.exception: Exception = None
+        self.start_time: float = None
 
     def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
         """Necessary preparation for step execution."""
@@ -92,6 +93,8 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
         """Run the analytical steps in infinite loop until the process is
         stopped.
         """
+
+        self.start_time = time.time()
 
         analysis_steps = [
             RunRaman(
@@ -161,12 +164,10 @@ class StopMonitoring(ChemputerStep, AbstractBaseStep):
                 # Waiting for the thread
                 async_step.thread.join()
                 # If any exceptions occurred - raise?
-
                 if (hasattr(async_step, 'exception')
                         and async_step.exception is not None):
-
                     # TODO decide on the exception handling
-                    logger.exception(
+                    logger.error(
                         "Exception in %s background monitoring step:\n%s",
                         async_step,
                         async_step.exception
