@@ -1,0 +1,38 @@
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor"
+    />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      name="water"
+    />
+  </Reagents>
+
+  <Procedure>
+    <StartMonitoring
+      pid="42"
+      method="Raman"
+      analysis_delay="0.5" />
+    <Add
+      reagent="water"
+      vessel="reactor"
+      volume="30 mL"
+    />
+    <Stir
+      vessel="reactor"
+      time="30 secs"
+    />
+    <StopMonitoring
+      pid="42" />
+    <FinalAnalysis
+      method="Raman"
+      vessel="reactor"
+    />
+  </Procedure>
+
+</Synthesis>
