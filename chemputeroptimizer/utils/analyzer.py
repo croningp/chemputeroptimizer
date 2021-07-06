@@ -3,7 +3,6 @@ Module for processing, analysis and comparison of several spectra.
 """
 import logging
 
-from collections import deque
 from AnalyticalLabware.analysis.spec_utils import expand_regions
 
 import numpy as np
@@ -162,7 +161,7 @@ class SpectraAnalyzer():
         self.logger = logging.getLogger('optimizer.spectraanalyzer')
 
         # Storing spectral data
-        self.spectra = deque(maxlen=max_spectra)
+        self.spectra = []
 
         # Regions of interest from loaded spectra
         self.regions = []
