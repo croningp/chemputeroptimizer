@@ -1,4 +1,14 @@
-from typing import Callable, Any
+"""
+XDL step to run the analysis with an OceanInsight (Ocean Optics) Raman
+Spectrometer. The implementation is based on the
+AnalyticalLabware.devices.oceanoptics.raman module.
+"""
+
+from typing import Callable
+
+from AnalyticalLabware.devices.OceanOptics.Raman.raman_spectrum import (
+    RamanSpectrum,
+)
 
 from xdl.steps.base_steps import AbstractBaseStep
 
@@ -7,14 +17,14 @@ class RunRaman(AbstractBaseStep):
 
     PROP_TYPES = {
         'raman': str,
-        'on_finish': Callable,
+        'on_finish': Callable[[RamanSpectrum], None],
         'blank': bool,
     }
 
     def __init__(
             self,
             raman: str,
-            on_finish: Callable,
+            on_finish: Callable[[RamanSpectrum], None] = None,
             blank: bool = False,
             **kwargs
     ):
@@ -30,5 +40,6 @@ class RunRaman(AbstractBaseStep):
         else:
             raman.get_spectrum()
         raman.spectrum.default_processing()
-        self.on_finish(raman.spectrum.copy())
+        if self.on_finish is not None:
+            self.on_finish(raman.spectrum.copy())
         return True
