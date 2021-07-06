@@ -14,6 +14,7 @@ from ..algorithms import (
     Random_,
     SMBO,
     GA,
+    DOE,
     FromCSV,
     AbstractAlgorithm,
 )
@@ -25,6 +26,7 @@ ALGORITHMS = {
     'random': Random_,
     'smbo': SMBO,
     'ga': GA,
+    'doe': DOE,
     'reproduce': lambda *args, **kwargs: None,
     'fromcsv': FromCSV,
 }
