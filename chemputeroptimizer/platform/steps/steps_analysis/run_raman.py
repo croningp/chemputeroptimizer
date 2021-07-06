@@ -5,6 +5,13 @@ implementation from the AnalyticalLabware.
 
 from typing import Optional, Callable
 
+from AnalyticalLabware.devices.OceanOptics.Raman.raman_spectrum import (
+    RamanSpectrum,
+)
+from AnalyticalLabware.devices.OceanOptics.Raman.raman_control import (
+    OceanOpticsRaman,
+)
+
 from xdl.steps.base_steps import AbstractBaseStep
 
 
@@ -27,22 +34,21 @@ class RunRaman(AbstractBaseStep):
     ):
         super().__init__(locals())
 
-        self.background_path = None
-
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
     def locks(self, chempiler):
         return [], [], []
 
     def execute(self, chempiler: 'Chempiler', logger=None, level=0):
-        raman = chempiler[self.raman]
+        """Measure raman spectrum and pass the result to on_finish."""
 
+        raman: OceanOpticsRaman = chempiler[self.raman]
+
+        # If the background path is given, load the data and store it as
+        # A new reference
         if self.background_path:
             raman.spectrum.load_data(self.background_path)
-            if raman.spectrum.reference is None:
-                raman.spectrum.reference = raman.spectrum.y
+            raman.spectrum.reference = raman.spectrum.y
 
+        # If blank - just update the reference
         if self.blank:
             raman.obtain_reference_spectrum()
         # Else just upload the spectrum
@@ -55,6 +61,6 @@ class RunRaman(AbstractBaseStep):
 
             raman.spectrum.default_processing()
 
-        if self.on_finish:
+        if self.on_finish is not None:
             self.on_finish(raman.spectrum.copy())
         return True
