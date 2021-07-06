@@ -24,7 +24,7 @@ from .steps_analysis import RunRaman
 from .utils import find_instrument
 
 # Constants
-SUPPORTED_METHODS = ['raman']
+SUPPORTED_METHODS = ['Raman']
 
 
 class StartMonitoring(ChemputerStep, AbstractAsyncStep):
