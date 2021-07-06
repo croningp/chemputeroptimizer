@@ -3,7 +3,6 @@ Wrapper for pyDOE2.
 """
 
 import os
-from csv import reader as csv_reader
 from typing import Optional
 
 import pyDOE2
@@ -11,18 +10,19 @@ import pandas as pd
 import numpy as np
 
 from .base_algorithm import AbstractAlgorithm
-from ..utils.errors import ParameterError
+
 
 DESIGNS = {
     "fullfact": pyDOE2.fullfact,
     "fracfact": pyDOE2.fracfact,
     "fracfact_by_res": pyDOE2.fracfact_by_res,
-    "bbdesign":pyDOE2.bbdesign,
-    "ccdesign":pyDOE2.ccdesign,
-    "pbdesign":pyDOE2.pbdesign,
-    "lhs":pyDOE2.lhs,
-    "gsd":pyDOE2.gsd
+    "bbdesign": pyDOE2.bbdesign,
+    "ccdesign": pyDOE2.ccdesign,
+    "pbdesign": pyDOE2.pbdesign,
+    "lhs": pyDOE2.lhs,
+    "gsd": pyDOE2.gsd
 }
+
 
 class DOE(AbstractAlgorithm):
     """"
@@ -32,15 +32,15 @@ class DOE(AbstractAlgorithm):
     """
 
     DEFAULT_CONFIG = {
-        "design":"fullfact",  # which design to use
-        "generator_string":"a b -ab c +abc d e",  # only used by fractfact
+        "design": "fullfact",  # which design to use
+        "generator_string": "a b -ab c +abc d e",  # only used by fractfact
         "resolution": 4,  # only used by fracfact_by_res
         "star": False,  # if star points are to be added
         "center": 3,  # number of center points to be added
         "levels": 2,  # number of levels
         "reduction": 3,  # only used for gsd
         "samples": 10,  # only used for lhs
-        "criterion":"center",  # only used for lhs
+        "criterion": "center",  # only used for lhs
         "seed": 42,  # for reproducibility
         "csv_path": os.path.join('.', 'design.csv'),  # for saving the design
     }
@@ -63,39 +63,40 @@ class DOE(AbstractAlgorithm):
         else:
             design = doe_func(args)
 
-        #TODO convert zero centered design as needed.
+        # TODO convert zero centered design as needed.
 
         if self.config["star"]:
             design = self.add_star_points(design)
 
         if self.config["center"] > 0:
-            repeats = self.config["center"]        
+            repeats = self.config["center"]
             design = self.add_center_points(design, repeats)
 
         self.rng.shuffle(design)  # in-place
 
-        #TODO ensure this actually does the job for all designs
+        # TODO ensure this actually does the job for all designs
         if isinstance(self.config["levels"], int):
             design = self.decode_vars(design, levels=self.config["levels"])
         else:
             # mixed levels require different logic
             raise NotImplementedError("Mixed level design "
-                "are currently not supported.")
+                    "are currently not supported.")
 
         self.design_to_csv(design)
 
         self.params = iter(design)
 
     def get_args(self):
-        """Get the appropiate arguments depending from on the chosen design."""
+        """Get the appropiate arguments depending on the chosen design."""
         if self.config["design"] == "fullfact":
-            args = np.array([self.config["levels"] for _ in range(self.n_factors)])
+            args = [self.config["levels"] for _ in range(self.n_factors)]
+            args = np.array(args)
         elif self.config["design"] == "fracfact_by_res":
             args = (self.n_factors, self.config["resolution"])
         elif self.config["design"] == "fracfact":
             args = self.config["generator_string"]
         elif self.config["design"] == "lhs":
-            args = (self.n_factors, self.config["samples"], 
+            args = (self.n_factors, self.config["samples"],
                     self.config["criterion"])
         elif self.config["design"] == "gsd":
             args = (self.config["levels"], self.config["reduction"])
@@ -111,8 +112,7 @@ class DOE(AbstractAlgorithm):
         return pyDOE2.doe_union.union(center_points, design)
 
     def add_star_points(self, design, alpha='faced', center=(1, 1)):
-
-        """Method to add star points. Non-default values for alpha, 
+        """Method to add star points. Non-default values for alpha,
         will violate the constraints."""
         star_points, scaling = pyDOE2.doe_star.star(self.n_factors,
             alpha=alpha, center=center)
@@ -128,8 +128,8 @@ class DOE(AbstractAlgorithm):
         decoded = np.empty_like(design)
         n_rows, n_cols = design.shape
         for idx, bounds in enumerate(self.dimensions):
-            low, high = bounds       
-            increment = (high - low) / (levels-1)     
+            low, high = bounds
+            increment = (high - low) / (levels-1)
             decoded[:, idx] = increment * design[:, idx] + low
         return np.round(decoded, 3)
 
@@ -151,7 +151,7 @@ class DOE(AbstractAlgorithm):
             n_returns: int = 1,
     ) -> np.ndarray:
         """Returns the next points from the design matrix.
-        When using parallelisation, the number of runs should be a multiple 
+        When using parallelisation, the number of runs should be a multiple
         of the batch_size. Otherwise, some experiments may not be carried out.
         """
         try:
@@ -162,5 +162,5 @@ class DOE(AbstractAlgorithm):
             return points
 
         except StopIteration:
-            raise StopIteration("Experimental Design exhausted, " 
-                "load a new one, or switch the algorithm") from None
+            raise StopIteration("Experimental Design exhausted, "
+                    "load a new one, or switch the algorithm") from None
