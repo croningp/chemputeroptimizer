@@ -111,12 +111,13 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
                     'Background analysis finished, waiting for %.2f seconds',
                     self.analysis_delay
                 )
-                # Using time.sleep here to avoid numerous output logging massages
+                # Using time.sleep here to avoid numerous logging massages
                 # In the Wait step
                 time.sleep(self.analysis_delay)
 
-            except XDLError as err:  # pylint: disable=broad-except
-                logger.exception('Exception while running background analysis.')
+            except XDLError as err:
+                logger.exception(
+                    'Exception while running background analysis.')
                 # Breaking the loop in case of error
                 self.finished = True
                 # Saving exception info to raise later
@@ -127,3 +128,50 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
             self.on_finish()
 
         return True
+
+class StopMonitoring(ChemputerStep, AbstractBaseStep):
+    """Utility step to stop the background monitoring step.
+
+    Args:
+        pid (str): Name of the monitoring process to stop.
+    """
+
+    PROP_TYPES = {
+        'pid': str,
+    }
+
+    def __init__(self, pid: str, **kwargs) -> None:
+
+        super().__init__(locals())
+        self.steps = []
+
+    def execute(
+        self,
+        async_steps: List[AbstractAsyncStep],
+        logger: logging.Logger = None,
+        level: int = 0,
+        step_indexes: List[int] = None,
+    ) -> None:
+
+        # Killing the async step
+        for async_step in async_steps:
+            if async_step.pid == self.pid:
+                # Killing process
+                async_step.kill()
+                # Waiting for the thread
+                async_step.thread.join()
+                # If any exceptions occurred - raise?
+
+                if (hasattr(async_step, 'exception')
+                        and async_step.exception is not None):
+
+                    # TODO decide on the exception handling
+                    logger.exception(
+                        "Exception in %s background monitoring step:\n%s",
+                        async_step,
+                        async_step.exception
+                    )
+
+    def locks(self, chempiler):
+        """No locks for this step."""
+        return [], [], []
