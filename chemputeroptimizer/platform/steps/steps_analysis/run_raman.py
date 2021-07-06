@@ -1,15 +1,13 @@
 """
-XDL step to execute the Raman instrument. Based on the OceanOpticsRaman
-implementation from the AnalyticalLabware.
+XDL step to run the analysis with an OceanInsight (Ocean Optics) Raman
+Spectrometer. The implementation is based on the
+AnalyticalLabware.devices.oceanoptics.raman module.
 """
 
-from typing import Optional, Callable
+from typing import Callable
 
 from AnalyticalLabware.devices.OceanOptics.Raman.raman_spectrum import (
     RamanSpectrum,
-)
-from AnalyticalLabware.devices.OceanOptics.Raman.raman_control import (
-    OceanOpticsRaman,
 )
 
 from xdl.steps.base_steps import AbstractBaseStep
@@ -27,7 +25,7 @@ class RunRaman(AbstractBaseStep):
     def __init__(
             self,
             raman: str,
-            on_finish: Optional[Callable[[RamanSpectrum], None]] = None,
+            on_finish: Callable[[RamanSpectrum], None] = None,
             blank: bool = False,
             background_path: Optional[str] = None,
             **kwargs
@@ -54,17 +52,7 @@ class RunRaman(AbstractBaseStep):
         # Else just upload the spectrum
         else:
             raman.get_spectrum()
-
-            # save raw data
-            fname = f'{chempiler.exp_name}_{raman.spectrum.timestamp}_raw'
-            raman.spectrum.save_data(filename=fname, verbose=True)
-
-            # processing
-            raman.spectrum.reference = reference
-            raman.spectrum.subtract_reference()
-            raman.spectrum.default_processing()
-
+        raman.spectrum.default_processing()
         if self.on_finish is not None:
             self.on_finish(raman.spectrum.copy())
-
         return True
