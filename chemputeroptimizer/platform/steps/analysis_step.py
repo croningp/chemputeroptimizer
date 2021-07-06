@@ -27,7 +27,10 @@ from chemputerxdl.steps import (
     PrimePumpForAdd,
     Add,
     CleanVessel,
+    Unlock
 )
+
+from chemputerxdl.steps.base_step import ChemputerStep
 
 from .steps_analysis import RunNMR, RunRaman, RunHPLC
 from .steps_analysis.shim_nmr import ShimNMR, check_last_shimming_results
@@ -63,7 +66,7 @@ SAMPLE_SPEED_SLOW = 5
 HPLC_INJECTION_SPEED = 0.5
 
 
-class Analyze(AbstractStep):
+class Analyze(ChemputerStep, AbstractStep):
     """A generic step to perform an analysis of the chemicals in a given vessel
 
     Args:
@@ -83,6 +86,7 @@ class Analyze(AbstractStep):
         'on_finish': Callable,
         'reference_step': JSON_PROP_TYPE,
         'method_props': JSON_PROP_TYPE,
+        'batch_id': str,
         # method related
         'cleaning_solvent': str,
         'cleaning_solvent_vessel': str,
@@ -105,7 +109,6 @@ class Analyze(AbstractStep):
     INTERNAL_PROPS = [
         'instrument',
         'reference_step',
-        'cleaning_solvent',
         'priming_waste',
         'injection_pump',
         'sample_excess_volume',
@@ -116,6 +119,7 @@ class Analyze(AbstractStep):
         'injection_waste',
         'shimming_solvent_flask',
         'shimming_reference_peak',
+        'batch_id',
     ]
 
     DEFAULT_PROPS = {
@@ -131,6 +135,7 @@ class Analyze(AbstractStep):
             self,
             vessel: str,
             method: str,
+            cleaning_solvent: Optional[str] = None,
             sample_volume: Optional[float] = None,
             on_finish: Optional[Callable] = 'default',
             method_props: JSON_PROP_TYPE = 'default',
@@ -141,7 +146,6 @@ class Analyze(AbstractStep):
             # Internal properties
             instrument: Optional[str] = None,
             reference_step: Optional[JSON_PROP_TYPE] = None,
-            cleaning_solvent: Optional[str] = None,
             priming_waste: Optional[str] = None,
             injection_pump: Optional[str] = None,
             sample_excess_volume: Optional[float] = 'default',
@@ -152,6 +156,7 @@ class Analyze(AbstractStep):
             distribution_valve: Optional[str] = None,
             shimming_solvent_flask: Optional[str] = None,
             shimming_reference_peak: Optional[float] = None,
+            batch_id: Optional[str] = None,
 
             **kwargs
         ) -> None:
@@ -160,7 +165,9 @@ class Analyze(AbstractStep):
         if method not in SUPPORTED_ANALYTICAL_METHODS:
             raise OptimizerError(f'Specified method {method} is not supported')
 
-        if method == 'HPLC' and dilution_volume is None and dilution_volume < 5:
+        if (method == 'HPLC'
+                and dilution_volume is not None
+                and dilution_volume < 5):
             raise OptimizerError('Dilution volume must be at least 5 ml for\
 HPLC analysis.')
 
@@ -169,7 +176,12 @@ HPLC analysis.')
             raise OptimizerError('Dilution solvent must be specified if volume\
 is given.')
 
+
         super().__init__(locals())
+
+        if method != 'interactive' and self.cleaning_solvent is None:
+            raise OptimizerError('Cleaning solvent must be given if not \
+running in interactive mode!')
 
     def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
 
@@ -325,7 +337,7 @@ reaction mixture!')
         if self.method == 'interactive':
             return [
                 Callback(
-                    fn=self.on_finish,
+                    fn=self.on_finish(self.batch_id),
                 )
             ]
 
@@ -335,7 +347,7 @@ reaction mixture!')
             return [
                 RunRaman(
                     raman=self.instrument,
-                    on_finish=self.on_finish,
+                    on_finish=self.on_finish(self.batch_id),
                 )
             ]
 
@@ -380,7 +392,7 @@ reaction mixture!')
             # Running the instrument
             RunNMR(
                 nmr=self.instrument,
-                on_finish=self.on_finish,
+                on_finish=self.on_finish(self.batch_id),
                 **self.method_props,
             ),
             # Transferring the sample volume (+extra 20%) back to the vessel
@@ -466,7 +478,7 @@ reaction mixture!')
                     RunHPLC(
                         hplc=self.instrument,
                         valve=self.distribution_valve,
-                        on_finish=self.on_finish,
+                        on_finish=self.on_finish(self.batch_id),
                         **self.method_props
                     ),
                 ]
@@ -506,8 +518,19 @@ reaction mixture!')
                 ),
             ]
 
-            # Repeat cleaning twice
-            return [Repeat(children=cleaning_steps, repeats=2)]
+            return [
+                # Repeat cleaning twice
+                Repeat(children=cleaning_steps, repeats=2),
+                # Unlock all associated nodes
+                Unlock(
+                    nodes=[
+                        self.instrument,
+                        self.injection_pump,
+                        self.cleaning_solvent_vessel,
+                        self.vessel,
+                    ]
+                )
+            ]
 
         if self.method == 'HPLC':
             return [
@@ -558,7 +581,7 @@ reaction mixture!')
                 RunHPLC(
                     hplc=self.instrument,
                     valve=self.distribution_valve,
-                    on_finish=self.on_finish,
+                    on_finish=self.on_finish(self.batch_id),
                     is_cleaning=True,
                     **self.method_props
                 ),
@@ -568,6 +591,12 @@ reaction mixture!')
                     to_vessel=self.injection_waste,
                     volume=HPLC_SAMPLE_LOOP_CLEANING_VOLUME - \
                         HPLC_INJECTION_VOLUME
+                ),
+                Unlock(
+                    nodes=[
+                        self.injection_pump,
+                        self.distribution_valve,
+                        self.dilution_vessel]
                 )
             ]
 

@@ -46,5 +46,6 @@ class RunNMR(AbstractBaseStep):
         else:
             nmr.get_spectrum(None)
         nmr.spectrum.default_processing()
-        self.on_finish(nmr.spectrum.copy())
+        if self.on_finish is not None:
+            self.on_finish(nmr.spectrum.copy())
         return True

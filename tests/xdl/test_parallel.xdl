@@ -1,0 +1,37 @@
+<?xdl version="0.2.1" ?>
+
+<Synthesis>
+  <Hardware>
+    <Component
+      type="reactor"
+      id="reactor" />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      name="methanol" />
+  </Reagents>
+
+  <Procedure>
+    <OptimizeStep
+      id="1"
+      optimize_properties="{'volume': {'max_value': 6.15, 'min_value': 4.1}}">
+      <Add
+        volume="5.04 mL"
+        vessel="reactor"
+        reagent="methanol" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="2"
+      optimize_properties="{'time': {'max_value': 10, 'min_value': 1200}}">
+      <Wait
+        time="15 mins" />
+    </OptimizeStep>
+    <FinalAnalysis
+      vessel="reactor"
+      method="interactive"
+      cleaning_solvent="methanol"
+    />
+  </Procedure>
+
+</Synthesis>

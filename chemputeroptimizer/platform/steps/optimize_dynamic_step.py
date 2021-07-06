@@ -1,18 +1,24 @@
+from chemputeroptimizer.utils.errors import NoDataError
+from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
+from xdl.steps.special.callback import Callback
+from chemputeroptimizer.utils import interactive
 import logging
-import os
 import json
 import re
 import time
 
 from datetime import datetime
+from pathlib import Path
 from typing import List, Callable, Optional, Dict, Any
 from hashlib import sha256
+from AnalyticalLabware import devices
 
 from AnalyticalLabware.devices import chemputer_devices
 
 from xdl import XDL
 from xdl.errors import XDLError
 from xdl.utils.copy import xdl_copy
+
 from xdl.steps.base_steps import (
     AbstractStep,
     AbstractDynamicStep,
@@ -29,16 +35,17 @@ from chemputerxdl.steps import (
 from chemputerxdl.executor.cleaning import (
     get_cleaning_schedule,
 )
+from chemputerxdl.scheduling.scheduling import get_schedule
 
-from .steps_analysis import *
+from .steps_analysis import RunRaman
 from .utils import (
     find_instrument,
+    forge_xdl_batches,
     get_reagent_flasks,
     get_waste_containers,
     extract_optimization_params,
 )
-from ...utils import SpectraAnalyzer, AlgorithmAPI
-from ...utils.client import proc_data
+from ...utils import SpectraAnalyzer, AlgorithmAPI, simulate_schedule
 
 
 # for saving iterations
@@ -72,68 +79,110 @@ class OptimizeDynamicStep(AbstractDynamicStep):
     def _extract_parameters(self) -> None:
         """Extract optimization parameters from original xdl procedure."""
 
-        self.parameters = extract_optimization_params(self.original_xdl)
+        parameters: Dict[str, Dict[str, Dict[str, float]]] = {}
+
+        # Appending parameters batchwise
+        for batch_number in range(1, self.batch_size + 1):
+            # Will be same for all batches, but updates later on
+            parameters[f'batch {batch_number}'] = extract_optimization_params(
+                self.original_xdl
+            )
+
+        self.parameters = parameters
+
+    def _forge_batches(self) -> List[XDL]:
+        """Forge XDL batches from a single xdl. If number of batches is more
+        than 1 - additional parameters will be requested from algorithmAPI.
+
+        Args:
+            xdl (XDL): An original xdl file to take the parameters from.
+
+        Returns:
+            List[XDL]: List of xdl objects, which differ by their parameters
+                for optimization.
+        """
+
+        # Special case, single batch -> no update needed
+        if self.batch_size == 1:
+            return [xdl_copy(self.original_xdl)]
+
+        # Querying the parameters from the algorithm if more than one batch
+        # self.parameters already split batchwise
+        self.algorithm_class.load_data(self.parameters)
+
+        new_setup = self.algorithm_class.get_next_setup(
+            n_batches=self.batch_size - 1  # Another one - original procedure
+        )
+
+        # Updating parameters dictionary
+        for batch_id, batch_setup in new_setup.items():
+            # Batchwise!
+            for step_id, param_value in batch_setup.items():
+                self.parameters[batch_id][step_id].update(
+                    current_value = param_value,
+                )
+
+        # Forging and returning the xdls list
+        return forge_xdl_batches(self.original_xdl, self.parameters)
 
     def update_steps_parameters(self) -> None:
         """Updates the parameter template and corresponding procedure steps"""
 
-        new_setup = self.algorithm_class.get_next_setup()  # OrderedDict
+        # Queyring new setup
+        new_setup = self.algorithm_class.get_next_setup()
 
-        for step_id_param, step_id_param_value in new_setup.items():
-            self.parameters[step_id_param].update(
-                {'current_value': step_id_param_value})
+        # Updating self.parameters to the new setup
+        for batch_id, batch_setup in new_setup.items():
+            # Batchwise!
+            for step_id, param_value in batch_setup.items():
+                self.parameters[batch_id][step_id].update(
+                    current_value = param_value,
+                )
 
         self.logger.debug('New parameters from algorithm:\n %s',
                           dict(new_setup))
 
-        self._update_xdl()
+        # Forging xdl batch
+        xdl_batches = forge_xdl_batches(
+            xdl=self.original_xdl,
+            parameters=self.parameters,
+        )
+
+        # Scheduling only optimization is running in more than 1 batch
+        if len(xdl_batches) > 1:
+
+            # Scheduling
+            self._xdl_schedule = get_schedule(
+                xdls=xdl_batches,
+                graph=self._graph,
+                device_modules=[chemputer_devices]
+            )
+            self.working_xdl = self._xdl_schedule.to_xdl()
+
+        else:
+
+            self.working_xdl = xdl_batches[0]
+
+            # Preparing the xdl for execution
+            self.working_xdl.prepare_for_execution(
+                self.graph,
+                interactive=False,
+                device_modules=[chemputer_devices]
+            )
+
+            # Creating iterator only if working with single batch
+            self._xdl_iter = iter(self.working_xdl.steps)
+
+        self._update_analysis_steps()
 
     def _update_state(self):
         """Updates state attribute when procedure is over"""
 
-        self.state['iteration'] += 1
+        self.state['iteration'] += self.batch_size
         self.state['updated'] = True
 
         # reset the cursor for the next iteration
         self._cursor = 0
-
-    def _update_xdl(self):
-        """Creates a new copy of xdl procedure with updated parameters."""
-
-        # making copy of the raw xdl before any preparations
-        # to make future procedure updates possible
-        new_xdl = xdl_copy(self.original_xdl)
-
-        for record in self.parameters:
-            # slicing the parameter name for step id:
-            step_id = int(record[record.index('_') + 1:record.index('-')])
-            # slicing for the parameter name
-            param = record[record.index('-') + 1:]
-            try:
-                new_xdl.steps[step_id].children[0].properties[
-                    param] = self.parameters[record]['current_value']
-            except KeyError:
-                raise KeyError(
-                    f'Not found the following steps in parameters dictionary: \
-{new_xdl.steps[step_id]}.'
-                ) from None
-
-        self.logger.debug('Created new xdl object (id %d)',
-                          id(self.working_xdl_copy))
-
-        self.working_xdl_copy = new_xdl
-
-        self.working_xdl_copy.prepare_for_execution(
-            self.graph,
-            interactive=False,
-            device_modules=[chemputer_devices]
-        )
-        self._update_analysis_steps()
-
-        # updating xdl steps iterator
-        # starting from 0 as the update xdl only happens
-        # when new procedure is uploaded
-        self._xdl_iter = iter(self.working_xdl_copy.steps)
 
     def _check_flasks_full(self, platform_controller):
         """Ensure solvent and reagents flasks are full for the next iteration"""
@@ -254,43 +303,66 @@ Enter to continue\n'
 
         self.logger.debug('Preparing Optimize dynamic step for execution.')
 
-        # saving graph for future xdl updates
+        # Saving graph for future xdl updates
         self._graph = graph
 
-        # getting parameters from the *raw* xdl
+        # Getting parameters from the *raw* xdl
         self._extract_parameters()
 
-        # working with _protected copy to avoid step reinstantiating
-        self.working_xdl_copy = xdl_copy(self.original_xdl)
+        # Forging the xdl batches
+        xdl_batches = self._forge_batches()
 
-        self.working_xdl_copy.prepare_for_execution(
-            self.graph,
-            interactive=False,
-            device_modules=[chemputer_devices]
-        )
+        # Scheduling only optimization is running in more than 1 batch
+        if len(xdl_batches) > 1:
 
-        # additional preparations for the analysis steps
+            # Scheduling
+            self._xdl_schedule = get_schedule(
+                xdls=xdl_batches,
+                graph=self._graph,
+                device_modules=[chemputer_devices]
+            )
+            self.working_xdl = self._xdl_schedule.to_xdl()
+
+        else:
+            self.working_xdl = xdl_batches[0]
+
+            # Preparing the xdl for execution
+            self.working_xdl.prepare_for_execution(
+                self.graph,
+                interactive=False,
+                device_modules=[chemputer_devices]
+            )
+
+            # Iterating over xdl to allow checkpoints
+            # Only if working with single batch
+            self._cursor = 0
+            self._xdl_iter = iter(self.working_xdl.steps[self._cursor:])
+
         self._update_analysis_steps()
 
-        # load necessary tools
+        # Load necessary tools
         self._analyzer = SpectraAnalyzer(
             max_spectra=int(self.max_iterations), # obtained from loading config
-            data_path=os.path.dirname(self.original_xdl._xdl_file)
+            data_path=Path(self.original_xdl._xdl_file).parent
         )
 
-        # iterating over xdl to allow checkpoints
-        self._cursor = 0
-        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
-
-        # tracking of flask usage
+        # Tracking of flask usage
         self._previous_volume = {}
+
+        # Current result per batch
+        current_result = {key: -1 for key in self.target}
 
         self.state = {
             'iteration': 1,
-            'current_result': {key: -1 for key in self.target},
+            'current_result': {
+                f'batch {i}': current_result
+                for i in range(1, self.batch_size + 1)
+            },
             'updated': True,
             'done': False,
         }
+
+        self.save()
 
     def load_optimization_config(self, **kwargs):
         """Update the optimization configuration if required"""
@@ -302,31 +374,24 @@ Enter to continue\n'
 
         analysis_method = None
 
-        cleaning_schedule = get_cleaning_schedule(self.working_xdl_copy)
-        organic_cleaning_solvents = cleaning_schedule[0]
+        def assign_callback(step: Step) -> None:
+            """Recursive function to traverse down the steps and assign given
+            callback to the found FinalAnalysis or Analyze step."""
 
-        for step in self.working_xdl_copy.steps:
-            if step.name == 'FinalAnalysis':
+            if step.name == 'FinalAnalysis' or step.name == 'Analyze':
+                nonlocal analysis_method
                 analysis_method = step.method
                 if analysis_method == 'interactive':
                     step.on_finish = self.interactive_final_analysis_callback
-                    continue
+                    return
                 step.on_finish = self.on_final_analysis
+                return
 
-        # Looking for Analyze steps:
-        for i, step in enumerate(self.working_xdl_copy.steps):
-            if step.name == 'Analyze' or step.name == 'FinalAnalysis':
-                # Updating the cleaning solvent
-                if step.cleaning_solvent is None:
-                    step.cleaning_solvent = organic_cleaning_solvents[i]
+            for substep in step.steps:
+                assign_callback(substep)
 
-                # The reason for an extra call here is to update the vessel for
-                # the cleaning solvent which may only be given after the whole
-                # procedure was prepared and the cleaning schedule is set
-                self.working_xdl_copy.executor.add_internal_properties_to_step(
-                    self._graph,
-                    step
-                )
+        for step in self.working_xdl.steps:
+            assign_callback(step)
 
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
@@ -344,7 +409,7 @@ Enter to continue\n'
         instrument = find_instrument(graph, method)
 
         if method == 'Raman':
-            self.working_xdl_copy.steps.insert(
+            self.working_xdl.steps.insert(
                 0,
                 RunRaman(
                     raman=instrument,
@@ -354,72 +419,93 @@ Enter to continue\n'
             )
             self.logger.debug('Added extra RunRaman blank step.')
 
-    def interactive_final_analysis_callback(self):
+    def interactive_final_analysis_callback(
+        self, batch_id: Optional[str]) -> Callable[[AbstractSpectrum], None]:
         """Callback function to prompt user input for final analysis"""
 
-        msg = 'You are running FinalAnalysis step interactively.\n'
-        msg += f'Current procedure is running towards >{self.target}< parameters.\n'
-        msg += 'Please type the result of the analysis below\n'
-        msg += '***as <target_parameter>: <current_value>***\n'
+        if batch_id is None:
+            batch_id = 'batch 1'
 
-        while True:
-            answer = input(msg)
-            pattern = r'.*:.*'
-            match = re.fullmatch(pattern, answer)
-            if not match:
-                warning_msg = '\n### Please type "PARAMETER NAME": PARAMETER \
-VALUE ###\n'
-                self.logger.warning(warning_msg)
-                continue
-            param, param_value = match[0].split(':')
+        def interactive_update(spectrum: AbstractSpectrum = None) -> None:
 
-            try:
-                self.logger.info('Last value for %s is %.02f, updating.',
-                                 param, self.state['current_result'][param])
-                self.state['current_result'][param] = float(param_value)
-            except KeyError:
-                key_error_msg = f'{param} is not valid target parameter\n'
-                key_error_msg += 'try one of the following:\n'
-                key_error_msg += '>>>' + '  '.join(self.target.keys()) + '\n'
-                self.logger.warning(key_error_msg)
-            except ValueError:
-                self.logger.warning('Value must be float!')
-            else:
-                break
+            msg = 'You are running FinalAnalysis step interactively.\n'
+            msg += f'Current procedure is running towards >{self.target}< parameters.\n'
+            msg += 'Please type the result of the analysis below\n'
+            msg += '***as <target_parameter>: <current_value>***\n'
 
-        # updating the algorithm class
-        self.algorithm_class.load_data(self.parameters,
-                                       self.state['current_result'])
+            while True:
+                answer = input(msg)
+                pattern = r'.*:.*'
+                match = re.fullmatch(pattern, answer)
+                if not match:
+                    warning_msg = '\n### Please type "PARAMETER NAME": PARAMETER \
+    VALUE ###\n'
+                    self.logger.warning(warning_msg)
+                    continue
+                param, param_value = match[0].split(':')
 
-        # saving
-        self.save()
+                try:
+                    self.logger.info('Last value for %s is %.02f, updating.',
+                                    param, self.state['current_result'][batch_id][param])
+                    self.state['current_result'][batch_id][param] = float(param_value)
+                except KeyError:
+                    key_error_msg = f'{param} is not valid target parameter\n'
+                    key_error_msg += 'try one of the following:\n'
+                    key_error_msg += '>>>' + '  '.join(self.target.keys()) + '\n'
+                    self.logger.warning(key_error_msg)
+                except ValueError:
+                    self.logger.warning('Value must be float!')
+                else:
+                    break
 
-        self.state['updated'] = False
+            # saving
+            self.save_batch(batch_id)
 
-    def on_final_analysis(self, spectrum):
-        """Callback function for when spectra has been recorded at end of
-        procedure. Updates the state (current result) parameter.
+            self.state['updated'] = False
+
+        return interactive_update
+
+    def on_final_analysis(
+        self,
+        batch_id: Optional[str] = None
+    ) -> Callable[[AbstractSpectrum], None]:
+        """Factory for callback update functions.
+
+        Creates callback function for when spectra has been recorded at end of
+        procedure. Updates the state (current result) parameter for the given
+        batch id.
 
         Args:
-            spectrum (:obj:AbstractSpectrum): Spectrum object, contaning methods
-                for performing basic processing and analysis.
+            batch_id (str): Batch id to assign the result to.
         """
 
-        self._analyzer.load_spectrum(spectrum)
+        if batch_id is None:
+            batch_id = 'batch 1'
 
-        # final parsing occurs in SpectraAnalyzer.final_analysis
-        result = self._analyzer.final_analysis(self.reference, self.target)
+        def update_result(spectrum: AbstractSpectrum) -> None:
+            """Closure function to update the result for a given batch id.
 
-        # loading the result in the algorithm class
-        self.algorithm_class.load_data(self.parameters, result)
-        self.state['current_result'] = result
+            Args:
+                spectrum (:obj:AbstractSpectrum): Spectrum object, contaning
+                    methods for performing basic processing and analysis.
+            """
 
-        # saving
-        self.save()
+            self._analyzer.load_spectrum(spectrum)
 
-        # setting the updated tag to false, to update the
-        # procedure when finished
-        self.state['updated'] = False
+            # Final parsing occurs in SpectraAnalyzer.final_analysis
+            result = self._analyzer.final_analysis(self.reference, self.target)
+
+            # Updating state
+            self.state['current_result'][batch_id] = result
+
+            # Saving
+            self.save_batch(batch_id)
+
+            # Setting the updated tag to false, to update the
+            # procedure when finished
+            self.state['updated'] = False
+
+        return update_result
 
     def _check_termination(self):
 
@@ -431,21 +517,31 @@ VALUE ###\n'
             self.logger.info('Max iterations reached. Done.')
             return True
 
-        params = []
+        results = []
 
-        for target_parameter in self.target:
-            self.logger.info(
-                'Target parameter (%s) is %.02f.',
-                target_parameter,
-                self.state['current_result'][target_parameter],
-            )
+        for batch_id, batch_result in self.state['current_result'].items():
 
-            params.append(
-                float(self.state['current_result'][target_parameter]) >
-                float(self.target[target_parameter])
-            )
+            batch_results = []
 
-        return all(params)
+            # Results per batch
+            for target_parameter in self.target:
+                self.logger.info(
+                    'Target parameter (%s) for %s is %.02f',
+                    target_parameter,
+                    batch_id,
+                    batch_result[target_parameter]
+                )
+
+                batch_results.append(
+                    float(batch_result[target_parameter]) >
+                    float(self.target[target_parameter])
+                )
+
+            # True only if all results gave true for the batch
+            results.append(all(batch_results))
+
+        # Returns True if any of the batches met all target parameters
+        return any(results)
 
     def on_start(self):
 
@@ -461,19 +557,57 @@ VALUE ###\n'
             return [next_step]
 
         except StopIteration:
-            # procedure is over, checking and restarting
+            # Procedure is over, checking and restarting
 
             self._check_flasks_full(self._platform_controller)
             self._check_wastes_empty(self._platform_controller)
 
-            if not self.state['updated']:
-                self.update_steps_parameters()
-                self._update_state()
+            # All necessary updates wrapped in single method
+            self.on_iteration_complete()
 
             if self._check_termination():
                 return []
 
             return self.on_continue()
+
+        # Happens if xdl iterator is not set, when working with several batches
+        except AttributeError:
+
+            # If optimization is over
+            if self._check_termination():
+                return []
+
+            steps = self.working_xdl.steps
+
+            # Appending special callback step to update the state after
+            # All batches within iteration are complete
+            steps.append(Callback(
+                self.on_iteration_complete,
+            ))
+
+            return steps
+
+    def on_iteration_complete(self):
+        """Special callback function to update the ODS state at the end of
+        single iteration.
+        """
+
+        if not self.state['updated']:
+            # Loading results into algorithmAPI
+            self.algorithm_class.load_data(
+                self.parameters,
+                self.state['current_result']
+            )
+            # Updating xdls for the next round of iterations
+            self.update_steps_parameters()
+            self._update_state()
+            # Saving
+            self.save()
+
+        # Reset async steps
+        # This is very important to prevent accumulating async steps from
+        # Previous iterations
+        self.async_steps = []
 
     def on_finish(self):
         return []
@@ -485,7 +619,7 @@ VALUE ###\n'
 
         # creating new iterator from last cursor position
         self._cursor -= 1
-        self._xdl_iter = iter(self.working_xdl_copy.steps[self._cursor:])
+        self._xdl_iter = iter(self.working_xdl.steps[self._cursor:])
         self.execute(platform_controller, logger=logger, level=level)
 
     def cleaning_steps(self):
@@ -496,39 +630,69 @@ VALUE ###\n'
 
         today = datetime.today().strftime(DATE_FORMAT)
 
-        current_path = os.path.join(
-            os.path.dirname(self.original_xdl._xdl_file),
+        xdl_path = Path(self.original_xdl._xdl_file)
+        iterations_path = xdl_path.parent.joinpath(
             f'iterations_{today}',
             str(self.state['iteration'])
         )
-        os.makedirs(current_path, exist_ok=True)
 
-        original_filename = os.path.basename(self.original_xdl._xdl_file)
+        iterations_path.mkdir(parents=True, exist_ok=True)
 
-        # saving xdl
-        self.working_xdl_copy.save(
-            os.path.join(
-                current_path,
-                original_filename[:-4] + '_' + str(self.state['iteration']) +
-                '.xdl',
-            ))
+        # Saving xdl
+        working_xdl_path = iterations_path.joinpath(
+            xdl_path.stem + '_' + str(self.state['iteration'])
+        ).with_suffix('.xdl')
+        self.working_xdl.save(working_xdl_path)
 
-        # saving parameters
-        params_file = os.path.join(
-            current_path,
-            original_filename[:-4] + '_params.json',
-        )
+        # Saving parameters
+        params_file = iterations_path.joinpath(
+            xdl_path.stem + '_params',
+        ).with_suffix('.json')
         with open(params_file, 'w') as f:
             json.dump(self.parameters, f, indent=4)
 
-        # saving algorithmic data
-        alg_file = os.path.join(
-            current_path,
-            original_filename[:-4] + '_data.csv',
+        # Saving algorithmic data
+        try:
+            alg_file = iterations_path.joinpath(
+                xdl_path.stem + '_data',
+            ).with_suffix('.csv')
+            self.algorithm_class.save(alg_file)
+        except NoDataError:
+            pass
+
+        # Saving the schedule
+        schedule_fp = iterations_path.joinpath(
+            xdl_path.stem + '_schedule'
+        ).with_suffix('.json')
+        self._xdl_schedule.save_json(
+            file_path=schedule_fp
         )
 
-        # checking if data's been loaded
-        if self.algorithm_class.result_matrix is None:
-            self.algorithm_class.load_data(self.parameters,
-                                           self.state['current_result'])
-        self.algorithm_class.save(alg_file)
+    def save_batch(self, batch_id: str) -> None:
+        """Save individual batch data.
+
+        Args:
+            batch_id (str): Individual batch id to store the data from.
+        """
+
+        today = datetime.today().strftime(DATE_FORMAT)
+
+        xdl_path = Path(self.original_xdl._xdl_file)
+        iterations_path = xdl_path.parent.joinpath(
+            f'iterations_{today}',
+            str(self.state['iteration'])
+        )
+
+        iterations_path.mkdir(parents=True, exist_ok=True)
+
+        # Forging batch data
+        batch_data: Dict[str, Dict[str, float]] = {}
+        batch_data.update(self.parameters[batch_id])
+        batch_data.update(self.state['current_result'][batch_id])
+
+        # Saving
+        batch_data_path = iterations_path.joinpath(
+            xdl_path.stem + ' ' + batch_id).with_suffix('.json')
+
+        with open(batch_data_path, 'w') as fobj:
+            json.dump(batch_data, fobj, indent=4)
