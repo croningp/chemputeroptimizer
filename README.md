@@ -58,6 +58,7 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
   * Ideally number of iterations should be proportional to the batch size, otherwise optimization will run `batch size` procedure unless batch * batch size is smaller than `n iterations`.
   * Physically tested only with HPLC analysis, use at your own risk!
   * Summit server algorithms not yet supported!
+  * If using `SMBO` algorithm, `n_initial_points` must be smaller than the batch size (`batch_size`) for the correct operation.
 
 ## Development
 
