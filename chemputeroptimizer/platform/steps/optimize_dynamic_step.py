@@ -316,8 +316,8 @@ Enter to continue\n'
 
             # Adding necessary callbacks for the monitoring step
             if step.name == 'StartMonitoring':
-                step.on_going = self.on_monitoring_update
-                step.on_finish = self.on_monitoring_finish
+                step.on_going = self._on_monitoring_update
+                step.on_finish = self._on_monitoring_finish
 
         # Looking for Analyze steps:
         for i, step in enumerate(self.working_xdl_copy.steps):

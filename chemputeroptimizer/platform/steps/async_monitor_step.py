@@ -6,14 +6,15 @@ method.
 # std lib
 import time
 import logging
-from typing import Callable, List, Any
+from typing import Callable, List, Any, Optional, Dict
 
 # external
 from networkx import MultiDiGraph
 from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
 
 # XDL
-from xdl.steps.base_steps import AbstractBaseStep, AbstractAsyncStep, Step
+from xdl.steps.base_steps import AbstractAwaitStep, AbstractAsyncStep
+from xdl.steps.utils import FTNDuration
 from xdl.errors import XDLError
 
 from chemputerxdl.steps.base_step import ChemputerStep
@@ -47,11 +48,11 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
         'analysis_delay': float,
         'on_going': Callable[[AbstractSpectrum], None],
         'on_finish': Callable,
+        'instrument': str,
     }
 
     INTERNAL_PROPS = [
         'instrument',
-        'starting_time',
     ]
 
     DEFAULT_PROPS = {
@@ -63,8 +64,9 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
         pid: str,
         method: str,
         analysis_delay: float,
-        on_going: Callable[[AbstractSpectrum], None] = None,
-        on_finish: Callable = None,
+        on_going: Optional[Callable[[AbstractSpectrum], None]] = None,
+        on_finish: Optional[Callable] = None,
+        instrument: Optional[str] = None,
         **kwargs
     ) -> None:
         super().__init__(locals())
@@ -132,7 +134,31 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
 
         return True
 
-class StopMonitoring(ChemputerStep, AbstractBaseStep):
+    def reagents_consumed(
+            self, graph: MultiDiGraph) -> Dict[str, float]:
+        """No reagents are consumed for the Raman analysis."""
+
+        reagents_consumed = {}
+
+        # TODO change here if other methods implemented
+
+        return reagents_consumed
+
+    def duration(self, graph: MultiDiGraph) -> FTNDuration:
+        """Return step duration.
+
+        Monitoring supposed to be "infinite" until another step kills it,
+        so just returns 0.
+        """
+
+        duration = FTNDuration(0, 0, 0)
+
+        # TODO Change here if find out, how to calculate duration
+        # For "infinite" steps
+
+        return duration
+
+class StopMonitoring(ChemputerStep, AbstractAwaitStep):
     """Utility step to stop the background monitoring step.
 
     Args:
