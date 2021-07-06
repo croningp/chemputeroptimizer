@@ -336,12 +336,6 @@ Enter to continue\n'
             self.logger.info('Running with interactive FinalAnalysis method')
             return
 
-        self._get_blank_spectrum(self._graph, analysis_method)
-
-    def _get_blank_spectrum(self, graph, method):
-        """Step to measure blank spectrum"""
-        # typically handled via an explicit step in the procedure
-        pass
 
     def interactive_final_analysis_callback(self):
         """Callback function to prompt user input for final analysis"""

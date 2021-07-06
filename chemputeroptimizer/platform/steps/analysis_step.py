@@ -336,6 +336,7 @@ reaction mixture!')
                 RunRaman(
                     raman=self.instrument,
                     on_finish=self.on_finish,
+                    **self.method_props
                 )
             ]
 
