@@ -46,7 +46,7 @@ class RunRaman(AbstractBaseStep):
         # A new reference
         if self.background_path:
             raman.spectrum.load_data(self.background_path)
-            raman.spectrum.reference = raman.spectrum.y
+            reference = raman.spectrum.y
 
         # If blank - just update the reference
         if self.blank:
@@ -59,6 +59,9 @@ class RunRaman(AbstractBaseStep):
             fname = f'{chempiler.exp_name}_{raman.spectrum.timestamp}_raw'
             raman.spectrum.save_data(filename=fname, verbose=True)
 
+            # processing
+            raman.spectrum.reference = reference
+            raman.spectrum.subtract_reference()
             raman.spectrum.default_processing()
 
         if self.on_finish is not None:
