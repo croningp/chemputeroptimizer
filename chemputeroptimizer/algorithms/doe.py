@@ -32,15 +32,21 @@ class DOE(AbstractAlgorithm):
     """
 
     DEFAULT_CONFIG = {
+        # always needed
         "design": "fullfact",  # which design to use
-        "generator_string": "a b -ab c +abc d e",  # only used by fractfact
-        "resolution": 4,  # only used by fracfact_by_res
+        "levels": 2,  # int or List for mixed level designs
+        "center": 1,  # number of center points to be added
         "star": False,  # if star points are to be added
-        "center": 3,  # number of center points to be added
-        "levels": 2,  # number of levels
+        # design specific options
+        "resolution": 4,  # only used by fracfact_by_res
+        "generator_string": "a b -ab",  # only used by fractfact
+        "alpha": "o",  # only used for ccdesigns
+        "face": "cci",  # only used for ccdesigns
         "reduction": 3,  # only used for gsd
-        "samples": 10,  # only used for lhs
+        "samples": 100,  # only used for lhs
         "criterion": "center",  # only used for lhs
+        # for reproducibility
+        "shuffle": True,  # randomize order
         "seed": 42,  # for reproducibility
         "csv_path": os.path.join('.', 'design.csv'),  # for saving the design
     }
@@ -51,19 +57,22 @@ class DOE(AbstractAlgorithm):
         self.params = None
         self.n_factors = len(dimensions)
         self.rng = np.random.default_rng(self.config["seed"])
+
+        if isinstance(self.config["levels"], int):
+            self.levels = [self.config["levels"] for _ in range(self.n_factors)]
+        else:
+            self.levels = self.config["levels"]
+
         self.initialize()
 
     def initialize(self):
         """Create the design matrix and parameter iterator."""
         doe_func = DESIGNS[self.config["design"]]
         args = self.get_args()
+        design = doe_func(*args)
 
-        if self.config["design"] in ["fracfact_by_res", "lhs", "gsd"]:
-            design = doe_func(*args)
-        else:
-            design = doe_func(args)
-
-        # TODO convert zero centered design as needed.
+        if self.config["design"] not in ["fullfact", "lhs", "gsd"]:
+            design = self.convert_zero_centered(design)
 
         if self.config["star"]:
             design = self.add_star_points(design)
@@ -72,40 +81,41 @@ class DOE(AbstractAlgorithm):
             repeats = self.config["center"]
             design = self.add_center_points(design, repeats)
 
-        self.rng.shuffle(design)  # in-place
+        # self.design_to_csv(design, fname="DOE_raw")
 
-        # TODO ensure this actually does the job for all designs
-        if isinstance(self.config["levels"], int):
-            design = self.decode_vars(design, levels=self.config["levels"])
-        else:
-            # mixed levels require different logic
-            raise NotImplementedError("Mixed level design "
-                    "are currently not supported.")
+        if self.config["shuffle"]:
+            self.rng.shuffle(design)  # in-place
 
+        design = self.decode_vars(design)
         self.design_to_csv(design)
-
         self.params = iter(design)
 
     def get_args(self):
-        """Get the appropiate arguments depending on the chosen design."""
+        """Get a tuple with arguments depending on the chosen design."""
         if self.config["design"] == "fullfact":
-            args = [self.config["levels"] for _ in range(self.n_factors)]
-            args = np.array(args)
+            args = (np.array(self.levels),)
         elif self.config["design"] == "fracfact_by_res":
             args = (self.n_factors, self.config["resolution"])
         elif self.config["design"] == "fracfact":
-            args = self.config["generator_string"]
+            args = (self.config["generator_string"],)
+        elif self.config["design"] == "bbdesign":
+            # 0 center points, added later
+            args = (self.n_factors, 0)
+        elif self.config["design"] == "ccdesign":
+            # 0 center points, added later
+            args = (self.n_factors, (0, 0), self.config["alpha"],
+                    self.config["face"])
         elif self.config["design"] == "lhs":
             args = (self.n_factors, self.config["samples"],
                     self.config["criterion"])
         elif self.config["design"] == "gsd":
-            args = (self.config["levels"], self.config["reduction"])
+            args = (self.levels, self.config["reduction"])
         else:
-            args = self.n_factors
+            args = (self.n_factors,)
         return args
 
     def add_center_points(self, design, repeats):
-        """Method to add center points."""
+        """Method to add center points. Do not use in >2-level designs."""
         center_points = pyDOE2.doe_repeat_center.repeat_center(
             self.n_factors, repeats)
         center_points = self.convert_zero_centered(center_points)
@@ -113,8 +123,8 @@ class DOE(AbstractAlgorithm):
 
     def add_star_points(self, design, alpha='faced', center=(1, 1)):
         """Method to add star points. Non-default values for alpha,
-        will violate the constraints."""
-        star_points, scaling = pyDOE2.doe_star.star(self.n_factors,
+        will violate the constraints. Do not use in >2-level designs."""
+        star_points, _ = pyDOE2.doe_star.star(self.n_factors,
             alpha=alpha, center=center)
         star_points = self.convert_zero_centered(star_points)
         return pyDOE2.doe_union.union(design, star_points)
@@ -123,13 +133,14 @@ class DOE(AbstractAlgorithm):
         "Converts design matrices with bounds [-1, 1] to bounds [0, 1]."
         return (design + 1) / 2
 
-    def decode_vars(self, design, levels=2):
-        """Maps coded variables in design matrix onto actual search space"""
+    def decode_vars(self, design):
+        """Maps coded variables in design matrix onto actual search space."""
         decoded = np.empty_like(design)
-        n_rows, n_cols = design.shape
+
+        # n_rows, n_cols = design.shape
         for idx, bounds in enumerate(self.dimensions):
             low, high = bounds
-            increment = (high - low) / (levels-1)
+            increment = (high - low) / (self.levels[idx]-1)
             decoded[:, idx] = increment * design[:, idx] + low
         return np.round(decoded, 3)
 
