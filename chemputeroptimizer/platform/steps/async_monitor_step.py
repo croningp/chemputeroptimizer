@@ -79,6 +79,9 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
         self.finished: bool = False
         self.exception: Exception = None
         self.start_time: float = None
+        
+        # FIXME
+        self.steps: List = []
 
         # All non base steps should have steps
         # Later on will depend on the method used

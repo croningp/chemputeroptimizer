@@ -10,11 +10,7 @@ from .steps import (
     StopMonitoring,
 )
 
-from .steps.steps_analysis import (
-    RunNMR,
-    RunRaman,
-    RunHPLC,
-)
+from .steps.steps_analysis import RunNMR, RunRaman, RunHPLC
 
 
 class OptimizerPlatform(ChemputerPlatform):
