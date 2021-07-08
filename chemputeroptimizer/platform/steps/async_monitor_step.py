@@ -79,6 +79,9 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
         self.finished: bool = False
         self.exception: Exception = None
         self.start_time: float = None
+        
+        # FIXME
+        self.steps: List = []
 
     def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
         """Necessary preparation for step execution."""
