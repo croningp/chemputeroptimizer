@@ -179,7 +179,7 @@ is given.')
 
         super().__init__(locals())
 
-        if method != 'interactive' and self.cleaning_solvent is None:
+        if method not in ['interactive', 'Raman'] and self.cleaning_solvent is None:
             raise OptimizerError('Cleaning solvent must be given if not \
 running in interactive mode!')
 

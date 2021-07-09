@@ -375,10 +375,12 @@ Enter to continue\n'
 
     def _update_constrained_steps(self):
         """Updates the constrained steps"""
-
+        constrained = None
+        updated_value = None
         osteps = []
+        
         # find constrained step
-        for step in self.working_xdl_steps:
+        for step in self.working_xdl.steps:
             if step.name == "ConstrainedStep":
                 relevant_ids = step.ids
                 constrained = step
@@ -386,20 +388,17 @@ Enter to continue\n'
             elif step.name == "OptimizeStep":
                 osteps.append(step)
 
-        print(updated_value)
+        if not constrained:
+            return
 
         # find relevant optimize steps
         for step in osteps:
-            if step.id in relevant_ids:
+            if int(step.id) in relevant_ids:
                 value = step.children[0].properties[constrained.parameter]
                 updated_value -= value
-                print(value, updated_value)
 
         # update the constrained parameter
-        print("Update for step: ", constrained.children[0].name)
-        print(constrained.children[0].properties[constrained.parameter])
         constrained.children[0].properties[constrained.parameter] = updated_value
-        print(constrained.children[0].properties[constrained.parameter])
 
 
 
@@ -704,12 +703,13 @@ Enter to continue\n'
             pass
 
         # Saving the schedule
-        schedule_fp = iterations_path.joinpath(
-            xdl_path.stem + '_schedule'
-        ).with_suffix('.json')
-        self._xdl_schedule.save_json(
-            file_path=schedule_fp
-        )
+        if self.batch_size > 1:
+            schedule_fp = iterations_path.joinpath(
+                xdl_path.stem + '_schedule'
+            ).with_suffix('.json')
+            self._xdl_schedule.save_json(
+                file_path=schedule_fp
+            )
 
     def save_batch(self, batch_id: str) -> None:
         """Save individual batch data.
