@@ -6,6 +6,7 @@ from .steps import (
     OptimizeDynamicStep,
     FinalAnalysis,
     Analyze,
+    ConstrainedStep,
 )
 
 from .steps.steps_analysis import RunNMR
@@ -21,4 +22,5 @@ class OptimizerPlatform(ChemputerPlatform):
         step_lib['FinalAnalysis'] = FinalAnalysis
         step_lib['Analyze'] = Analyze
         step_lib['RunNMR'] = RunNMR
+        step_lib['ConstrainedStep'] = ConstrainedStep
         return step_lib

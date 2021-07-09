@@ -174,6 +174,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             self._xdl_iter = iter(self.working_xdl.steps)
 
         self._update_analysis_steps()
+        self._update_constrained_steps()
 
     def _update_state(self):
         """Updates state attribute when procedure is over"""
@@ -340,6 +341,8 @@ Enter to continue\n'
 
         self._update_analysis_steps()
 
+        self._update_constrained_steps()
+
         # Load necessary tools
         self._analyzer = SpectraAnalyzer(
             max_spectra=int(self.max_iterations), # obtained from loading config
@@ -368,6 +371,36 @@ Enter to continue\n'
         """Update the optimization configuration if required"""
         for k, v in kwargs.items():
             self.__dict__[k] = v
+
+    def _update_constrained_steps(self):
+        """Updates the constrained steps"""
+
+        osteps = []
+        # find constrained step
+        for step in self.working_xdl_steps:
+            if step.name == "ConstrainedStep":
+                relevant_ids = step.ids
+                constrained = step
+                updated_value = constrained.target
+            elif step.name == "OptimizeStep":
+                osteps.append(step)
+
+        print(updated_value)
+
+        # find relevant optimize steps
+        for step in osteps:
+            if step.id in relevant_ids:
+                value = step.children[0].properties[constrained.parameter]
+                updated_value -= value
+                print(value, updated_value)
+
+        # update the constrained parameter
+        print("Update for step: ", constrained.children[0].name)
+        print(constrained.children[0].properties[constrained.parameter])
+        constrained.children[0].properties[constrained.parameter] = updated_value
+        print(constrained.children[0].properties[constrained.parameter])
+
+
 
     def _update_analysis_steps(self):
         """Updates the analysis steps"""
