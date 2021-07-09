@@ -225,7 +225,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                 optimized_step = step.children[0].name
                 if optimized_step not in SUPPORTED_STEPS_PARAMETERS:
                     raise OptimizerError(
-                        f'Step {step} is not supported for optimization')
+                        f'Step {optimized_step} is not supported for optimization')
 
                 for parameter in step.optimize_properties:
                     if parameter not in SUPPORTED_STEPS_PARAMETERS[optimized_step]:
@@ -371,9 +371,9 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         algorithm_parameters = opt_params.pop('algorithm')
         algorithm_name = algorithm_parameters.pop('name')
         procedure_hash = calculate_procedure_hash(self._xdl_object.as_string())
-        procedure_parameters = extract_optimization_params(
-            self._xdl_object
-        )
+        procedure_parameters = {
+            'batch 1': extract_optimization_params(self._xdl_object)
+        }
         procedure_target = opt_params['target']
         self.initialize_algorithm(
             algorithm_name=algorithm_name,
@@ -384,8 +384,6 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         )
 
         self.logger.debug('Loaded the following parameter dict %s', opt_params)
-
-        self._validate_batch_size(opt_params['batch_size'])
 
         self.optimizer.load_optimization_config(**opt_params)
         self.optimizer.prepare_for_execution(self.graph,
@@ -487,29 +485,3 @@ Must contain:\n{}'.format(set(results[0]), set(self.algorithm.setup_constraints)
         # when data is loaded, update the xdl
         if update_xdl:
             self.optimizer.update_steps_parameters()
-
-    def _validate_batch_size(self, batch_size: int) -> bool:
-        """ Validate the give batch size against the procedure and graph.
-
-        Args:
-            batch_size (int): Number of batches to run the optimization in
-                parallel.
-
-        Returns:
-            bool: True if current procedure can run in parallel with given
-                batch size and graph.
-
-        Raises:
-            OptimizerError: If the current procedure cannot be executed in
-                parallel on a given graph.
-        """
-
-        if batch_size == 1:
-            # Non-parallel optimization
-            # Skip validation
-            pass
-        else:
-            #TODO
-            raise OptimizerError('Cannot run more than one batch!')
-
-        return True

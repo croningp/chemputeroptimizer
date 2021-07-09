@@ -8,9 +8,10 @@ from typing import List
 from xdl.errors import XDLError
 from xdl.constants import JSON_PROP_TYPE
 from xdl.steps.base_steps import AbstractStep, Step
+from chemputerxdl.steps.base_step import ChemputerStep
 
 
-class OptimizeStep(AbstractStep):
+class OptimizeStep(ChemputerStep, AbstractStep):
     """Wrapper for a step to be optimised.
 
     Check the .constants module for the supported steps and their properties.
@@ -24,7 +25,7 @@ class OptimizeStep(AbstractStep):
 
     Example:
         ...
-        <OptimizeStep 
+        <OptimizeStep
             id="0"
             optimize_properties="{'mass': {'max_value': 1, 'min_value': 0.5}}"
                 <AddSolid

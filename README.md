@@ -43,10 +43,22 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.2.3
+### v0.2.4
 
-* Fixed the bug with preloading results from previous iterations
-* `Reproduce` algorithm to check the reaction for reproducibility
+* Bugfixes
+
+### v0.2.5
+
+* Introduced a [novelty search](chemputeroptimizer\utils\novelty_search.md) as an optimization target.
+### v0.3.0 aplha0
+
+* Batch-wise parallelization introduced using chemputerxdl scheduling algorithm. Just set the `batch_size` > 1 in the optimization config and ensure enough hardware resources available on your graph. Few limitations:
+  * There are no checks for the hardware consistency vs batch size.
+  * Parallel execution is only achieved batch-wise, so the time of an iteration is limited to the longest procedure in the current batch.
+  * Ideally number of iterations should be proportional to the batch size, otherwise optimization will run `batch size` procedure unless batch * batch size is smaller than `n iterations`.
+  * Physically tested only with HPLC analysis, use at your own risk!
+  * Summit server algorithms not yet supported!
+  * If using `SMBO` algorithm, `n_initial_points` must be smaller than the batch size (`batch_size`) for the correct operation.
 
 ## Development
 

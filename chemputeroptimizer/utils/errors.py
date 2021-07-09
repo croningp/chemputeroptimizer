@@ -7,3 +7,6 @@ class ParameterError(Exception):
 
 class OptimizerNotPreparedError(Exception):
     pass
+
+class NoDataError(Exception):
+    pass

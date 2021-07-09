@@ -29,10 +29,14 @@ class SMBO(AbstractAlgorithm):
         "acq_func_kwargs": None,
         "acq_optimizer_kwargs": None,
 <<<<<<< HEAD
+<<<<<<< HEAD
         "initial_point_generator":"random"
 =======
         "initial_point_generator":"random",
 >>>>>>> 79-asynchronous-step-for-passive-reaction-monitoring
+=======
+        "initial_point_generator":'random'
+>>>>>>> AH/dilute-step
     }
 
     def __init__(self, dimensions, config=None):

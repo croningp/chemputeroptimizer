@@ -18,6 +18,9 @@ SUPPORTED_STEPS_PARAMETERS = {
     },
     'Stir': {
         "time",
+    },
+    'Wait': {
+        "time",
     }
 }
 

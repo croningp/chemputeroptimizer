@@ -6,5 +6,6 @@
     "algorithm": {
         "name": "random"
     },
-    "reference": null
+    "reference": null,
+    "batch_size": 2
 }
