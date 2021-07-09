@@ -3,14 +3,13 @@ Module for processing, analysis and comparison of several spectra.
 """
 import logging
 
-from collections import deque
 from AnalyticalLabware.analysis.spec_utils import expand_regions
 
 import numpy as np
 
 # AnalyticalLabware spectrum classes
 from AnalyticalLabware.devices import (
-    # RamanSpectrum,
+    RamanSpectrum,
     SpinsolveNMRSpectrum,
     AgilentHPLCChromatogram
 )
@@ -162,7 +161,7 @@ class SpectraAnalyzer():
         self.logger = logging.getLogger('optimizer.spectraanalyzer')
 
         # Storing spectral data
-        self.spectra = deque(maxlen=max_spectra)
+        self.spectra = []
 
         # Regions of interest from loaded spectra
         self.regions = []
@@ -230,6 +229,9 @@ class SpectraAnalyzer():
         """
 
         # spectra specific analysis
+        if isinstance(self.spectra[-1], RamanSpectrum):
+            return self._raman_analysis(reference, target)
+
         if isinstance(self.spectra[-1], AgilentHPLCChromatogram):
             return self._hplc_analysis(reference, target)
 
@@ -467,6 +469,21 @@ target peak, resolving')
                 )
                 return {objective: peaks.shape[0]}
 
+    def _raman_analysis(self, reference, target):
+        self.logger.debug('Processing spectrum from Raman')
+        # looking only in the most recent uploaded spectrum
+        spec = self.spectra[-1]
+
+        for objective in target:
+            if 'spectrum' in objective:
+                if 'peak-area' in objective:
+                    _, _, peak_position = objective.split('_')
+                    AUC_target = spec.integrate_peak(float(peak_position))
+                    AUC_istandard = spec.integrate_peak(float(reference))
+                    fitness = AUC_target / AUC_istandard
+
+                    return {objective: -fitness}
+    
     def _nmr_novelty_analysis(self, spec):
         """Calculates novelty score for the given spectrum."""
 

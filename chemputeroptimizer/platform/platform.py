@@ -6,6 +6,8 @@ from .steps import (
     OptimizeDynamicStep,
     FinalAnalysis,
     Analyze,
+    StartMonitoring,
+    StopMonitoring,
 )
 
 from .steps.steps_analysis import RunNMR, RunRaman, RunHPLC

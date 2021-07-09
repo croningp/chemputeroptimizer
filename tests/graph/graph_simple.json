@@ -58,9 +58,10 @@
       "label": "stirrer_reactor",
       "id": "stirrer_reactor",
       "mode": "ethernet",
-      "class": "IKARCTDigital",
+      "class": "RCTDigitalHotplate",
       "name": "stirrer_reactor",
-      "address": "192.168.1.203"
+      "address": "192.168.1.203",
+      "sensor": "external"
     },
     {
       "type": "flask",

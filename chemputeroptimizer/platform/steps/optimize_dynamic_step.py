@@ -9,6 +9,7 @@ from typing import List, Callable, Optional, Dict, Any
 from hashlib import sha256
 
 from AnalyticalLabware.devices import chemputer_devices
+from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
 
 from xdl import XDL
 from xdl.errors import XDLError
@@ -313,6 +314,11 @@ Enter to continue\n'
                     continue
                 step.on_finish = self.on_final_analysis
 
+            # Adding necessary callbacks for the monitoring step
+            if step.name == 'StartMonitoring':
+                step.on_going = self._on_monitoring_update
+                step.on_finish = self._on_monitoring_finish
+
         # Looking for Analyze steps:
         for i, step in enumerate(self.working_xdl_copy.steps):
             if step.name == 'Analyze' or step.name == 'FinalAnalysis':
@@ -338,10 +344,24 @@ Enter to continue\n'
 
         self._get_blank_spectrum(self._graph, analysis_method)
 
+    def _on_monitoring_update(self, spectrum: AbstractSpectrum) -> None:
+        """Callback function to update the spectrum during monitoring.
+
+        Args:
+            spectrum (:obj:AbstractSpectrum): Instance from spectrum class,
+                containing all spectral information.
+        """
+
+        self._analyzer.load_spectrum(spectrum=spectrum)
+
+    def _on_monitoring_finish(self) -> None:
+        """Callback function called when the monitoring is stopped.
+
+        Do nothing for now.
+        """
+
     def _get_blank_spectrum(self, graph, method):
         """Step to measure blank spectrum"""
-        # typically handled via an explicit step in the procedure
-        pass
 
     def interactive_final_analysis_callback(self):
         """Callback function to prompt user input for final analysis"""

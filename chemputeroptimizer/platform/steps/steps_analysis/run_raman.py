@@ -1,4 +1,16 @@
-from typing import Optional, Callable, Any
+"""
+XDL step to execute the Raman instrument. Based on the OceanOpticsRaman
+implementation from the AnalyticalLabware.
+"""
+
+from typing import Optional, Callable
+
+from AnalyticalLabware.devices.OceanOptics.Raman.raman_spectrum import (
+    RamanSpectrum,
+)
+from AnalyticalLabware.devices.OceanOptics.Raman.raman_control import (
+    OceanOpticsRaman,
+)
 
 from xdl.steps.base_steps import AbstractBaseStep
 
@@ -7,20 +19,22 @@ class RunRaman(AbstractBaseStep):
 
     PROP_TYPES = {
         'raman': str,
-        'on_finish': Callable,
+        'on_finish': Callable[[RamanSpectrum], None],
         'blank': bool,
+        'background_path': str,
     }
 
     def __init__(
             self,
             raman: str,
-            on_finish: Optional[Callable] = None,
+            on_finish: Optional[Callable[[RamanSpectrum], None]] = None,
             blank: bool = False,
+            background_path: Optional[str] = None,
             **kwargs
     ):
         super().__init__(locals())
 
-    def locks(self, chemplier):
+    def locks(self, chempiler):
         return [], [], []
 
     def execute(self, chempiler: 'Chempiler', logger=None, level=0):
@@ -32,11 +46,13 @@ class RunRaman(AbstractBaseStep):
         # A new reference
         if self.background_path:
             raman.spectrum.load_data(self.background_path)
-            reference = raman.spectrum.y
+            raman.spectrum.reference = raman.spectrum.y
+
 
         # If blank - just update the reference
         if self.blank:
             raman.obtain_reference_spectrum()
+        # Else just upload the spectrum
         else:
             raman.get_spectrum()
 
@@ -45,11 +61,12 @@ class RunRaman(AbstractBaseStep):
             raman.spectrum.save_data(filename=fname, verbose=True)
 
             # processing
-            raman.spectrum.reference = reference
-            raman.spectrum.subtract_reference()
+            if raman.spectrum.reference:
+                raman.spectrum.subtract_reference()
+
             raman.spectrum.default_processing()
 
-        if self.on_finish:
+        if self.on_finish is not None:
             self.on_finish(raman.spectrum.copy())
 
         return True

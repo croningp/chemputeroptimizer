@@ -28,7 +28,11 @@ class SMBO(AbstractAlgorithm):
         "random_state": None,
         "acq_func_kwargs": None,
         "acq_optimizer_kwargs": None,
+<<<<<<< HEAD
         "initial_point_generator":"random"
+=======
+        "initial_point_generator":"random",
+>>>>>>> 79-asynchronous-step-for-passive-reaction-monitoring
     }
 
     def __init__(self, dimensions, config=None):
