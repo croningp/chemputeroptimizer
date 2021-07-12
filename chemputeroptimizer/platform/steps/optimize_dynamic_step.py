@@ -661,12 +661,17 @@ Enter to continue\n'
             pass
 
         # Saving the schedule
-        schedule_fp = iterations_path.joinpath(
-            xdl_path.stem + '_schedule'
-        ).with_suffix('.json')
-        self._xdl_schedule.save_json(
-            file_path=schedule_fp
-        )
+        try:
+            schedule_fp = iterations_path.joinpath(
+                xdl_path.stem + '_schedule'
+            ).with_suffix('.json')
+            self._xdl_schedule.save_json(
+                file_path=schedule_fp
+            )
+        # Don't save schedule if it does not exist,
+        # I.e. single batch
+        except AttributeError:
+            pass
 
     def save_batch(self, batch_id: str) -> None:
         """Save individual batch data.
