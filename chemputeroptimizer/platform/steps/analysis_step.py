@@ -52,6 +52,12 @@ NO_PREPARATION_STEPS = [
     'Stir',
 ]
 
+# Analysis methods that don't need cleaning upon completion
+NO_CLEANING_NEEDED_METHODS = [
+    'interactive',
+    'Raman',
+]
+
 # sample constants
 PRIMING_WASTE_VOLUME = 1 # to prime the tubing while acquiring sample
 DISSOLUTION_TIME = 60 # seconds
@@ -176,10 +182,12 @@ HPLC analysis.')
             raise OptimizerError('Dilution solvent must be specified if volume\
 is given.')
 
-
         super().__init__(locals())
 
-        if method != 'interactive' and self.cleaning_solvent is None:
+        # If method needs cleaning, but no cleaning solvent given
+        if (method not in NO_CLEANING_NEEDED_METHODS
+                and self.cleaning_solvent is None):
+
             raise OptimizerError('Cleaning solvent must be given if not \
 running in interactive mode!')
 
