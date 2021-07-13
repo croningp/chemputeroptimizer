@@ -15,7 +15,7 @@ from chemputerxdl.steps.base_step import ChemputerStep
 class ConstrainedStep(ChemputerStep, AbstractStep):
     """Wrapper for a constrained Add step.
 
-    Check the .constants module for the supported steps and their properties.
+    Check OptimizeDynamicStep for the logic to adjust values.
 
     Args:
         ids (List): IDs of OptimizeSteps that influence the parameter value
@@ -78,4 +78,4 @@ class ConstrainedStep(ChemputerStep, AbstractStep):
         return self.children
 
     def human_readable(self, language='en'):
-        return 'Optimize ' + self.step.human_readable()
+        return 'Constrained ' + self.step.human_readable()
