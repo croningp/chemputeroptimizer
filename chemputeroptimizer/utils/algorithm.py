@@ -192,9 +192,11 @@ class AlgorithmAPI():
         # For which the results for all previous experiments
         # Should be updated with each experiment
         if result is not None and 'novelty' in result:
-            # Updating the result matrix with all, but last (current) result
             try:
-                self.result_matrix = np.array(result['novelty'][:-1], ndmin=2).T
+                # Updating the result matrix with all, but last (current) result
+                if self.result_matrix is not None:
+                    self.result_matrix = np.array(
+                        result['novelty'][:-1], ndmin=2).T
                 # Rewriting the result to contain only the current result
                 result['novelty'] = result['novelty'].pop(-1)
 
