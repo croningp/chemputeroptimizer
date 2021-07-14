@@ -43,6 +43,10 @@
     <Reagent
       name="DCM"
       role="reagent" />
+    <Reagent
+      name="THF_for_cleaning"
+      role="reagent"
+      use_for_cleaning="True" />
   </Reagents>
 
   <Procedure>
@@ -168,6 +172,7 @@
       <Add
         vessel="reactor"
         reagent="TBAF (1 M in THF)"
+        aspiration_speed="3.0"
         volume="6 mL"
         port="0"
         priming_volume="0.2 mL" />
@@ -201,10 +206,10 @@
       from_port="0"
       to_port="0" />
     <ResetHandling
-      solvent="THF" />
+      solvent="THF_for_cleaning" />
     <CleanVessel
       vessel="reactor"
-      solvent="THF"
+      solvent="THF_for_cleaning"
       temp="22 °C"
       volume="20 mL" />
   </Procedure>

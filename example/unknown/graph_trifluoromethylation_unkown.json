@@ -10,7 +10,7 @@
       "class": "ChemputerReactor",
       "name": "reactor",
       "current_volume": 0,
-      "max_volume": 20,
+      "max_volume": 40,
       "necks": 2,
       "can_filter": false
     },
@@ -158,8 +158,8 @@
       "label": "flask_DCM",
       "id": "flask_DCM",
       "internalId": 0,
-      "max_volume": 250,
-      "current_volume": 250,
+      "max_volume": 130,
+      "current_volume": 130,
       "class": "ChemputerFlask",
       "chemical": "DCM",
       "name": "flask_DCM",
@@ -214,8 +214,8 @@
       "label": "flask_THF",
       "id": "flask_THF",
       "internalId": 4,
-      "max_volume": 150,
-      "current_volume": 150,
+      "max_volume": 800,
+      "current_volume": 800,
       "class": "ChemputerFlask",
       "chemical": "THF",
       "name": "flask_THF",
@@ -292,8 +292,8 @@
       "class": "ChemputerFlask",
       "name": "flask_reference",
       "chemical": "reference",
-      "current_volume": 20,
-      "max_volume": 20,
+      "current_volume": 40,
+      "max_volume": 40,
       "can_filter": false
     },
     {
@@ -306,8 +306,8 @@
       "class": "ChemputerFlask",
       "name": "flask_TBAF (1 M in THF)",
       "chemical": "TBAF (1 M in THF)",
-      "current_volume": 20,
-      "max_volume": 20,
+      "current_volume": 30,
+      "max_volume": 30,
       "can_filter": false
     },
     {
@@ -334,8 +334,8 @@
       "class": "ChemputerFlask",
       "name": "flask_myrtenal",
       "chemical": "myrtenal",
-      "current_volume": 6,
-      "max_volume": 6,
+      "current_volume": 4,
+      "max_volume": 4,
       "can_filter": false
     },
     {
@@ -417,14 +417,14 @@
           "type": "number"
         }
       },
+      "internalId": 54,
+      "label": "bme",
       "class": "BME280Sensor",
       "name": "bme",
       "connection_mode": "tcpip",
       "address": "192.168.1.80",
       "port": 5000,
-      "channel": 6,
-      "internalId": 54,
-      "label": "bme"
+      "channel": 6
     },
     {
       "id": "rtd",
@@ -457,13 +457,13 @@
           "type": "number"
         }
       },
+      "internalId": 55,
+      "label": "rtd",
       "class": "RTDSensor",
       "name": "rtd",
       "connection_mode": "tcpip",
       "address": "192.168.1.80",
-      "port": 5000,
-      "internalId": 55,
-      "label": "rtd"
+      "port": 5000
     },
     {
       "id": "rgb",
@@ -502,14 +502,14 @@
           "type": "number"
         }
       },
+      "internalId": 56,
+      "label": "rgb",
       "class": "RGBSensor",
       "name": "rgb",
       "connection_mode": "tcpip",
       "address": "192.168.1.80",
       "port": 5000,
-      "channel": 5,
-      "internalId": 56,
-      "label": "rgb"
+      "channel": 5
     },
     {
       "id": "bubble",
@@ -542,13 +542,27 @@
           "type": "number"
         }
       },
+      "internalId": 57,
+      "label": "bubble",
       "class": "BubbleSensor",
       "name": "bubble",
       "connection_mode": "tcpip",
       "address": "192.168.1.80",
-      "port": 5000,
-      "internalId": 57,
-      "label": "bubble"
+      "port": 5000
+    },
+    {
+      "id": "flask_THF_for_cleaning",
+      "type": "flask",
+      "x": 160,
+      "y": 200,
+      "class": "ChemputerFlask",
+      "name": "flask_THF_for_cleaning",
+      "chemical": "THF_for_cleaning",
+      "current_volume": 2500,
+      "max_volume": 2500,
+      "can_filter": false,
+      "internalId": 59,
+      "label": "flask_THF_for_cleaning"
     }
   ],
   "links": [
@@ -847,6 +861,14 @@
       "source": "bubble",
       "target": "pump_H",
       "port": "(,)"
+    },
+    {
+      "id": 60,
+      "sourceInternal": 59,
+      "targetInternal": 16,
+      "source": "flask_THF_for_cleaning",
+      "target": "valve_H",
+      "port": "(0,3)"
     }
   ]
 }
