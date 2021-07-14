@@ -502,7 +502,7 @@ target peak, resolving')
             # Rounding to neglect small differences in ppm scales
             # Across several spectra
             regions_expanded = expand_peak_regions(regions)
-            regions_expanded_xs = np.around(spectrum.x[regions_expanded], 4)
+            regions_expanded_xs = np.around(spectrum.x[regions_expanded], 3)
 
             information_score = calculate_information_score(regions, areas)
 

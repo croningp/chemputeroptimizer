@@ -94,7 +94,12 @@ def calculate_novelty_coefficient(
     novelty_diff = np.setdiff1d(spectrum_peaks_region, spectra_regions)
 
     # Calculating the coefficient
-    novelty_coef = len(novelty_diff)/len(spectrum_peaks_region) + \
-        1/len(spectra_regions)
+    try:
+        novelty_coef = len(novelty_diff)/len(spectrum_peaks_region) + \
+            1/len(spectra_regions)
+    # In case no reference regions were given
+    # E.g. first spectrum is evaluated
+    except ZeroDivisionError:
+        novelty_coef = len(novelty_diff)/len(spectrum_peaks_region)
 
     return novelty_coef
