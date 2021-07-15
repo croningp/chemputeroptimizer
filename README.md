@@ -43,10 +43,6 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.2.4
-
-* Bugfixes
-
 ### v0.2.5
 
 * Introduced a [novelty search](chemputeroptimizer\utils\novelty_search.md) as an optimization target.
@@ -59,6 +55,12 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
   * Physically tested only with HPLC analysis, use at your own risk!
   * Summit server algorithms not yet supported!
   * If using `SMBO` algorithm, `n_initial_points` must be smaller than the batch size (`batch_size`) for the correct operation.
+
+### v0.3.1 alpha0
+
+* Added asynchronous step for background reaction monitoring (see [async_monitor_step.py](chemputeroptimizer\platform\steps\async_monitor_step.py)).
+  * Step is not supported for parallel optimization.
+  * Only Raman monitoring is supported, as special preparations needed.
 
 ## Development
 
