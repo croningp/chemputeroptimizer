@@ -167,29 +167,28 @@ class Analyze(ChemputerStep, AbstractStep):
             **kwargs
         ) -> None:
 
-        # check if method is valid
-        if method not in SUPPORTED_ANALYTICAL_METHODS:
+        super().__init__(locals())
+
+        # Check if method is valid
+        if self.method not in SUPPORTED_ANALYTICAL_METHODS:
             raise OptimizerError(f'Specified method {method} is not supported')
 
-        if (method == 'HPLC'
-                and dilution_volume is not None
-                and dilution_volume < 5):
+        # If method needs cleaning, but no cleaning solvent given
+        if (self.method not in NO_CLEANING_NEEDED_METHODS
+                and self.cleaning_solvent is None):
+            raise OptimizerError('Cleaning solvent must be given if not \
+running in interactive mode!')
+
+        if (self.method == 'HPLC'
+                and self.dilution_volume is not None
+                and self.dilution_volume < 5):
             raise OptimizerError('Dilution volume must be at least 5 ml for\
 HPLC analysis.')
 
         # additional check for dilution solvent attribute
-        if dilution_volume is not None and dilution_solvent is None:
+        if self.dilution_volume is not None and self.dilution_solvent is None:
             raise OptimizerError('Dilution solvent must be specified if volume\
 is given.')
-
-        super().__init__(locals())
-
-        # If method needs cleaning, but no cleaning solvent given
-        if (method not in NO_CLEANING_NEEDED_METHODS
-                and self.cleaning_solvent is None):
-
-            raise OptimizerError('Cleaning solvent must be given if not \
-running in interactive mode!')
 
     def on_prepare_for_execution(self, graph: MultiDiGraph) -> None:
 
