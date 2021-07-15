@@ -14,6 +14,7 @@ from hashlib import sha256
 from AnalyticalLabware import devices
 
 from AnalyticalLabware.devices import chemputer_devices
+from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
 
 from xdl import XDL
 from xdl.errors import XDLError
@@ -392,6 +393,10 @@ Enter to continue\n'
 
         for step in self.working_xdl.steps:
             assign_callback(step)
+            # Adding necessary callbacks for the monitoring step
+            if step.name == 'StartMonitoring':
+                step.on_going = self._on_monitoring_update
+                step.on_finish = self._on_monitoring_finish
 
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
@@ -403,21 +408,24 @@ Enter to continue\n'
 
         self._get_blank_spectrum(self._graph, analysis_method)
 
+    def _on_monitoring_update(self, spectrum: AbstractSpectrum) -> None:
+        """Callback function to update the spectrum during monitoring.
+
+        Args:
+            spectrum (:obj:AbstractSpectrum): Instance from spectrum class,
+                containing all spectral information.
+        """
+
+        self._analyzer.load_spectrum(spectrum=spectrum)
+
+    def _on_monitoring_finish(self) -> None:
+        """Callback function called when the monitoring is stopped.
+
+        Do nothing for now.
+        """
+
     def _get_blank_spectrum(self, graph, method):
         """Step to measure blank spectrum"""
-
-        instrument = find_instrument(graph, method)
-
-        if method == 'Raman':
-            self.working_xdl.steps.insert(
-                0,
-                RunRaman(
-                    raman=instrument,
-                    on_finish=lambda spec: None,
-                    blank=True
-                )
-            )
-            self.logger.debug('Added extra RunRaman blank step.')
 
     def interactive_final_analysis_callback(
         self, batch_id: Optional[str]) -> Callable[[AbstractSpectrum], None]:
