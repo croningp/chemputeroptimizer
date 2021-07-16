@@ -27,7 +27,8 @@ from chemputerxdl.steps import (
     PrimePumpForAdd,
     Add,
     CleanVessel,
-    Unlock
+    Unlock,
+    CMove
 )
 
 from chemputerxdl.steps.base_step import ChemputerStep
@@ -98,6 +99,7 @@ class Analyze(ChemputerStep, AbstractStep):
         'cleaning_solvent_vessel': str,
         'priming_waste': str,
         # sample related
+        'sample_pump': str,
         'injection_pump': str,
         'sample_excess_volume': float,
         'dilution_vessel': str,
@@ -116,6 +118,7 @@ class Analyze(ChemputerStep, AbstractStep):
         'instrument',
         'reference_step',
         'priming_waste',
+        'sample_pump',
         'injection_pump',
         'sample_excess_volume',
         'cleaning_solvent_vessel',
@@ -153,6 +156,7 @@ class Analyze(ChemputerStep, AbstractStep):
             instrument: Optional[str] = None,
             reference_step: Optional[JSON_PROP_TYPE] = None,
             priming_waste: Optional[str] = None,
+            sample_pump: Optional[str] = None,
             injection_pump: Optional[str] = None,
             sample_excess_volume: Optional[float] = 'default',
             cleaning_solvent_vessel: Optional[str] = None,
@@ -167,25 +171,25 @@ class Analyze(ChemputerStep, AbstractStep):
             **kwargs
         ) -> None:
 
+        super().__init__(locals())
+
         # check if method is valid
-        if method not in SUPPORTED_ANALYTICAL_METHODS:
+        if self.method not in SUPPORTED_ANALYTICAL_METHODS:
             raise OptimizerError(f'Specified method {method} is not supported')
 
-        if (method == 'HPLC'
-                and dilution_volume is not None
-                and dilution_volume < 5):
+        if (self.method == 'HPLC'
+                and self.dilution_volume is not None
+                and self.dilution_volume < 5):
             raise OptimizerError('Dilution volume must be at least 5 ml for\
 HPLC analysis.')
 
         # additional check for dilution solvent attribute
-        if dilution_volume is not None and dilution_solvent is None:
+        if self.dilution_volume is not None and self.dilution_solvent is None:
             raise OptimizerError('Dilution solvent must be specified if volume\
 is given.')
 
-        super().__init__(locals())
-
         # If method needs cleaning, but no cleaning solvent given
-        if (method not in NO_CLEANING_NEEDED_METHODS
+        if (self.method not in NO_CLEANING_NEEDED_METHODS
                 and self.cleaning_solvent is None):
 
             raise OptimizerError('Cleaning solvent must be given if not \
@@ -250,6 +254,13 @@ running in interactive mode!')
         # Additional preparations for HPLC
         if self.method == 'HPLC':
             self.distribution_valve = find_instrument(graph, 'IDEX')
+            # Sample pump and injection pump may not be identical
+            self.sample_pump = get_nearest_node(
+                graph=graph,
+                src=self.vessel,
+                target_vessel_class='ChemputerPump'
+            )
+
 
         # Additional preparations for NMR
         if self.method == 'NMR':
@@ -308,24 +319,32 @@ reaction mixture!')
                 ),
                 # prime tubing
                 # FIXME
-                PrimePumpForAdd(
-                    reagent='',
-                    reagent_vessel=self.vessel,
-                    waste_vessel=self.priming_waste,
-                    volume=PRIMING_WASTE_VOLUME,
+                # prime pump in excess
+                Transfer(
+                    from_vessel=self.vessel,
+                    to_vessel=self.sample_pump,
+                    volume=self.sample_excess_volume + self.sample_volume,
+                    aspiration_speed=SAMPLE_SPEED_SLOW,
+                    dispense_speed=SAMPLE_SPEED_MEDIUM,
                 ),
                 # transferring sample
                 Transfer(
-                    from_vessel=self.vessel,
+                    from_vessel=self.sample_pump,
                     to_vessel=self.dilution_vessel,
                     volume=self.sample_volume,
                     aspiration_speed=SAMPLE_SPEED_MEDIUM,
                     dispense_speed=SAMPLE_SPEED_MEDIUM,
                 ),
-                # diluting
-                Add(
-                    reagent=self.dilution_solvent,
-                    vessel=self.dilution_vessel,
+                # send excess back
+                Transfer(
+                    from_vessel=self.sample_pump,
+                    to_vessel=self.vessel,
+                    volume=self.sample_excess_volume,
+                ),
+                #diluting
+                CMove(
+                    from_vessel=self.dilution_solvent_vessel,
+                    to_vessel=self.dilution_vessel,
                     volume=self.dilution_volume,
                     stir=True
                 ),
@@ -471,7 +490,7 @@ reaction mixture!')
                 # hardcoded for now, might be changed in the future
                 # to cover dilution case with various analytical techniques
                 volume=HPLC_INJECTION_EXCESS_VOLUME + HPLC_INJECTION_VOLUME,
-                aspiration_speed=SAMPLE_SPEED_MEDIUM
+                aspiration_speed=SAMPLE_SPEED_SLOW
             ),
             # Charging distribution valve
             Transfer(
@@ -555,6 +574,8 @@ reaction mixture!')
                 CleanVessel(
                     vessel=self.dilution_vessel,
                     solvent=self.cleaning_solvent,
+                    solvent_vessel=self.cleaning_solvent_vessel,
+                    waste_vessel=self.injection_waste,
                     volume=self.dilution_volume + self.sample_excess_volume +\
                         self.sample_volume,
                     repeats=3,
