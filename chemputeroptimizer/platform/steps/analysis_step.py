@@ -624,6 +624,7 @@ reaction mixture!')
                 ),
                 Unlock(
                     nodes=[
+                        self.sample_pump,
                         self.injection_pump,
                         self.distribution_valve,
                         self.dilution_vessel]
