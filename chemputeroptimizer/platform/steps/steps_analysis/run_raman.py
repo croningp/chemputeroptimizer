@@ -64,7 +64,7 @@ class RunRaman(AbstractBaseStep):
             if raman.spectrum.reference:
                 raman.spectrum.subtract_reference()
 
-            raman.spectrum.default_processing()
+            #raman.spectrum.default_processing()
 
         if self.on_finish is not None:
             self.on_finish(raman.spectrum.copy())
