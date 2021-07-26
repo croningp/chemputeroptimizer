@@ -507,7 +507,7 @@ Enter to continue\n'
             self.state['current_result'][batch_id] = result
 
             # Saving
-            self.save_batch(batch_id)
+            self.save_batch(batch_id, spectrum)
 
             # Setting the updated tag to false, to update the
             # procedure when finished
@@ -681,11 +681,12 @@ Enter to continue\n'
         except AttributeError:
             pass
 
-    def save_batch(self, batch_id: str) -> None:
+    def save_batch(self, batch_id: str, spec: AbstractSpectrum = None) -> None:
         """Save individual batch data.
 
         Args:
             batch_id (str): Individual batch id to store the data from.
+            spec (AbstractSpectrum): Optionally, save spectrum with batch data.
         """
 
         today = datetime.today().strftime(DATE_FORMAT)
@@ -709,3 +710,8 @@ Enter to continue\n'
 
         with open(batch_data_path, 'w') as fobj:
             json.dump(batch_data, fobj, indent=4)
+
+        if spec:
+            # Hack to save spectrum in proper folder
+            spec.path = iterations_path
+            spec.save_data(f"spectrum_{batch_id}")
