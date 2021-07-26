@@ -43,9 +43,6 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.2.5
-
-* Introduced a [novelty search](chemputeroptimizer\utils\novelty_search.md) as an optimization target.
 ### v0.3.0 aplha0
 
 * Batch-wise parallelization introduced using chemputerxdl scheduling algorithm. Just set the `batch_size` > 1 in the optimization config and ensure enough hardware resources available on your graph. Few limitations:
@@ -61,6 +58,9 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 * Added asynchronous step for background reaction monitoring (see [async_monitor_step.py](chemputeroptimizer\platform\steps\async_monitor_step.py)).
   * Step is not supported for parallel optimization.
   * Only Raman monitoring is supported, as special preparations needed.
+
+### v0.3.1 alpha1
+* Fixed loading previous results (see #84).
 
 ## Development
 
