@@ -461,10 +461,14 @@ run "prepare_for_optimization" method first.')
 
         # checking for entries
         try:
-            assert(set(results[0][:-1]) == set(self.algorithm.setup_constraints))
+            assert(
+                set(results[0][:-1]) == set(self.algorithm.setup_constraints))
+
         except AssertionError:
-            raise ParameterError('Wrong parameters found in results file:\n{}.\
-Must contain:\n{}'.format(set(results[0]), set(self.algorithm.setup_constraints)))
+            raise ParameterError(
+                'Wrong parameters found in results file:\n{}. Must\
+contain:\n{}'.format(set(results[0]), set(self.algorithm.setup_constraints))
+                ) from None
 
         for row in results[1:]: # skipping header row
             # converting
@@ -477,6 +481,10 @@ Must contain:\n{}'.format(set(results[0]), set(self.algorithm.setup_constraints)
             result = {
                 results[0][-1]: float(row[-1])
             }
+            # Wrapping everything in a "single batch" data
+            data = {'batch 1': data}
+            result = {'batch 1': result}
+            # Now loading to the algorithm
             self.algorithm.load_data(data=data, result=result)
 
         # Setting the flag to load all data into algorithm
