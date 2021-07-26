@@ -46,9 +46,17 @@ reader ({}) not found!".format(self.config['csv_path'])) from None
             n_batches: int = -1,
             n_returns: int = 1,
     ) -> numpy.ndarray:
+
         try:
-            # First line (header) already read, proceed
-            return numpy.array(next(self.params), dtype='float', ndmin=2)
+            points = numpy.empty((0, len(self.dimensions)))
+            for _ in range(n_returns):
+                next_ = numpy.array(next(self.params), dtype='float', ndmin=2)
+                print(next_)
+                print(type(next_))
+                print(type(next_[0]))
+                points = numpy.vstack((points, next_))
+            return points
+
         except StopIteration:
             raise StopIteration("CSV file exhausted, load a new one, or switch \
 the algorithm") from None
