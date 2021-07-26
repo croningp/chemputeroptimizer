@@ -473,13 +473,15 @@ target peak, resolving')
         self.logger.debug('Processing spectrum from Raman')
         # looking only in the most recent uploaded spectrum
         spec = self.spectra[-1]
+        spec.trim(700, 2600)
+        spec.default_processing()
 
         for objective in target:
             if 'spectrum' in objective:
                 if 'peak-area' in objective:
                     _, _, peak_position = objective.split('_')
-                    AUC_target = spec.integrate_peak(float(peak_position))
-                    AUC_istandard = spec.integrate_peak(float(reference))
+                    AUC_target = spec.integrate_area((float(peak_position) - 13, float(peak_position) + 17))
+                    AUC_istandard = spec.integrate_area((float(reference) - 18, float(reference) + 17))
                     fitness = AUC_target / AUC_istandard
 
                     return {objective: -fitness}
