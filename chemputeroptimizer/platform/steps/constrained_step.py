@@ -78,4 +78,4 @@ class ConstrainedStep(ChemputerStep, AbstractStep):
         return self.children
 
     def human_readable(self, language='en'):
-        return 'Optimize ' + self.step.human_readable()
+        return 'Constrained ' + self.step.human_readable()

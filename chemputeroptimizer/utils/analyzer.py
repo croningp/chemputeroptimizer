@@ -143,6 +143,16 @@ def find_closest_region(regions, point, method='mean', threshold=0.0):
         return np.array([])
     return regions[np.argmin(diff_map)]
 
+
+def normalize(self, data, peak, mode='height'):
+    """Normalizes the spectrum with respect to a peak."""
+    if mode == "height":
+        #TODO get height for data[peak]
+        # return data / height
+        pass
+    else:
+        raise NotImplementedError("Mode not supported.")
+
 class SpectraAnalyzer():
     """General class for analyzing spectra differences.
 
