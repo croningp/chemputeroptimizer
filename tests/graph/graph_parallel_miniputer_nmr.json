@@ -163,20 +163,6 @@
       "can_filter": false
     },
     {
-      "id": "reactor_4",
-      "type": "reactor",
-      "x": 600,
-      "y": 200,
-      "class": "ChemputerReactor",
-      "name": "reactor_4",
-      "current_volume": 0,
-      "max_volume": 100,
-      "necks": 1,
-      "can_filter": false,
-      "internalId": 23,
-      "label": "reactor_4"
-    },
-    {
       "id": "reactor_2",
       "type": "reactor",
       "x": 40,
@@ -189,6 +175,26 @@
       "can_filter": false,
       "internalId": 20,
       "label": "reactor_2"
+    },
+    {
+      "id": "nmr",
+      "type": "custom",
+      "x": 600,
+      "y": 200,
+      "customProperties": {
+        "name": {
+          "name": "name",
+          "id": "name",
+          "units": "",
+          "type": "str"
+        }
+      },
+      "class": "ChemputerNMR",
+      "name": "nmr",
+      "internalId": 23,
+      "label": "nmr",
+      "current_volume": 0,
+      "max_volume": 100500
     }
   ],
   "links": [
@@ -341,14 +347,14 @@
       "sourceInternal": 4,
       "targetInternal": 23,
       "source": "valve_2",
-      "target": "reactor_4",
+      "target": "nmr",
       "port": "(1,0)"
     },
     {
       "id": 26,
       "sourceInternal": 23,
       "targetInternal": 4,
-      "source": "reactor_4",
+      "source": "nmr",
       "target": "valve_2",
       "port": "(0,1)"
     }
