@@ -145,6 +145,7 @@ class AlgorithmAPI():
         )
 
         self.preload = True
+        self.method_name = method_name
 
     def initialize(self, data):
         """First call to initialize the optimization algorithm class."""
@@ -164,8 +165,8 @@ class AlgorithmAPI():
             if self.method_config:
                 init_msg['algorithm'].update(self.method_config)
 
-            # initializing
-            self.client.initialize(init_msg)
+            # initializing and recording strategy
+            self.strategy = self.client.initialize(init_msg)
 
         else:
             # running a local optimization algorithm
@@ -241,8 +242,15 @@ class AlgorithmAPI():
             # Iterating over batches
             for batch_id in self.current_setup:
                 # List of lists!
-                parameters.append(list(self.current_setup[batch_id].values()))
-                results.append(list(self.current_result[batch_id].values()))
+                try:
+                    results.append(
+                        list(self.current_result[batch_id].values()))
+                    parameters.append(
+                        list(self.current_setup[batch_id].values()))
+                except KeyError:
+                    # Happens when preloading results
+                    # and only 1 batch is present
+                    break
 
             # Converting to arrays
             # Experiments as rows, data points as columns
@@ -257,8 +265,15 @@ class AlgorithmAPI():
             # Iterating over batches
             for batch_id in self.current_setup:
                 # List of lists!
-                parameters.append(list(self.current_setup[batch_id].values()))
-                results.append(list(self.current_result[batch_id].values()))
+                try:
+                    results.append(
+                        list(self.current_result[batch_id].values()))
+                    parameters.append(
+                        list(self.current_setup[batch_id].values()))
+                except KeyError:
+                    # Happens when preloading results
+                    # and only 1 batch is present
+                    break
 
             # Stacking
             self.parameter_matrix = np.vstack(
@@ -318,23 +333,24 @@ class AlgorithmAPI():
         if self.method_name in SERVER_SUPPORTED_ALGORITHMS:
             # working with remote server
             self.logger.info('Querying remote server.')
-            # forging query msg
+            # Extracting params dictionary if params are present
+            params = dict(zip(
+                    self.setup_constraints,
+                    self.parameter_matrix.T.tolist()
+                )) if self.parameter_matrix is not None else None
+            results = dict(zip(
+                    self.current_result['batch 1'],
+                    self.result_matrix.T.tolist()
+                )) if self.result_matrix is not None else None
+            # Forging query msg
             query_data = {
                 'hash': self.proc_hash,
-                # Dict[str, np.array]
-                'parameters': dict(zip(
-                    self.current_setup,
-                    self.parameter_matrix.T.tolist()
-                )),
+                'parameters': params,
                 'n_batches': n_batches,
+                'n_returns': n_returns,
             }
             if self.current_result:
-                query_data.update(
-                    result=dict(zip(
-                        self.current_result,
-                        self.result_matrix.T.tolist()
-                        ))
-                )
+                query_data.update(result=results)
 
             self.logger.debug('Query data: %s', query_data)
 
@@ -348,8 +364,8 @@ see below:\n%s', reply['exception'])
                 return self.current_setup
 
             # else updating
-            self.strategy = reply.pop('strategy')
-            self.current_setup = dict(reply)
+            # self.strategy = reply.pop('strategy')
+            self.current_setup.update(reply)
 
         elif self.method_name == 'reproduce':
             # Special case for "reproduce" algorithm

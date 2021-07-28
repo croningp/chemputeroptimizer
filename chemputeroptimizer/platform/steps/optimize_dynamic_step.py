@@ -1,5 +1,4 @@
 from chemputeroptimizer.utils.errors import NoDataError
-from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
 from xdl.steps.special.callback import Callback
 from chemputeroptimizer.utils import interactive
 import logging
@@ -287,7 +286,10 @@ Enter to continue\n'
                 if isinstance(step, AbstractAsyncStep):
                     self.async_steps.append(step)
                 self.executor.execute_step(
-                    platform_controller, step, async_steps=self.async_steps
+                    platform_controller,
+                    step,
+                    async_steps=self.async_steps,
+                    step_indexes=[0]
                 )
 
             continue_block = self.on_continue()
@@ -350,13 +352,11 @@ Enter to continue\n'
         # Tracking of flask usage
         self._previous_volume = {}
 
-        # Current result per batch
-        current_result = {key: -1 for key in self.target}
-
         self.state = {
             'iteration': 1,
             'current_result': {
-                f'batch {i}': current_result
+                # Current result per batch
+                f'batch {i}': {key: -1 for key in self.target}
                 for i in range(1, self.batch_size + 1)
             },
             'updated': True,
@@ -437,6 +437,7 @@ Enter to continue\n'
         def interactive_update(spectrum: AbstractSpectrum = None) -> None:
 
             msg = 'You are running FinalAnalysis step interactively.\n'
+            msg += 'Current batch is "{}"\n'.format(batch_id)
             msg += f'Current procedure is running towards >{self.target}< parameters.\n'
             msg += 'Please type the result of the analysis below\n'
             msg += '***as <target_parameter>: <current_value>***\n'

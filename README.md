@@ -2,6 +2,23 @@
 
 The repo contains the optimizer package for Chemputer platform to perform interactive chemical reaction optimizations.
 
+## Installation
+
+1. Clone the repo into desired folder. Versions tagged with *alpha* (e.g. `v0.3.0a0`) are not extensively tested, consider using a stable version (e.g. `v0.2.5`).
+```bash
+git clone -b v0.2.5 --single--branch https://gitlab.com/croningroup/chemputer/chemputeroptimizer.git chemputeroptimizer
+
+cd chemputeroptimizer
+```
+2. Install Chemputer requirements if needed ([XDL](https://gitlab.com/croningroup/chemputer/xdl) and [AnalyticalLabware](https://gitlab.com/croningroup/chemputer/analyticallabware)).
+```bash
+pip install -r requirements.txt
+```
+3. Install ChemputerOptimizer.
+```bash
+pip install .
+```
+
 ## Usage
 
 ```python
@@ -43,24 +60,21 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.2.5
-
-* Introduced a [novelty search](chemputeroptimizer\utils\novelty_search.md) as an optimization target.
-### v0.3.0 aplha0
-
-* Batch-wise parallelization introduced using chemputerxdl scheduling algorithm. Just set the `batch_size` > 1 in the optimization config and ensure enough hardware resources available on your graph. Few limitations:
-  * There are no checks for the hardware consistency vs batch size.
-  * Parallel execution is only achieved batch-wise, so the time of an iteration is limited to the longest procedure in the current batch.
-  * Ideally number of iterations should be proportional to the batch size, otherwise optimization will run `batch size` procedure unless batch * batch size is smaller than `n iterations`.
-  * Physically tested only with HPLC analysis, use at your own risk!
-  * Summit server algorithms not yet supported!
-  * If using `SMBO` algorithm, `n_initial_points` must be smaller than the batch size (`batch_size`) for the correct operation.
-
 ### v0.3.1 alpha0
 
-* Added asynchronous step for background reaction monitoring (see [async_monitor_step.py](chemputeroptimizer\platform\steps\async_monitor_step.py)).
+* Added asynchronous step for background reaction monitoring (see [async_monitor_step.py](chemputeroptimizer/platform/steps/async_monitor_step.py)).
   * Step is not supported for parallel optimization.
   * Only Raman monitoring is supported, as special preparations needed.
+
+### v0.3.1 alpha1
+
+* Fixed loading previous results (see #84).
+
+### v0.3.2 alpha0
+
+* Updated the OptimizerClient (and corresponding Server, see croningroup/personal/ail/summitserver!4)
+  * Supported algorithms are: "SOBO", "ENTMOOT", "SNOBFIT" (see details in [summit docs](https://gosummit.readthedocs.io/en/latest/strategies.html)).
+  * Work in progress, stability is not guaranteed!
 
 ## Development
 
