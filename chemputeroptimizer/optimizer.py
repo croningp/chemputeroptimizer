@@ -45,6 +45,10 @@ from .utils.client import (
     proc_data,
     calculate_procedure_hash,
 )
+from .utils.validation import (
+    validate_algorithm,
+    validate_algorithm_batch_size,
+)
 
 
 class ChemputerOptimizer():
@@ -370,17 +374,24 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         # updating algorithmAPI
         algorithm_parameters = opt_params.pop('algorithm')
         algorithm_name = algorithm_parameters.pop('name')
+        # Validation
+        validate_algorithm(algorithm_name)
         procedure_hash = calculate_procedure_hash(self._xdl_object.as_string())
         procedure_parameters = {
             'batch 1': extract_optimization_params(self._xdl_object)
         }
         procedure_target = opt_params['target']
+        batch_size = opt_params['batch_size']
+        # Validation
+        validate_algorithm_batch_size(algorithm_name, batch_size)
+
         self.initialize_algorithm(
             algorithm_name=algorithm_name,
             algorithm_config=algorithm_parameters,
             proc_hash=procedure_hash,
             proc_params=procedure_parameters,
             proc_target=procedure_target,
+            batch_size=batch_size,
         )
 
         self.logger.debug('Loaded the following parameter dict %s', opt_params)
@@ -406,6 +417,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         proc_hash: str,
         proc_params: Dict[str, Dict[str, Any]],
         proc_target: Dict[str, Any],
+        batch_size: int,
     ) -> None:
         """Initialize the AlgorithmAPI and underlying algorithm class.
 
@@ -436,6 +448,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
             proc_hash=proc_hash,
             parameters=proc_params,
             target=proc_target,
+            batch_size=batch_size,
         ))
 
     def load_previous_results(self,

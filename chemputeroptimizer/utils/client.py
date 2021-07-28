@@ -9,10 +9,18 @@ import selectors
 from queue import Queue, Empty
 from hashlib import sha256
 
+from .errors import OptimizerServerError
+
 
 SERVER_SUPPORTED_ALGORITHMS = [
-    'SOBO',
-    'NelderMead',
+    # Bayesian optimization
+    'TSEMO',  # Multi Objective ONLY
+    'SOBO',  # Single Objective
+    'MTBO',  # Multi-task Bayesian optimization
+    'ENTMOOT',  # Ensemble Tree Model Optimization
+    # Local search
+    'NelderMead',  # Simplex
+    # Global search
     'SNOBFIT',
 ]
 
@@ -21,9 +29,10 @@ DEFAULT_PORT = 12111
 DEFAULT_TIMEOUT = 60 # seconds
 DEFAULT_BUFFER_SIZE = 4096
 STANDARD_ENCODING = 'ascii'
+NUM_RETRIES_FOR_RECEIVE = 60
 
 
-def proc_data(proc_hash, parameters, result=None, target=None):
+def proc_data(proc_hash, parameters, result=None, target=None, batch_size=1):
     """ Helper function to forge data dictionary for the optimizer client. """
     data_msg = {
         'hash': proc_hash,
@@ -33,6 +42,8 @@ def proc_data(proc_hash, parameters, result=None, target=None):
         data_msg.update(result=result)
     if target:
         data_msg.update(target=target)
+    data_msg.update(batch_size=batch_size)
+
     return data_msg
 
 def calculate_procedure_hash(procedure: str) -> str:
@@ -90,7 +101,20 @@ class OptimizerClient:
         self.logger.info('Initializing server algorithm.')
         self._send(init_data)
         reply = self._receive()
-        self.logger.info('Initialized algorithm %s', reply['strategy']['name'])
+        try:
+            assert 'exception' not in reply
+            self.logger.info(
+                'Initialized algorithm %s', reply['strategy']['name'])
+            return reply['strategy']
+
+        except AssertionError:
+            raise OptimizerServerError(
+                f'Exception returned from server:\n{reply["exception"]}'
+            ) from None
+
+        except KeyError:
+            # TODO change server to send strategy every time
+            pass
 
     def _send(self, data):
         """ High level method to send messages to server. """
@@ -121,7 +145,7 @@ class OptimizerClient:
                     try:
                         chunk = key.fileobj.recv(DEFAULT_BUFFER_SIZE)
                         if not chunk:
-                            self.logger.debug('No message received')
+                            self.logger.info('Server closed the connection')
                             key.fileobj.close()
                             self.selector.unregister(key.fileobj)
                             break
@@ -138,16 +162,21 @@ class OptimizerClient:
                 break
 
         self.logger.info('Exiting listening thread.')
+        self.reply_queue.put(
+            json.dumps({'exception': 'Server disconnected'}).encode()
+        )
 
     def _receive(self):
         """ High level method to receive messages from server. """
-        # receiving
-        try:
-            reply = self.reply_queue.get(timeout=DEFAULT_TIMEOUT)
-        except Empty:
-            self.logger.error('No reply received within %d seconds',
-                              DEFAULT_TIMEOUT)
-            reply = b'{"exception": "No reply received from server"}'
+
+        # One hour should be sufficient for any algorithm to calculate
+        for _ in range(NUM_RETRIES_FOR_RECEIVE):
+            try:
+                reply = self.reply_queue.get(timeout=DEFAULT_TIMEOUT)
+                break
+            except Empty:
+                self.logger.info('No reply received within %d seconds, \
+retrying', DEFAULT_TIMEOUT)
 
         # decoding
         reply = json.loads(reply.decode(STANDARD_ENCODING))
