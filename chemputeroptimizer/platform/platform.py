@@ -8,6 +8,7 @@ from .steps import (
     Analyze,
     StartMonitoring,
     StopMonitoring,
+    ConstrainedStep,
 )
 
 from .steps.steps_analysis import RunNMR, RunRaman, RunHPLC
@@ -27,4 +28,5 @@ class OptimizerPlatform(ChemputerPlatform):
         step_lib['RunHPLC'] = RunHPLC
         step_lib['StartMonitoring'] = StartMonitoring
         step_lib['StopMonitoring'] = StopMonitoring
+        step_lib['ConstrainedStep'] = ConstrainedStep
         return step_lib

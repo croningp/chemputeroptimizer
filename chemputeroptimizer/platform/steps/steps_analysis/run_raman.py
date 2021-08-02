@@ -27,7 +27,7 @@ class RunRaman(AbstractBaseStep):
     def __init__(
             self,
             raman: str,
-            on_finish: Callable[[RamanSpectrum], None] = None,
+            on_finish: Optional[Callable[[RamanSpectrum], None]] = None,
             blank: bool = False,
             background_path: Optional[str] = None,
             **kwargs

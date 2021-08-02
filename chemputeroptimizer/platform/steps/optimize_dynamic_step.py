@@ -420,6 +420,11 @@ Enter to continue\n'
                 step.on_finish = self.on_final_analysis
                 return
 
+            # Adding necessary callbacks for the monitoring step
+            if step.name == 'StartMonitoring':
+                step.on_going = self._on_monitoring_update
+                step.on_finish = self._on_monitoring_finish
+
             for substep in step.steps:
                 assign_callback(substep)
 
@@ -453,7 +458,22 @@ Enter to continue\n'
             self.logger.info('Running with interactive FinalAnalysis method')
             return
 
-        self._get_blank_spectrum(self._graph, analysis_method)
+
+    def _on_monitoring_update(self, spectrum: AbstractSpectrum) -> None:
+        """Callback function to update the spectrum during monitoring.
+
+        Args:
+            spectrum (:obj:AbstractSpectrum): Instance from spectrum class,
+                containing all spectral information.
+        """
+
+        self._analyzer.load_spectrum(spectrum=spectrum)
+
+    def _on_monitoring_finish(self) -> None:
+        """Callback function called when the monitoring is stopped.
+
+        Do nothing for now.
+        """
 
     def _on_monitoring_update(self, spectrum: AbstractSpectrum) -> None:
         """Callback function to update the spectrum during monitoring.
