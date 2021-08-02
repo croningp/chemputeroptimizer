@@ -1,11 +1,12 @@
 {
-    "max_iterations": 7.0,
+    "max_iterations": 8,
     "target": {
         "novelty": Infinity
     },
     "algorithm": {
-        "name": "random"
+        "name": "random",
+        "random_state": null
     },
-    "reference": 87.0,
+    "reference": -113.15,
     "batch_size": 1
 }
