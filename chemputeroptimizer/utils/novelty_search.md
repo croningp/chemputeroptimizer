@@ -48,3 +48,34 @@ Nc_{i} = \frac{\vert\text{F}_i\setminus\text{P}\vert}{\vert\text{F}_i\vert} + \f
 
 ### Final score.
 Final score for the spectrum is calculated by multiplication of the Information score ($`Is`$) and Novelty coefficient ($`Nc`$).
+
+### Usage guide
+Suggested algorithm to explore the parameter space and run the "optimization" to maximize novelty:
+1. Run N random screening experiments.
+2. Calculate the Information score for all experiments and select top M as "train data".
+3. Calculate novelty for the remaining experiments for further use as "test data". Record paths for the spectral data and create a separate `.json` file with the lists of "test regions" data. See [/scripts/novelty_analysis.py](./../../scripts/novelty_analysis.py) for an example script of initial data processing.
+4. Start a new experiments set and load all previous examples results and data as:
+    ```python
+    from chemputeroptimizer import ChemputerOptimizer
+
+    co = ChemputerOptimizer('path_to_xdl.xdl', 'path_to_graph.json')
+
+    co.prepare_for_optimization('path_to_config.json')
+
+    co.load_previous_results('path_to_previous_results.csv')
+
+    # Assuming "spectra_paths.txt" have all paths to spectral data
+    # !!SORTED!! by the iterations, as in "path_to_previous_results.csv"
+    with open("spectra_paths.txt", newline='') as fojb:
+        specs_paths = fobj.readlines()
+
+    # Accessing SpectraAnalyzer
+    sa = co.optimizer._analyzer
+
+    # Loading experimental data
+    sa.load_known_regions('path_to_known_regions.json')
+    sa.load_test_spectra(specs_paths)
+    ```
+5. Run the new set of experiments. Each new data point will update all previous results with this point used as "known data".  
+**Note for several batches operation**  
+Due to current limitation in the data processing and analysis, the data from first-to-complete batches will not be affected by the last-to-complete batch.

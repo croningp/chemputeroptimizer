@@ -497,7 +497,14 @@ target peak, resolving')
                 **regions_generation_params)
 
             # Flat array of the areas of found regions
-            areas = spectrum.integrate_regions(regions)
+            try:
+                areas = spectrum.integrate_regions(regions)
+            # If working with "simulated" spectrum
+            except NotImplementedError:
+                areas = np.array([
+                    spectrum.integrate_area(spectrum.x[region])
+                    for region in regions
+                ])
 
             # Rounding to neglect small differences in ppm scales
             # Across several spectra

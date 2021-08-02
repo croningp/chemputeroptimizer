@@ -63,7 +63,7 @@ def calculate_information_score(
     regions_scores = regions_sizes * 1/np.log10(area_diffs)
     final_score = np.sum(regions_scores) * len(peak_regions)
 
-    return final_score
+    return np.abs(final_score)
 
 def calculate_novelty_coefficient(
     spectrum_peaks_region: np.ndarray,

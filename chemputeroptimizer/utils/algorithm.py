@@ -6,25 +6,26 @@ import logging
 import os
 import json
 
-from collections import OrderedDict
+from typing import Dict, Tuple, Optional, List, Any, Iterable
 
 import numpy as np
 
 from ..algorithms import (
     Random_,
     SMBO,
-    # GA,
-    Reproduce,
-    FromCSV
+    GA,
+    FromCSV,
+    AbstractAlgorithm,
 )
 from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
+from .errors import NoDataError
 
 
 ALGORITHMS = {
     'random': Random_,
     'smbo': SMBO,
-    # 'ga': GA,
-    'reproduce': Reproduce,
+    'ga': GA,
+    'reproduce': lambda *args, **kwargs: None,
     'fromcsv': FromCSV,
 }
 
@@ -32,54 +33,56 @@ ALGORITHMS = {
 class AlgorithmAPI():
     """General class to provide interface for algorithmic optimization."""
 
-    def __init__(self):
+    def __init__(self) -> None:
 
         self.logger = logging.getLogger('optimizer.algorithm')
 
-        # OrderedDict used to preserve the order when parsing to a np.array
-        self.current_setup = OrderedDict() # current parameters setup
-        self.setup_constraints = OrderedDict() # dictionary with data points constraints
-        self.current_result = OrderedDict() # current result parameters
-        self.parameter_matrix = None
-        self.result_matrix = None
-        self._calculated = None
-        self.algorithm = None
+        # Current parameters setup
+        self.current_setup: Dict[str, Dict[str, float]] = {}
+        # Dictionary with data points constraints
+        self.setup_constraints: Dict[str, Tuple(float, float)] = {}
+        # Current result parameters
+        self.current_result: Dict[str, Dict[str, float]] = {}
+        self.parameter_matrix: np.ndarray = None
+        self.result_matrix: np.ndarray = None
+        self._calculated:  np.ndarray = None
+        self.algorithm: AbstractAlgorithm = None
 
-        self._method_name = None
-        self._method_config = None
+        self._method_name: str = None
+        self._method_config: Dict[str, Any] = None
 
-        self.client = None
-        self.proc_hash = None
-        self.strategy = None
+        self.client: OptimizerClient = None
+        self.proc_hash: str = None
+        self.strategy: Dict = None   # TODO explicit dict typing for strategy
 
         # To know when algorithm is first initialized
-        self.preload = False
+        self.preload: bool = False
 
     @property
-    def method_name(self):
+    def method_name(self) -> str:
         """Name of the selected algorithm."""
         return self._method_name
 
     @method_name.setter
-    def method_name(self, method_name):
+    def method_name(self, method_name: str):
         if method_name not in list(ALGORITHMS) + SERVER_SUPPORTED_ALGORITHMS:
             raise KeyError(f'{method_name} is not a valid algorithm name')
 
         self._method_name = method_name
 
     @property
-    def method_config(self):
+    def method_config(self) -> Dict[str, Any]:
         "Dictionary containing all necessary configuration for an algorithm."
         return self._method_config
 
     @method_config.setter
-    def method_config(self, config):
+    def method_config(self, config: Dict[str, Any]):
         try:
             for param in config:
                 assert param in ALGORITHMS[self._method_name].DEFAULT_CONFIG
 
         except KeyError:
-            # in case algorithm is used from optimizer server
+            # In case algorithm is used from optimizer server
             pass
 
         except AssertionError:
@@ -89,11 +92,18 @@ class AlgorithmAPI():
         # actually setting the configuration
         self._method_config = config
 
-    def _load_method(self, method_name, config, constraints):
+    def _load_method(
+        self,
+        method_name: str,
+        constraints: Iterable[Tuple[float, float]],
+        config: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """Loads corresponding algorithm class.
 
         Args:
             method_name (str): Name of the chosen algorithm.
+            config (Dict[str, Any]): Configuration dictionary for the chosen
+                algorithm.
             constraints (Iterable[Iterable[float, float]]: Nested list
                 of constraints, mapped by order to experimental
                 parameters.
@@ -101,21 +111,39 @@ class AlgorithmAPI():
         try:
             self.algorithm = ALGORITHMS[method_name](
                 constraints,
-                config)
+                config
+            )
         except KeyError:
             raise KeyError(f'Algorithm {method_name} not found.') from None
 
-    def switch_method(self, method_name, config=None, constraints=None):
-        """Public method for switching the algorithm."""
+    def switch_method(
+        self,
+        method_name: str,
+        config: Optional[Dict[str, Any]] = None,
+        constraints: Optional[Iterable[Tuple[float, float]]] = None
+    ) -> None:
+        """Public method for switching the algorithm.
 
-        if not constraints:
+        Args:
+            method_name (str): Name of the chosen algorithm.
+            config (Dict[str, Any]): Configuration dictionary for the chosen
+                algorithm. Optional, if omitted - default is used.
+            constraints (Iterable[Tuple[float, float]]: Nested list
+                of constraints, mapped by order to experimental
+                parameters. Optional, if omitted - previous setting is used.
+        """
+
+        if constraints is None:
             constraints = self.setup_constraints.values()
 
         self._load_method(
-            method_name,
-            config,
-            constraints
+            method_name=method_name,
+            constraints=constraints,
+            config=config,
         )
+
+        self.preload = True
+        self.method_name = method_name
 
     def initialize(self, data):
         """First call to initialize the optimization algorithm class."""
@@ -135,77 +163,106 @@ class AlgorithmAPI():
             if self.method_config:
                 init_msg['algorithm'].update(self.method_config)
 
-            # initializing
-            self.client.initialize(init_msg)
+            self.logger.debug('Init msg: %s', init_msg)
+            # initializing and recording strategy
+            self.strategy = self.client.initialize(init_msg)
 
         else:
             # running a local optimization algorithm
             self._load_method(
-                self.method_name,
-                self.method_config,
-                self.setup_constraints.values()
+                method_name=self.method_name,
+                config=self.method_config,
+                constraints=self.setup_constraints.values()
             )
 
-    def load_data(self, data, result=None):
-        """Loads the experimental data dictionary.
-
-        Updates:
-            current_setup (OrderedDict): current parameters setup ('param', <value>)
-            setup_constraints (OrderedDict): constraints of the parameters
-                setup ('param', (<min_value>, <max_value>))
-            current_result (OrderedDict): current results of the experiment
-                ('result_param', <value>)
+    def load_data(
+        self,
+        data: Dict[str, Dict[str, Dict[str, float]]],
+        result: Optional[Dict[str, Dict[str, float]]] = None,
+    ) -> None:
+        """Loads the experimental data dictionaries.
 
         Args:
-            data (Dict): Nested dictionary containing all input parameters.
-            result (Dict): Nested dictionary contaning all result parameters
-                with desired target value.
+            data (Dict[str, Dict[str, Dict[str, float]]]): Nested dictionary
+                containing all input parameters, grouped by batches.
+            result (Optional, Dict[str, Dict[str, float]]): Nested dictionary
+                contaning all result parameters with desired target value,
+                grouped by batches.
 
-        Example:
-            data = {
-                    "HeatChill_1-temp": {
-                        "value": 35,
-                        "max": 70,
-                        "min": 25,
-                    }
-                }
-
-            result = {
-                    "final_yield": {
-                        "value": 0.75,
-                        "target": 0.95,
-                    }
-                }
+        Updates internal attributes:
+            current_setup (Dict[str, Dict[str, float]]): current parameters
+                setup as {'param': <value>}, grouped by batch.
+            setup_constraints (Dict[str, Tuple(float, float)]): constraints of
+                the parameters setup {'param': (<min_value>, <max_value>)}.
+            current_result (Dict[str, float]): current results of the
+                experiment {'result_param': <value>}, grouped by batch.
         """
 
-        # stripping input from parameter constraints
-        for param, param_set in data.items():
-            self.current_setup.update({param: param_set['current_value']})
+        # Stripping input from parameter constraints
+        for batch_id, batch_data in data.items():
+            self.current_setup[batch_id] = {}
+            for param, param_set in batch_data.items():
+                self.current_setup[batch_id].update(
+                    {param: param_set['current_value']}
+                )
 
-        # saving constraints
+        # Saving constraints
         if not self.setup_constraints:
-            for param, param_set in data.items():
+            # Using only first batch, assuming:
+            # a) it is always present;
+            # b) constraints are same across batches
+            for param, param_set in data['batch 1'].items():
                 self.setup_constraints.update(
                     {param: (param_set['min_value'], param_set['max_value'])})
 
         # Special case: dealing with novelty search
         # For which the results for all previous experiments
         # Should be updated with each experiment
-        if result is not None and 'novelty' in result:
+        if result is not None and 'novelty' in result['batch 1']:
+            # Due to the way novelty search works, each "batch_id" in the
+            # result dictionary contains the information about all previously
+            # stored data + the current batch. Thus, the last executed batch
+            # will contain the data about all batches + all previously stored
+            # data.
+
+            # Tracking for the largest batch dataset
+            result_dataset_sizes = []
+
             try:
-                # Updating the result matrix with all, but last (current) result
-                if self.result_matrix is not None:
-                    self.result_matrix = np.array(
-                        result['novelty'][:-1], ndmin=2).T
-                # Rewriting the result to contain only the current result
-                result['novelty'] = result['novelty'].pop(-1)
+                for batch_id in result:
+                    result_dataset_sizes.append(
+                        np.array(result[batch_id]['novelty'], ndmin=2).T
+                    )
 
-                # In addition, reset the algorithm
-                self.switch_method(self.method_name, self.method_config)
+                    # Rewriting the result to contain only the current result
+                    result[batch_id]['novelty'] = \
+                        result[batch_id]['novelty'].pop(-1)
 
-                # And set the preload flag, so that all previous result are used
-                self.preload = True
-            except TypeError:
+                # Sorting by the dataset size
+                # The latest batch, that contains the data for all batches and
+                # all previous experiments will be last and used to update the
+                # result matrix.
+                result_dataset_sizes.sort(key=lambda item: item.size)
+
+                # Updating the result matrix if algorithm's returned
+                # recalculated values for previous experiments, i.e. if those
+                # were loaded with previous data.
+                if (self.result_matrix is not None
+                    and self.result_matrix.size <
+                    result_dataset_sizes[-1].size):
+                    # Setting the result to the largest dataset, cutting the
+                    # last results that correspond to the batch size
+                    self.result_matrix = \
+                        result_dataset_sizes[-1][:-len(result), :]
+
+                    # In addition, reset the algorithm
+                    self.switch_method(self.method_name, self.method_config)
+
+                    # And set the preload flag
+                    # So that all previous result are used
+                    self.preload = True
+
+            except (TypeError, AttributeError):
                 # Happens only if the novelty result is float, i.e.
                 # When preloading the results from the previous experiments
                 pass
@@ -213,83 +270,104 @@ class AlgorithmAPI():
         # appending the final result
         if result is not None:
             self.current_result.update(result)
-            # parsing data only if result was supplied
+            # Parsing data only if the result was supplied
             self._parse_data()
 
-    def _parse_data(self):
+    def _parse_data(self) -> None:
         """Parse the experimental data.
 
         Create the following arrays for the first experiment and add the
         subsequent data as rows:
             self.parameter_matrix: (n x i) size matrix where n is number of
-                experiments and i is number of experimental parameters;
+                experiments (* by number of batches) and i is number of
+                experimental parameters.
             self.result_matrix: (n x j) size matrix where j is number of the
-                target parameters;
-
-        Example:
-            The experimental result:
-                {"Add_1_volume": 1.5,
-                "HeatChill_1_temp": 35,
-                "final_yield": 0.75}
-
-            will be dumped into the following np.arrays matrixes:
-                self.parameter_matrix = np.array([1.5, 35.]);
-                self.result_matrix = np.array([0.75])
+                target parameters.
         """
 
-        # loading first value
+        # Loading first value
         if self.parameter_matrix is None and self.result_matrix is None:
-            # experiments as rows, data points as columns
-            self.parameter_matrix = np.array(
-                list(self.current_setup.values()),
-                ndmin=2)
-            self.result_matrix = np.array(
-                list(self.current_result.values()),
-                ndmin=2)
+            parameters: List[List[float]] = []
+            results: List[List[float]] = []
 
-        # stacking with previous results
+            # Iterating over batches
+            for batch_id in self.current_setup:
+                # List of lists!
+                try:
+                    results.append(
+                        list(self.current_result[batch_id].values()))
+                    parameters.append(
+                        list(self.current_setup[batch_id].values()))
+                except KeyError:
+                    # Happens when preloading results
+                    # and only 1 batch is present
+                    break
+
+            # Converting to arrays
+            # Experiments as rows, data points as columns
+            self.parameter_matrix = np.array(parameters)
+            self.result_matrix = np.array(results)
+
+        # Stacking with previous results
         else:
+            parameters: List[List[float]] = []
+            results: List[List[float]] = []
+
+            # Iterating over batches
+            for batch_id in self.current_setup:
+                # List of lists!
+                try:
+                    results.append(
+                        list(self.current_result[batch_id].values()))
+                    parameters.append(
+                        list(self.current_setup[batch_id].values()))
+                except KeyError:
+                    # Happens when preloading results
+                    # and only 1 batch is present
+                    break
+
+            # Stacking
             self.parameter_matrix = np.vstack(
                 (
                     self.parameter_matrix,
-                    list(self.current_setup.values())
+                    parameters,
                 )
             )
-
-            if self._calculated is not None:
-                assert (self.parameter_matrix[-1] == self._calculated).all()
 
             self.result_matrix = np.vstack(
                 (
                     self.result_matrix,
-                    list(self.current_result.values())
+                    results,
                 )
             )
 
-    def _remap_data(self, data_set):
+    def _remap_data(self, data_set: np.ndarray) -> None:
         """Maps the data with the parameters."""
 
-        self.current_setup = OrderedDict(
-            zip(
-                self.current_setup,
-                data_set
-            )
-        )
+        # Iterating over batches
+        for (batch_id, batch_data), data \
+                in zip(self.current_setup.items(), data_set):
+            # Updating
+            self.current_setup[batch_id] = dict(zip(batch_data, data))
 
     def get_next_setup(
         self,
-        n_batches: int = 1,
+        n_batches: Optional[int] = None,
     ):
         """Finds the next parameters set based on the experimental data.
 
         Args:
-            n_batches (int): Number of latest experiments (batches) and, as a
-                consequence, number of new parameter sets to return. If preload
-                parameter is set, will load all experimental data, but only
-                output "n_batches" new setups.
+            n_batches (Optional, int): Number of latest experiments (batches)
+                and, as a consequence, number of new parameter sets to return.
+                If preload parameter is set, will load all experimental data,
+                but only output "n_batches" new setups. If omitted, will
+                inherit the number of batches from the current setup.
         """
 
         self.logger.info('Optimizing parameters.')
+
+        if n_batches is None:
+            n_batches = len(self.current_setup)
 
         # Number of points to return from the algorithm
         # Normally equals to number of batches
@@ -306,23 +384,24 @@ class AlgorithmAPI():
         if self.method_name in SERVER_SUPPORTED_ALGORITHMS:
             # working with remote server
             self.logger.info('Querying remote server.')
-            # forging query msg
+            # Extracting params dictionary if params are present
+            params = dict(zip(
+                    self.setup_constraints,
+                    self.parameter_matrix.T.tolist()
+                )) if self.parameter_matrix is not None else None
+            results = dict(zip(
+                    self.current_result['batch 1'],
+                    self.result_matrix.T.tolist()
+                )) if self.result_matrix is not None else None
+            # Forging query msg
             query_data = {
                 'hash': self.proc_hash,
-                # Dict[str, np.array]
-                'parameters': dict(zip(
-                    self.current_setup,
-                    self.parameter_matrix.T.tolist()
-                )),
+                'parameters': params,
                 'n_batches': n_batches,
+                'n_returns': n_returns,
             }
             if self.current_result:
-                query_data.update(
-                    result=dict(zip(
-                        self.current_result,
-                        self.result_matrix.T.tolist()
-                        ))
-                )
+                query_data.update(result=results)
 
             self.logger.debug('Query data: %s', query_data)
 
@@ -336,8 +415,14 @@ see below:\n%s', reply['exception'])
                 return self.current_setup
 
             # else updating
-            self.strategy = reply.pop('strategy')
-            self.current_setup = OrderedDict(reply)
+            # self.strategy = reply.pop('strategy')
+            self.current_setup.update(reply)
+
+        elif self.method_name == 'reproduce':
+            # Special case for "reproduce" algorithm
+            # Just return the current setup
+            # TODO this is a bit ugly, must find a better way!
+            return self.current_setup
 
         else:
             self._calculated = self.algorithm.suggest(
@@ -346,7 +431,7 @@ see below:\n%s', reply['exception'])
                 self.setup_constraints.values(),
                 n_batches=n_batches,
                 n_returns=n_returns,
-            )[0] # TODO change here when working with batches
+            )
 
             self.logger.info(
                 'Finished optimization, new parameters list in log file.')
@@ -360,14 +445,19 @@ see below:\n%s', reply['exception'])
     def save(self, path):
         """Saving full experiment matrix as csv table"""
 
+        if self.parameter_matrix is None or self.result_matrix is None:
+            raise NoDataError("Nothing to save, run the experiment first!")
+
         full_matrix = np.hstack((self.parameter_matrix, self.result_matrix))
 
         header = ''
 
-        for key in self.current_setup:
+        # Pick a header from batch 1, assuming all batches have same parameters
+        # And "batch 1" is always present
+        for key in self.current_setup['batch 1']:
             header += f'{key},'
 
-        for key in self.current_result:
+        for key in self.current_result['batch 1']:
             header += f'{key},'
 
         np.savetxt(

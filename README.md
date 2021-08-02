@@ -2,6 +2,23 @@
 
 The repo contains the optimizer package for Chemputer platform to perform interactive chemical reaction optimizations.
 
+## Installation
+
+1. Clone the repo into desired folder. Versions tagged with *alpha* (e.g. `v0.3.0a0`) are not extensively tested, consider using a stable version (e.g. `v0.2.5`).
+```bash
+git clone -b v0.2.5 --single--branch https://gitlab.com/croningroup/chemputer/chemputeroptimizer.git chemputeroptimizer
+
+cd chemputeroptimizer
+```
+2. Install Chemputer requirements if needed ([XDL](https://gitlab.com/croningroup/chemputer/xdl) and [AnalyticalLabware](https://gitlab.com/croningroup/chemputer/analyticallabware)).
+```bash
+pip install -r requirements.txt
+```
+3. Install ChemputerOptimizer.
+```bash
+pip install .
+```
+
 ## Usage
 
 ```python
@@ -43,10 +60,19 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.2.3
+### v0.3.1 alpha1
 
-* Fixed the bug with preloading results from previous iterations
-* `Reproduce` algorithm to check the reaction for reproducibility
+* Fixed loading previous results (see #84).
+
+### v0.3.2 alpha0
+
+* Updated the OptimizerClient (and corresponding Server, see croningroup/personal/ail/summitserver!4)
+  * Supported algorithms are: "SOBO", "ENTMOOT", "SNOBFIT" (see details in [summit docs](https://gosummit.readthedocs.io/en/latest/strategies.html)).
+  * Work in progress, stability is not guaranteed!
+
+### v0.3.3 alpha0
+
+* Novelty search updated and integrated with batch wise operation. See notes in [novelty search](/chemputeroptimizer/utils/novelty_search.md).
 
 ## Development
 

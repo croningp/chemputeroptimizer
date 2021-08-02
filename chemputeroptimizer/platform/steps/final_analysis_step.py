@@ -56,6 +56,7 @@ class FinalAnalysis(Analyze):
         'on_finish': Callable,
         'reference_step': JSON_PROP_TYPE,
         'method_props': JSON_PROP_TYPE,
+        'batch_id': str,
         # method related
         'cleaning_solvent': str,
         'cleaning_solvent_vessel': str,
@@ -77,7 +78,6 @@ class FinalAnalysis(Analyze):
     INTERNAL_PROPS = [
         'instrument',
         'reference_step',
-        'cleaning_solvent',
         'priming_waste',
         'injection_pump',
         'sample_excess_volume',
@@ -88,6 +88,7 @@ class FinalAnalysis(Analyze):
         'injection_waste',
         'shimming_solvent_flask',
         'shimming_reference_peak',
+        'batch_id',
     ]
 
     DEFAULT_PROPS = {
@@ -103,6 +104,7 @@ class FinalAnalysis(Analyze):
             self,
             vessel: str,
             method: str,
+            cleaning_solvent: Optional[str] = None,
             sample_volume: Optional[float] = None,
             on_finish: Optional[Callable] = 'default',
             method_props: JSON_PROP_TYPE = 'default',
@@ -113,7 +115,6 @@ class FinalAnalysis(Analyze):
             # Internal properties
             instrument: Optional[str] = None,
             reference_step: Optional[JSON_PROP_TYPE] = None,
-            cleaning_solvent: Optional[str] = None,
             priming_waste: Optional[str] = None,
             injection_pump: Optional[str] = None,
             sample_excess_volume: Optional[float] = 'default',
@@ -124,6 +125,7 @@ class FinalAnalysis(Analyze):
             distribution_valve: Optional[str] = None,
             shimming_solvent_flask: Optional[str] = None,
             shimming_reference_peak: Optional[float] = None,
+            batch_id: Optional[str] = None,
 
             **kwargs
         ) -> None:
