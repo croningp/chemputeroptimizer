@@ -1,0 +1,95 @@
+<?xdl version="0.5.0" ?>
+
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor" />
+    <Component
+      id="waste_3"
+      type="ChemputerWaste" />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      name="water"
+      role="solvent"
+      use_for_cleaning="True" />
+    <Reagent
+      name="NaHCO3"
+      role="activating-agent" />
+    <Reagent
+      name="MnSO4"
+      role="catalyst"
+      comment="5 mM" />
+    <Reagent
+      name="styrene_sulfonate"
+      role="reagent"
+      comment="0.5 M" />
+    <Reagent
+      name="30 % hydrogen peroxide solution"
+      role="reagent" />
+    <Reagent
+      name="acid_clean"
+      role="solvent"
+      use_for_cleaning="True" />
+  </Reagents>
+
+  <Procedure>
+    <CleanBackbone solvent="water" />
+    <Add
+        vessel="reactor"
+        reagent="styrene_sulfonate"
+        volume="5 mL"
+        stir="True" />
+      <Add
+        vessel="reactor"
+        reagent="NaHCO3"
+        volume="5 mL"
+        stir="True" />
+      <Add
+        vessel="reactor"
+        reagent="MnSO4"
+        volume="5 mL"
+        stir="True" />
+    <Add
+      vessel="reactor"
+      reagent="water"
+      volume="5.0 mL" />
+      <Add
+        vessel="reactor"
+        reagent="30 % hydrogen peroxide solution"
+        volume="1 mL"
+        stir="True"
+        dispense_speed="10.0" />
+    <Dilute
+      vessel="reactor"
+      reagent="water"
+      final_volume="45 mL"
+      stir="True"
+    />
+      <!-- <Monitor>
+        <Stir
+          vessel="reactor"
+          time="7200" />
+      </Monitor> -->
+    <Transfer
+      from_vessel="reactor"
+      to_vessel="waste_3"
+      volume="30 mL" />
+    <CleanVessel
+      vessel="reactor"
+      solvent="acid_clean"
+      volume="25.0 mL"
+      temp= "22.0"
+      repeats= "2" />
+    <CleanVessel
+      vessel="reactor"
+      solvent="water"
+      volume="25.0 mL"
+      temp= "22.0"
+      repeats= "2" />
+  </Procedure>
+
+</Synthesis>

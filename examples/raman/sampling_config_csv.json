@@ -1,0 +1,11 @@
+{
+    "max_iterations": 3,
+    "target": {
+        "spectrum_peak-area_1633": "inf"
+    },
+    "algorithm": {
+        "name": "fromcsv"
+    },
+    "reference": 983,
+    "batch_size": 1
+}

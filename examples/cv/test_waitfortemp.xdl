@@ -1,0 +1,33 @@
+<?xdl version="0.5.0" ?>
+
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor" />
+  </Hardware>
+
+  <Reagents>
+  </Reagents>
+
+  <Procedure>
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="26 °C"
+      stir="True" />
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="23 °C"
+      stir="True" />
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="30 °C"
+      stir="True" />
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="20 °C"
+      stir="True" />
+  </Procedure>
+
+</Synthesis>

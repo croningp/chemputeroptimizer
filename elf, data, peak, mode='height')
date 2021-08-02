@@ -1,0 +1,85 @@
+[1mdiff --git a/chemputeroptimizer/utils/analyzer.py b/chemputeroptimizer/utils/analyzer.py[m
+[1mindex 27cee81..f709cf8 100644[m
+[1m--- a/chemputeroptimizer/utils/analyzer.py[m
+[1m+++ b/chemputeroptimizer/utils/analyzer.py[m
+[36m@@ -10,7 +10,7 @@[m [mimport numpy as np[m
+ [m
+ # AnalyticalLabware spectrum classes[m
+ from AnalyticalLabware.devices import ([m
+[31m-    # RamanSpectrum,[m
+[32m+[m[32m    RamanSpectrum,[m
+     SpinsolveNMRSpectrum,[m
+     AgilentHPLCChromatogram[m
+ )[m
+[36m@@ -144,6 +144,16 @@[m [mdef find_closest_region(regions, point, method='mean', threshold=0.0):[m
+         return np.array([])[m
+     return regions[np.argmin(diff_map)][m
+ [m
+[32m+[m
+[32m+[m[32mdef normalize(self, data, peak, mode='height'):[m
+[32m+[m[32m    """Normalizes the spectrum with respect to a peak."""[m
+[32m+[m[32m    if mode == "height":[m
+[32m+[m[32m        #TODO get height for data[peak][m
+[32m+[m[32m        # return data / height[m
+[32m+[m[32m        pass[m
+[32m+[m[32m    else:[m
+[32m+[m[32m        raise NotImplementedError("Mode not supported.")[m
+[32m+[m
+ class SpectraAnalyzer():[m
+     """General class for analyzing spectra differences.[m
+ [m
+[36m@@ -230,6 +240,9 @@[m [mclass SpectraAnalyzer():[m
+         """[m
+ [m
+         # spectra specific analysis[m
+[32m+[m[32m        if isinstance(self.spectra[-1], RamanSpectrum):[m
+[32m+[m[32m            return self._raman_analysis(reference, target)[m
+[32m+[m
+         if isinstance(self.spectra[-1], AgilentHPLCChromatogram):[m
+             return self._hplc_analysis(reference, target)[m
+ [m
+[36m@@ -467,6 +480,27 @@[m [mtarget peak, resolving')[m
+                 )[m
+                 return {objective: peaks.shape[0]}[m
+ [m
+[32m+[m[32m    def _raman_analysis(self, reference, target):[m
+[32m+[m[32m        self.logger.debug('Processing spectrum from Raman')[m
+[32m+[m[32m        # looking only in the most recent uploaded spectrum[m
+[32m+[m[32m        spec = self.spectra[-1][m
+[32m+[m
+[32m+[m[32m        #TODO sort the signal processing[m
+[32m+[m[32m        # 1. Correct baseline etc.[m
+[32m+[m[32m        # 2. Normalize whole spectrum with respect to reference peak[m
+[32m+[m[32m        # 3. Substract background spectrum[m
+[32m+[m[32m        # 4. Calculate AUC for peak of interest and divide by AUC of reference peak[m
+[32m+[m
+[32m+[m[32m        for objective in target:[m
+[32m+[m[32m            if 'spectrum' in objective:[m
+[32m+[m[32m                if 'peak-area' in objective:[m
+[32m+[m[32m                    _, _, peak_position = objective.split('_')[m
+[32m+[m[32m                    AUC_target = spec.integrate_peak(float(peak_position))[m
+[32m+[m[32m                    AUC_istandard = spec.integrate_peak(float(reference))[m
+[32m+[m[32m                    fitness = AUC_target / AUC_istandard[m
+[32m+[m
+[32m+[m[32m                    return {objective: -fitness}[m
+[32m+[m[41m    [m
+     def _nmr_novelty_analysis(self, spec):[m
+         """Calculates novelty score for the given spectrum."""[m
+ [m
+[1mdiff --git a/setup.py b/setup.py[m
+[1mindex 075ccab..9954e6c 100644[m
+[1m--- a/setup.py[m
+[1m+++ b/setup.py[m
+[36m@@ -8,10 +8,10 @@[m [msetup([m
+     author_email="artem.leonov@glasgow.ac.uk",[m
+     packages=find_packages(),[m
+     install_requires=[[m
+[31m-        "xdl @ git+ssh://git@gitlab.com/croningroup/chemputer/xdl.git",[m
+[32m+[m[32m        #"xdl @ git+ssh://git@gitlab.com/croningroup/chemputer/xdl.git",[m
+         "numpy",[m
+         "scikit-learn==0.22", # TODO remove when incompatibility problems are resolved between sklearn and skopt[m
+         "scikit-optimize>=0.8",[m
+[31m-        "AnalyticalLabware @ git+ssh://git@gitlab.com/croningroup/chemputer/analyticallabware.git",[m
+[32m+[m[32m        #"AnalyticalLabware @ git+ssh://git@gitlab.com/croningroup/chemputer/analyticallabware.git",[m
+     ][m
+ )[m

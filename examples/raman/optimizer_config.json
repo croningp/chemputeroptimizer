@@ -1,0 +1,19 @@
+{
+    "max_iterations": 40,
+    "target": {
+        "spectrum_peak-area_1633": "inf"
+    },
+    "algorithm": {
+        "name": "smbo",
+        "base_estimator": "GP",
+        "acq_func": "EI",
+        "n_initial_points": 10,
+        "initial_point_generator": "lhs",
+        "acq_optimizer": "auto",
+        "random_state": null,
+        "acq_func_kwargs": null,
+        "acq_optimizer_kwargs": null
+    },
+    "reference": 983,
+    "batch_size": 1
+}

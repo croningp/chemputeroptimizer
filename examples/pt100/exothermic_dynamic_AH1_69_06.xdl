@@ -1,0 +1,64 @@
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor"
+    />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      name="30 % hydrogen peroxide solution"
+    />
+    <Reagent
+      name="dibenzyl sulfide"
+    />
+    <Reagent
+      name="glacial acetic acid"
+    />
+  </Reagents>
+
+  <Procedure>
+    <AddSolid
+      vessel="reactor"
+      reagent="dibenzyl sulfide"
+      mass="25 g"
+    />
+    <Dissolve
+      vessel="reactor"
+      solvent="glacial acetic acid"
+      volume="100 mL"
+      temp="30°C"
+      time="10 min"
+      aspiration_speed="10.0"
+    />
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="25.0 °C"
+      active="False"
+      continue_heatchill="False"
+      stir="True"
+    />
+    <AddDynamic
+      vessel="reactor"
+      reagent="30 % hydrogen peroxide solution"
+      volume="35.0 mL"
+      sensor="rtd"
+      reading="temperature"
+      reading_threshold="75.0"
+      safety_margin="10.0"
+      aliquot_volume="2.0 mL"
+      wait_after_addition="10.0"
+      settle_delay="10.0"
+      trend="ascending"
+    />
+    <HeatChill
+      vessel="reactor"
+      temp="85.0 °C"
+      time="3 hrs"
+      stir="True"
+    />
+  </Procedure>
+
+</Synthesis>

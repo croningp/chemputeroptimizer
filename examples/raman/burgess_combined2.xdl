@@ -1,0 +1,153 @@
+<?xdl version="0.5.0" ?>
+
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor" />
+    <Component
+      id="waste_3"
+      type="ChemputerWaste" />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      name="water"
+      role="solvent"
+      use_for_cleaning="True" />
+    <Reagent
+      name="NaSO4"
+      role="reagent"
+      comment="internal standard"/>
+    <Reagent
+      name="NaHCO3"
+      role="activating-agent" />
+    <Reagent
+      name="MnSO4"
+      role="catalyst"
+      comment="5 mM" />
+    <Reagent
+      name="styrene_sulfonate"
+      role="reagent"
+      comment="0.5 M" />
+    <Reagent
+      name="30 % hydrogen peroxide solution"
+      role="reagent" />
+    <Reagent
+      name="acid_clean"
+      role="solvent"
+      use_for_cleaning="True" />
+  </Reagents>
+
+  <Procedure>
+    <CleanBackbone solvent="water" />
+   <Add
+        vessel="reactor"
+        reagent="NaSO4"
+        volume="2 mL"
+        stir="True" />
+    <Add
+        vessel="reactor"
+        reagent="styrene_sulfonate"
+        volume="5 mL"
+        stir="True" />
+    <OptimizeStep
+      id="1"
+      optimize_properties="{'volume': {'max_value': 5.0, 'min_value': 0.5}}">
+      <Add
+        vessel="reactor"
+        reagent="NaHCO3"
+        volume="3.5 mL"
+        stir="True" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="2"
+      optimize_properties="{'volume': {'max_value': 5.0, 'min_value': 0.5}}">
+      <Add
+        vessel="reactor"
+        reagent="MnSO4"
+        volume="5 mL"
+        stir="True" />
+    </OptimizeStep>
+    <ConstrainedStep
+      ids="[1, 2, 3]"
+      target="18.0"
+      parameter="volume">
+        <Add
+        vessel="reactor"
+        reagent="water"
+        volume="999 mL"
+        stir="True" />
+    </ConstrainedStep>
+    <StartMonitoring
+      pid="monitor"
+      method="Raman"
+      analysis_delay="60.0" />
+    <OptimizeStep
+      id="3"
+      optimize_properties="{'dispense_speed': {'max_value': 10.0, 'min_value': 0.0416}, 
+                            'volume': {'max_value': 5.0, 'min_value': 0.5}}">
+      <Add
+        vessel="reactor"
+        reagent="30 % hydrogen peroxide solution"
+        volume="5.0 mL"
+        stir="True"
+        dispense_speed="0.2" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="4"
+      optimize_properties="{'time': {'max_value': 18000, 'min_value': 3600}}">
+      <Stir
+        vessel="reactor"
+        time="3600"
+        stir_speed="600" />
+    </OptimizeStep>
+    <StopMonitoring
+      pid="monitor" />
+    <FinalAnalysis
+      vessel="reactor"
+      method="Raman"
+      />
+    <Transfer
+      from_vessel="reactor"
+      to_vessel="waste_3"
+      volume="60 mL"
+      aspiration_speed="10" />
+    <Add
+      vessel="reactor"
+      reagent="acid_clean"
+      volume="25 mL"
+      stir="True" />
+    <Stir
+      vessel="reactor"
+      time="600"
+      stir_speed="600" />
+    <Transfer
+      from_vessel="reactor"
+      to_vessel="waste_3"
+      volume="40 mL"
+      aspiration_speed="10" />
+    <CleanVessel
+      vessel="reactor"
+      solvent="water"
+      volume="25.0 mL"
+      temp= "22.0"
+      repeats= "1" />
+    <Add
+      vessel="reactor"
+      reagent="water"
+      volume="25 mL"
+      stir="True" />
+    <Stir
+      vessel="reactor"
+      time="600"
+      stir_speed="600" />
+    <Transfer
+      from_vessel="reactor"
+      to_vessel="waste_3"
+      volume="60 mL"
+      aspiration_speed="10" />
+  </Procedure>
+
+</Synthesis>

@@ -1,0 +1,15 @@
+{
+    "max_iterations": 11,
+    "target": {
+        "spectrum_peak-area_1633": "inf"
+    },
+    "algorithm": {
+         "name": "doe",
+        "design": "lhs",
+        "criterion": "m",
+        "center": 0,
+        "samples": 10
+    },
+    "reference": 983,
+    "batch_size": 1
+}
