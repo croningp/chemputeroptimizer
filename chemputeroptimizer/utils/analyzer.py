@@ -2,8 +2,8 @@
 Module for processing, analysis and comparison of several spectra.
 """
 import logging
-
-from AnalyticalLabware.analysis.spec_utils import expand_regions
+import json
+from typing import List, Optional
 
 import numpy as np
 
@@ -152,10 +152,15 @@ class SpectraAnalyzer():
     when reference information is supplied.
 
     Attributes:
-        max_spectra (int): Maximum number of spectra to analyze.
-        data_path (str): Valid path to load spectra from.
+        data_path (Optional, str): Valid path to load spectra from.
+        reference (Optional, float): Spectrum reference for the current set of
+            experiments.
     """
-    def __init__(self, max_spectra=5, data_path=None):
+    def __init__(
+        self,
+        data_path: Optional[str] = None,
+        reference: Optional[float] = None,
+    ) -> None:
 
         self.data_path = data_path
         self.logger = logging.getLogger('optimizer.spectraanalyzer')
@@ -163,13 +168,16 @@ class SpectraAnalyzer():
         # Storing spectral data
         self.spectra = []
 
-        # Regions of interest from loaded spectra
-        self.regions = []
+        # "Train" regions are used to evaluate the novelty score
+        # Include old "known" spectra and those recorded
+        # During the current experiment
+        self.train_regions: List[np.ndarray] = []
 
         # Future arguments for peaks classification
         self.starting_material = None
         self.intermediate = None
         self.final_product = None
+        self.reference = reference
 
     def load_spectrum(self, spectrum):
         """Loads the spectrum and stores it in spectra list.
@@ -466,26 +474,96 @@ target peak, resolving')
                 )
                 return {objective: peaks.shape[0]}
 
-    def _nmr_novelty_analysis(self, spec):
-        """Calculates novelty score for the given spectrum."""
+    def _nmr_novelty_analysis(self, spec: SpinsolveNMRSpectrum) -> List[float]:
+        """Calculates novelty score for the given spectrum and all previously
+        recorded spectra.
+        """
 
         self.logger.debug('Looking for novelty in NMR spectrum')
 
-        # Generating regions according to novelty standard
-        regions_generation_params = NOVELTY_REGIONS_ANALYSIS.get(
-            spec.parameters['rxChannel'],
-            {} # if current nuclei not registered in defaults
-        )
-        regions = spec.generate_peak_regions(**regions_generation_params)
+        scores: List[float] = []
 
-        regions_expanded = expand_peak_regions(regions)
-        # Rounding to neglect small differences in ppm scales
-        # Across several spectra
-        regions_expanded_xs = np.around(spec.x[regions_expanded], 4)
-        information_score = calculate_information_score(spec, regions)
-        # Using previously measured spectra as reference
-        novelty_coefficient = calculate_novelty_coefficient(
-            regions_expanded_xs, self.regions
-        )
+        # Now calculate new scores for the previous spectra
+        # Iterating over reverse spectra list, so that the one currently
+        # Investigated will be first to update the "train" regions
+        for spectrum in self.spectra[::-1]:
+            # Generating regions according to novelty standard
+            regions_generation_params = NOVELTY_REGIONS_ANALYSIS.get(
+                spectrum.parameters['rxChannel'],
+                {} # if current nuclei not registered in defaults
+            )
+            # Generating regions of interest
+            regions = spectrum.generate_peak_regions(
+                **regions_generation_params)
 
-        return information_score*novelty_coefficient
+            # Flat array of the areas of found regions
+            try:
+                areas = spectrum.integrate_regions(regions)
+            # If working with "simulated" spectrum
+            except NotImplementedError:
+                areas = np.array([
+                    spectrum.integrate_area(spectrum.x[region])
+                    for region in regions
+                ])
+
+            # If no regions identified on the spectrum,
+            # Assuming no information there
+            if not regions.size > 0:
+                scores.append(0.0)
+                continue
+
+            # Rounding to neglect small differences in ppm scales
+            # Across several spectra
+            regions_expanded = expand_peak_regions(regions)
+            try:
+                regions_expanded_xs = np.around(
+                    spectrum.x[regions_expanded], 3)
+
+            except IndexError:
+                # Raised if no regions found and regions array is empty
+                regions_expanded_xs = np.array([])
+
+            information_score = calculate_information_score(regions, areas)
+
+            # Using previously measured spectra as reference
+            novelty_coefficient = calculate_novelty_coefficient(
+                regions_expanded_xs, self.train_regions
+            )
+
+            if spectrum is spec:
+                # Updating known, "train" regions with the current spectrum
+                self.train_regions.append(regions_expanded_xs)
+
+            scores.append(information_score * novelty_coefficient)
+
+        # Reverse list so that the current one is the last
+        return scores[::-1]
+
+    def load_known_regions(self, regions_fp: str) -> None:
+        """Loads known regions from a given json file.
+
+        Args:
+            regions_fp (str): Json file with the recorded "known" regions.
+        """
+
+        with open(regions_fp) as fobj:
+            known_regions = json.load(fobj)
+            # Iterating and appending to the known regions list
+            for _, region in known_regions.items():
+                self.train_regions.append(np.array(region))
+
+    def load_test_spectra(self, spectra_fps: List[str]) -> None:
+        """Loads test spectra from a list of files.
+
+        These are spectra, that will be used for the novelty evaluation and
+        updated with the new information coming.
+
+        Args:
+            spectra_fps (List[str]): List of files to load the spectra from.
+        """
+
+        for spec_fp in spectra_fps:
+            spec = SpinsolveNMRSpectrum(False)
+            spec.load_data(spec_fp)
+            spec.reference_spectrum(self.reference, 'closest')
+            self.spectra.append(spec)

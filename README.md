@@ -60,12 +60,6 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.3.1 alpha0
-
-* Added asynchronous step for background reaction monitoring (see [async_monitor_step.py](chemputeroptimizer/platform/steps/async_monitor_step.py)).
-  * Step is not supported for parallel optimization.
-  * Only Raman monitoring is supported, as special preparations needed.
-
 ### v0.3.1 alpha1
 
 * Fixed loading previous results (see #84).
@@ -75,6 +69,10 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 * Updated the OptimizerClient (and corresponding Server, see croningroup/personal/ail/summitserver!4)
   * Supported algorithms are: "SOBO", "ENTMOOT", "SNOBFIT" (see details in [summit docs](https://gosummit.readthedocs.io/en/latest/strategies.html)).
   * Work in progress, stability is not guaranteed!
+
+### v0.3.3 alpha0
+
+* Novelty search updated and integrated with batch wise operation. See notes in [novelty search](/chemputeroptimizer/utils/novelty_search.md).
 
 ## Development
 

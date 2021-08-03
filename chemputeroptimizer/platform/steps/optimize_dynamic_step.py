@@ -345,8 +345,8 @@ Enter to continue\n'
 
         # Load necessary tools
         self._analyzer = SpectraAnalyzer(
-            max_spectra=int(self.max_iterations), # obtained from loading config
-            data_path=Path(self.original_xdl._xdl_file).parent
+            reference=self.reference,  # loaded from the config file
+            data_path=Path(self.original_xdl._xdl_file).parent,
         )
 
         # Tracking of flask usage

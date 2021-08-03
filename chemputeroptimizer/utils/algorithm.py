@@ -163,6 +163,7 @@ class AlgorithmAPI():
             if self.method_config:
                 init_msg['algorithm'].update(self.method_config)
 
+            self.logger.debug('Init msg: %s', init_msg)
             # initializing and recording strategy
             self.strategy = self.client.initialize(init_msg)
 
@@ -214,7 +215,59 @@ class AlgorithmAPI():
                 self.setup_constraints.update(
                     {param: (param_set['min_value'], param_set['max_value'])})
 
-        # Appending the final result if given
+        # Special case: dealing with novelty search
+        # For which the results for all previous experiments
+        # Should be updated with each experiment
+        if result is not None and 'novelty' in result['batch 1']:
+            # Due to the way novelty search works, each "batch_id" in the
+            # result dictionary contains the information about all previously
+            # stored data + the current batch. Thus, the last executed batch
+            # will contain the data about all batches + all previously stored
+            # data.
+
+            # Tracking for the largest batch dataset
+            result_dataset_sizes = []
+
+            try:
+                for batch_id in result:
+                    result_dataset_sizes.append(
+                        np.array(result[batch_id]['novelty'], ndmin=2).T
+                    )
+
+                    # Rewriting the result to contain only the current result
+                    result[batch_id]['novelty'] = \
+                        result[batch_id]['novelty'].pop(-1)
+
+                # Sorting by the dataset size
+                # The latest batch, that contains the data for all batches and
+                # all previous experiments will be last and used to update the
+                # result matrix.
+                result_dataset_sizes.sort(key=lambda item: item.size)
+
+                # Updating the result matrix if algorithm's returned
+                # recalculated values for previous experiments, i.e. if those
+                # were loaded with previous data.
+                if (self.result_matrix is not None
+                    and self.result_matrix.size <
+                    result_dataset_sizes[-1].size):
+                    # Setting the result to the largest dataset, cutting the
+                    # last results that correspond to the batch size
+                    self.result_matrix = \
+                        result_dataset_sizes[-1][:-len(result), :]
+
+                    # In addition, reset the algorithm
+                    self.switch_method(self.method_name, self.method_config)
+
+                    # And set the preload flag
+                    # So that all previous result are used
+                    self.preload = True
+
+            except (TypeError, AttributeError):
+                # Happens only if the novelty result is float, i.e.
+                # When preloading the results from the previous experiments
+                pass
+
+        # appending the final result
         if result is not None:
             self.current_result.update(result)
             # Parsing data only if the result was supplied
