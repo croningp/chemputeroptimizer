@@ -435,7 +435,7 @@ target peak, resolving')
                 elif 'integration-area' in target_parameter:
                     # splitting "spectrum_integration-area_lll-rrr"
                     _, _, region = target_parameter.split('_')
-                    left_w, right_w = region.split('-')
+                    left_w, right_w = region.split('..')
                     self.logger.debug('Integrating spectra within %.2f;%.2f',
                                       left_w, right_w)
                     result = self.spectra[-1].integrate_area(
