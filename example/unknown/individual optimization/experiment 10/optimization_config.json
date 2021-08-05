@@ -1,0 +1,14 @@
+{
+    "max_iterations": 5,
+    "target": {
+        "spectrum_integration-area_-115.9..-117.065": Infinity
+    },
+    "algorithm": {
+        "name": "smbo",
+        "base_estimator": "GP",
+        "acq_func": "gp_hedge",
+        "random_state": 42
+    },
+    "reference": -113.15,
+    "batch_size": 1
+}
