@@ -68,4 +68,5 @@ DEFAULT_OPTIMIZATION_PARAMETERS = {
         },
     'reference': None,
     'batch_size': 1,
+    'constraints': None,
 }

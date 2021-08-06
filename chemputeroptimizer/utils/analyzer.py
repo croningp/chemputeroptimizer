@@ -3,7 +3,7 @@ Module for processing, analysis and comparison of several spectra.
 """
 import logging
 import json
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import numpy as np
 
@@ -210,7 +210,12 @@ class SpectraAnalyzer():
             (float): An average difference between spectra.
         """
 
-    def final_analysis(self, reference=None, target=None):
+    def final_analysis(
+        self,
+        reference: Optional[float] = None,
+        target: Optional[Dict] = None,
+        constraints: Optional[List[str]] = None,
+    ):
         """Analyses the spectrum relative to provided reference.
 
         Returns:
@@ -222,6 +227,8 @@ class SpectraAnalyzer():
             target (Any, optional): A peak position of the target compound
                 (i.e. product). If not supplied, the target will be selected
                 automatically from peak classification.
+            constraints (List[str], optional): Simple constraints to calculate
+                the final result.
 
         Example:
             - if neither reference nor target are provided will return a
