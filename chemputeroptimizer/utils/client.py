@@ -25,7 +25,7 @@ SERVER_SUPPORTED_ALGORITHMS = [
 ]
 
 DEFAULT_HOST = 'dragonsoop2.chem.gla.ac.uk'
-DEFAULT_PORT = 12111
+DEFAULT_PORT = 12112
 DEFAULT_TIMEOUT = 60 # seconds
 DEFAULT_BUFFER_SIZE = 4096
 STANDARD_ENCODING = 'ascii'
@@ -146,8 +146,8 @@ class OptimizerClient:
                         chunk = key.fileobj.recv(DEFAULT_BUFFER_SIZE)
                         if not chunk:
                             self.logger.info('Server closed the connection')
-                            key.fileobj.close()
                             self.selector.unregister(key.fileobj)
+                            key.fileobj.close()
                             break
                         self.logger.debug('Incoming message, reading')
                         while chunk:
@@ -158,6 +158,11 @@ class OptimizerClient:
                     except BlockingIOError:
                         self.logger.debug('Forged reply: %s', reply.decode())
                         self.reply_queue.put(reply)
+                    except OSError:
+                        self.logger.info('Client closed.')
+                        self.selector.unregister(key.fileobj)
+                        key.fileobj.close()
+                        break
             except OSError:
                 break
 
@@ -194,5 +199,6 @@ retrying', DEFAULT_TIMEOUT)
         """ Close and unregister client socket, join listening thread. """
         self.logger.info("Closing")
         self.client.close()
+        self.selector.close()
         self.receiver_thread.join()
         self.logger.info('Listening thread closed.')
