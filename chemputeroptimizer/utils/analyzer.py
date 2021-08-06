@@ -245,10 +245,10 @@ class SpectraAnalyzer():
 
         # spectra specific analysis
         if isinstance(self.spectra[-1], AgilentHPLCChromatogram):
-            return self._hplc_analysis(reference, target)
+            return self._hplc_analysis(reference, target, constraints)
 
         if isinstance(self.spectra[-1], SpinsolveNMRSpectrum):
-            return self._nmr_analysis(reference, target)
+            return self._nmr_analysis(reference, target, constraints)
 
         if reference is not None and \
             'Sim' not in self.spectra[-1].__class__.__name__:
@@ -332,13 +332,26 @@ supported.')
         """Dumps the first spectrum as csv if maximum number of spectra
             reaches max_spectra."""
 
-    def _nmr_analysis(self, reference, target):
+    def _nmr_analysis(self, reference, target, constraints):
         """ Method for performing analysis on NMR spectra. """
 
         self.logger.debug('Processing spectrum from NMR')
         # looking only in the most recent uploaded spectrum
         spec = self.spectra[-1]
         spec.save_data()
+
+        # TODO clean up the method to allow for "proper" constraints
+        # unpacking constraints
+        try:
+            constraints_ = [
+                (
+                    float(constraint.split('..')[0]),
+                    float(constraint.split('..')[1])
+                ) for constraint in constraints
+            ]
+            constraints = constraints_
+        except:
+            pass
 
         # referencing spectrum by shifting closest peak to the given
         # reference position
@@ -449,6 +462,19 @@ target peak, resolving')
                         (float(left_w), float(right_w))
                     )
 
+                    if constraints is not None:
+                        self.logger.debug('Constraint requested, calculating.')
+                        constained_areas = []
+                        for constraint in constraints:
+                            constained_areas.append(
+                                self.spectra[-1].integrate_area(constraint)
+                            )
+
+                        try:
+                            result = result / sum(constained_areas)
+                        except ZeroDivisionError:
+                            pass
+
                     return {target_parameter: result}
 
             elif 'novelty' in target_parameter:
@@ -456,7 +482,7 @@ target peak, resolving')
                 novelty = self._nmr_novelty_analysis(spec)
                 return {target_parameter: novelty}
 
-    def _hplc_analysis(self, reference, target):
+    def _hplc_analysis(self, reference, target, constraints):
         """
         Calculates Fitness = AUC_target / AUC_istandard.
         In future, consider minimizing side products.
