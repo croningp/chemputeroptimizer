@@ -405,7 +405,12 @@ class AlgorithmAPI():
 
             self.logger.debug('Query data: %s', query_data)
 
-            reply = self.client.query(query_data)
+            try:
+                reply = self.client.query(query_data)
+            except ConnectionAbortedError:
+                self.logger.exception('Connection dropped on the client side.')
+                self.logger.info('Returning previous setup')
+                return self.current_setup
 
             # checking for exception on server side
             if 'exception' in reply:

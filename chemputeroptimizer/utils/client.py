@@ -126,8 +126,9 @@ class OptimizerClient:
         try:
             self.client.send(msg)
             self.logger.debug('Message sent %s', data)
-        except Exception as e:
-            raise e
+        except OSError:
+            raise ConnectionAbortedError(
+                'Client side connection aborted.') from None
 
     def receiver(self):
         """
