@@ -469,11 +469,13 @@ target peak, resolving')
                             constained_areas.append(
                                 self.spectra[-1].integrate_area(constraint)
                             )
-
+                        self.logger.debug(
+                            'Calculated constraints:\n%s', constained_areas)
                         try:
                             result = result / sum(constained_areas)
                         except ZeroDivisionError:
                             pass
+                        self.logger.debug('Calculated result: %.4f', result)
 
                     return {target_parameter: result}
 
@@ -542,6 +544,13 @@ target peak, resolving')
             # Rounding to neglect small differences in ppm scales
             # Across several spectra
             regions_expanded = expand_peak_regions(regions)
+
+            # If no regions identified on the spectrum
+            # Assume no information there
+            if not regions.size > 0:
+                scores.append(0.0)
+                continue
+
             try:
                 regions_expanded_xs = np.around(
                     spectrum.x[regions_expanded], 3)
