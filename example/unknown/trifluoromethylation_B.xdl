@@ -192,16 +192,19 @@
       volume="2 mL"
       stir="True"
       port="0"
+      aspiration_speed="3.0"
       priming_volume="0.2 mL" />
     <FinalAnalysis
       vessel="reactor"
       method="NMR"
       sample_volume="2.5"
       method_props="{'protocol': '1D FLUORINE HDEC', 'protocol_options': {'centerFrequency': -85, 'PulselengthScale': 1, 'decouplePower': 0, 'AcquisitionTime': 1.64, 'RepetitionTime': 15, 'PulseAngle': 90, 'Number': 64}}"
-      force_shimming="True" />
+      force_shimming="True"
+      cleaning_solvent="THF" />
     <Transfer
       from_vessel="reactor"
       to_vessel="product_flask"
+      aspiration_speed="3.0"
       volume="all"
       from_port="0"
       to_port="0" />
