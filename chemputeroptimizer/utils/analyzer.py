@@ -6,6 +6,7 @@ import logging
 from AnalyticalLabware.analysis.spec_utils import expand_regions
 
 import numpy as np
+import copy
 
 # AnalyticalLabware spectrum classes
 from AnalyticalLabware.devices import (
@@ -453,11 +454,12 @@ target peak, resolving')
         for objective in target:
             if 'spectrum' in objective:
                 if 'peak-area' in objective:
+                    # maximizing area of target peak
                     _, _, peak_position = objective.split('_')
                     AUC_target = spec.integrate_peak(float(peak_position))
-                    AUC_istandard = spec.integrate_peak(float(reference))
+                    is_interval = (float(reference)-0.2, float(reference)+0.2)
+                    AUC_istandard = spec.integrate_area(is_interval)
                     fitness = AUC_target / AUC_istandard
-
                     return {objective: fitness}
             elif 'novelty' in objective:
                 # TODO add best method for peak searching on the chromotogram
@@ -465,6 +467,36 @@ target peak, resolving')
                     area=(spec.x.min(), spec.x.max())
                 )
                 return {objective: peaks.shape[0]}
+            elif 'multi' in objective:
+                # maximizing area & purity
+
+                # calculate area
+                _, _, peak_position = objective.split('_')
+                AUC_target = spec.integrate_peak(float(peak_position))
+                is_interval = (float(reference)-0.2, float(reference)+0.2)
+                AUC_istandard = spec.integrate_area(is_interval)
+                rel_yield = AUC_target / AUC_istandard
+
+                #calculate purity
+                # crop IS & convert to seconds
+                fine_spec = copy.deepcopy(spec)
+                fine_spec.trim(5, 18)
+                fine_spec.x = fine_spec.x * 60
+                fine_spec.find_peaks(0.01, 1)
+                total_area = 0.0
+                for peak in fine_spec.peaks:
+                    if peak[0] < 18*60:
+                        total_area += fine_spec.integrate_peak(peak[0])
+                # convert back to min
+                total_area = total_area/60
+                rel_purity = AUC_target / total_area
+
+                weight = 0.7
+                const = 0.1  # to adjust rel. yield to range of approx. 0-1
+                fitness = weight * const * rel_yield + (1 - weight) * rel_purity
+                self.logger.info(f'Area: {rel_yield}, Purity: {rel_purity}')
+                return {objective: fitness}
+
 
     def _nmr_novelty_analysis(self, spec):
         """Calculates novelty score for the given spectrum."""
