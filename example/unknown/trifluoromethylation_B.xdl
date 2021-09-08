@@ -43,6 +43,10 @@
     <Reagent
       name="DCM"
       role="reagent" />
+    <Reagent
+      name="THF_for_cleaning"
+      role="reagent"
+      use_for_cleaning="True" />
   </Reagents>
 
   <Procedure>
@@ -60,8 +64,6 @@
         stir="True"
         priming_volume="0.2 mL" />
     </OptimizeStep>
-    <ResetHandling
-      solvent="THF" />
     <OptimizeStep
       id="3"
       optimize_properties="{'volume': {'max_value': 0.37, 'min_value': 0.0}}">
@@ -74,8 +76,6 @@
         stir="True"
         priming_volume="0.2 mL" />
     </OptimizeStep>
-    <ResetHandling
-      solvent="THF" />
     <OptimizeStep
       id="5"
       optimize_properties="{'volume': {'max_value': 0.23, 'min_value': 0.0}}">
@@ -88,8 +88,6 @@
         stir="True"
         priming_volume="0.2 mL" />
     </OptimizeStep>
-    <ResetHandling
-      solvent="THF" />
     <OptimizeStep
       id="7"
       optimize_properties="{'volume': {'max_value': 0.45, 'min_value': 0.0}}">
@@ -122,6 +120,7 @@
         vessel="reactor"
         temp="22 °C"
         stir="True"
+        stir_speed="450 RPM"
         purpose="reaction" />
     </OptimizeStep>
     <OptimizeStep
@@ -157,12 +156,14 @@
       optimize_properties="{'time': {'max_value': 18000.0, 'min_value': 300.0}}">
       <Stir
         vessel="reactor"
-        time="5 min" />
+        time="5 min"
+        stir_speed="450 RPM" />
     </OptimizeStep>
     <HeatChillToTemp
       vessel="reactor"
       temp="22 °C"
       stir="True"
+      stir_speed="450 RPM"
       purpose="reaction"
       continue_heatchill="False" />
     <OptimizeStep
@@ -171,6 +172,7 @@
       <Add
         vessel="reactor"
         reagent="TBAF (1 M in THF)"
+        aspiration_speed="3.0"
         volume="6 mL"
         port="0"
         priming_volume="0.2 mL" />
@@ -190,24 +192,27 @@
       volume="2 mL"
       stir="True"
       port="0"
+      aspiration_speed="3.0"
       priming_volume="0.2 mL" />
     <FinalAnalysis
       vessel="reactor"
       method="NMR"
       sample_volume="2.5"
       method_props="{'protocol': '1D FLUORINE HDEC', 'protocol_options': {'centerFrequency': -85, 'PulselengthScale': 1, 'decouplePower': 0, 'AcquisitionTime': 1.64, 'RepetitionTime': 15, 'PulseAngle': 90, 'Number': 64}}"
-      force_shimming="True" />
+      force_shimming="True"
+      cleaning_solvent="THF" />
     <Transfer
       from_vessel="reactor"
       to_vessel="product_flask"
+      aspiration_speed="3.0"
       volume="all"
       from_port="0"
       to_port="0" />
     <ResetHandling
-      solvent="THF" />
+      solvent="THF_for_cleaning" />
     <CleanVessel
       vessel="reactor"
-      solvent="THF"
+      solvent="THF_for_cleaning"
       temp="22 °C"
       volume="20 mL" />
   </Procedure>

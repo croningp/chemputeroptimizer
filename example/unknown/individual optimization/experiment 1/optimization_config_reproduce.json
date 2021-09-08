@@ -1,0 +1,11 @@
+{
+    "max_iterations": 3,
+    "target": {
+        "spectrum_integration-area_-73.214..-73.751": Infinity
+    },
+    "algorithm": {
+        "name": "reproduce"
+    },
+    "reference": -113.15,
+    "batch_size": 1
+}

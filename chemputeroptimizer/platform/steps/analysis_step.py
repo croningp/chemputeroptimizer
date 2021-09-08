@@ -382,7 +382,7 @@ reaction mixture!')
                 from_vessel=self.vessel,
                 to_vessel=self.injection_pump,
                 volume=self.sample_excess_volume + self.sample_volume,
-                aspiration_speed=SAMPLE_SPEED_MEDIUM,
+                aspiration_speed=SAMPLE_SPEED_SLOW,
             ),
             # Injecting into the instrument
             Transfer(
@@ -421,7 +421,7 @@ reaction mixture!')
                     from_vessel=self.shimming_solvent_flask,
                     to_vessel=self.injection_pump,
                     volume=self.sample_excess_volume + self.sample_volume,
-                    aspiration_speed=SAMPLE_SPEED_MEDIUM,
+                    aspiration_speed=3,
                 ),
                 # Injecting into the instrument
                 Transfer(

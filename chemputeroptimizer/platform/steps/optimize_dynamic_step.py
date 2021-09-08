@@ -502,7 +502,11 @@ Enter to continue\n'
             self._analyzer.load_spectrum(spectrum)
 
             # Final parsing occurs in SpectraAnalyzer.final_analysis
-            result = self._analyzer.final_analysis(self.reference, self.target)
+            result = self._analyzer.final_analysis(
+                self.reference,
+                self.target,
+                self.constraints
+            )
 
             # Updating state
             self.state['current_result'][batch_id] = result
