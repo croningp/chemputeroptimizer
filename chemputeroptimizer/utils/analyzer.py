@@ -457,22 +457,27 @@ target peak, resolving')
                     _, _, region = target_parameter.split('_')
                     left_w, right_w = region.split('..')
                     self.logger.debug('Integrating spectra within %.2f;%.2f',
-                                      left_w, right_w)
+                                      float(left_w), float(right_w))
                     result = self.spectra[-1].integrate_area(
                         (float(left_w), float(right_w))
                     )
 
                     if constraints is not None:
                         self.logger.debug('Constraint requested, calculating.')
-                        constained_areas = []
+                        constrained_areas = []
                         for constraint in constraints:
-                            constained_areas.append(
+                            constrained_areas.append(
                                 self.spectra[-1].integrate_area(constraint)
                             )
+                            self.logger.debug(
+                                'Integrating constraint %s: %f',
+                                constraint,
+                                constrained_areas[-1]
+                            )
                         self.logger.debug(
-                            'Calculated constraints:\n%s', constained_areas)
+                            'Calculated constraints:\n%s', constrained_areas)
                         try:
-                            result = result / sum(constained_areas)
+                            result = result / sum(constrained_areas)
                         except ZeroDivisionError:
                             pass
                         self.logger.debug('Calculated result: %.4f', result)

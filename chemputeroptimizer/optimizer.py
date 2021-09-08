@@ -479,7 +479,7 @@ run "prepare_for_optimization" method first.')
 
         except AssertionError:
             raise ParameterError(
-                'Wrong parameters found in results file:\n{}. Must\
+                'Wrong parameters found in results file:\n{}. Must \
 contain:\n{}'.format(set(results[0]), set(self.algorithm.setup_constraints))
                 ) from None
 
