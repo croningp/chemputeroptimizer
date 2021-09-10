@@ -249,7 +249,8 @@ class AlgorithmAPI():
                 # were loaded with previous data.
                 if (self.result_matrix is not None
                     and self.result_matrix.size <
-                    result_dataset_sizes[-1].size):
+                    result_dataset_sizes[-1].size
+                    and self.method_name not in ['random', 'fromcsv']):
                     # Setting the result to the largest dataset, cutting the
                     # last results that correspond to the batch size
                     self.result_matrix = \
