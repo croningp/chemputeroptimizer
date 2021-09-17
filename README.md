@@ -10,7 +10,7 @@ git clone -b v0.2.5 --single--branch https://gitlab.com/croningroup/chemputer/ch
 
 cd chemputeroptimizer
 ```
-2. Install Chemputer requirements if needed ([XDL](https://gitlab.com/croningroup/chemputer/xdl) and [AnalyticalLabware](https://gitlab.com/croningroup/chemputer/analyticallabware)).
+2. Install Chemputer requirements if needed ([XDL](https://gitlab.com/croningroup/chemputer/xdl) and [AnalyticalLabware](https://gitlab.com/croningroup/chemputer/analyticallabware)). Mind using legacy version (i.e. `xdl@legacy-0.5.0` and `chemputerxdl@legacy-1.0.0`)
 ```bash
 pip install -r requirements.txt
 ```
@@ -60,10 +60,6 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.3.1 alpha1
-
-* Fixed loading previous results (see #84).
-
 ### v0.3.2 alpha0
 
 * Updated the OptimizerClient (and corresponding Server, see croningroup/personal/ail/summitserver!4)
@@ -74,7 +70,13 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 * Novelty search updated and integrated with batch wise operation. See notes in [novelty search](/chemputeroptimizer/utils/novelty_search.md).
 
+### v0.3.4 alpha0
+* Fixed `FromCSV` algorithm working in multiple batches (see #85).
+* Fixed certain algorithm from reinstantiation during novelty search (see #93).
+* Improved data saving (see #80).
+
 ## Development
 
 Please check the issue list for the relevant things to do.
+
 If you want to add another algorithm for the optimization, please follow the AbstractAlgorithm class documentation. Testing functions for algorithm evaluation can be found in [/simulation](/tests/simulations/).
