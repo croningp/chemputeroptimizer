@@ -1,53 +1,42 @@
-from chemputeroptimizer.utils.errors import NoDataError
-from xdl.steps.special.callback import Callback
-from chemputeroptimizer.utils import interactive
+"""
+Main dynamic step to run iterative reaction optimization.
+"""
+
+# Std lib
 import logging
 import json
 import re
-import time
-import string
-
 from datetime import datetime
 from pathlib import Path
 from typing import List, Callable, Optional, Dict, Any
-from hashlib import sha256
-from AnalyticalLabware import devices
 
-from AnalyticalLabware.devices import chemputer_devices
-from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
-
+# XDL and chemputerXDL
 from xdl import XDL
-from xdl.errors import XDLError
 from xdl.utils.copy import xdl_copy
-
 from xdl.steps.base_steps import (
-    AbstractStep,
     AbstractDynamicStep,
     Step,
     AbstractAsyncStep,
 )
-from chemputerxdl.steps import (
-    HeatChill,
-    HeatChillToTemp,
-    Wait,
-    StopHeatChill,
-    Transfer,
-)
-from chemputerxdl.executor.cleaning import (
-    get_cleaning_schedule,
-)
+from xdl.steps.special.callback import Callback
 from chemputerxdl.scheduling.scheduling import get_schedule
 
-from .steps_analysis import RunRaman
+# AnalyticalLabware
+from AnalyticalLabware.devices import chemputer_devices
+from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
+
+# Relative
 from .utils import (
-    find_instrument,
     forge_xdl_batches,
     get_reagent_flasks,
     get_waste_containers,
     extract_optimization_params,
 )
-from ...utils import SpectraAnalyzer, AlgorithmAPI, simulate_schedule
-
+from ...utils import (
+    SpectraAnalyzer,
+    AlgorithmAPI,
+)
+from ...utils.errors import NoDataError
 
 # for saving iterations
 DATE_FORMAT = "%d%m%y"
@@ -539,8 +528,10 @@ Enter to continue\n'
     def _check_termination(self):
 
         self.logger.info(
-            'Optimize Dynamic step running, current iteration: <%d>; last result: <%s>',
-            self.state['iteration'], self.state['current_result'])
+            'Finished iteration %d.\nLast parameters: %s\nLast results: %s\n',
+            self.state['iteration'] - 1,
+            self.parameters,
+            self.state['current_result'])
 
         if self.state['iteration'] > self.max_iterations:
             self.logger.info('Max iterations reached. Done.')
@@ -712,11 +703,17 @@ Enter to continue\n'
         with open(batch_file_path, 'w') as fobj:
             json.dump(batch_data, fobj, indent=4)
 
+        self.logger.info('Parameters for %s is saved to %s', batch_id,
+                         batch_file_path.absolute())
+
         # Saving xdl
         working_xdl_path = batch_path.joinpath(
             xdl_path.stem + f'_{self.state["iteration"]}.xdl'
         )
         self.working_xdl.save(working_xdl_path)
+
+        self.logger.info('XDL for %s is saved to %s', batch_id,
+                         batch_file_path.absolute())
 
         if spec:
             # Hack to save spectrum in proper folder

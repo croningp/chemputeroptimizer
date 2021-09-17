@@ -10,7 +10,6 @@ from typing import Optional
 import numpy
 
 from .base_algorithm import AbstractAlgorithm
-from ..utils.errors import ParameterError
 
 class FromCSV(AbstractAlgorithm):
 

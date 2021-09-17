@@ -394,7 +394,9 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
             batch_size=batch_size,
         )
 
-        self.logger.debug('Loaded the following parameter dict %s', opt_params)
+        self.logger.info('Loaded the following parameter dict %s', opt_params)
+        self.logger.info('Loaded the following algorithm: %s',
+                          algorithm_parameters)
 
         self.optimizer.load_optimization_config(**opt_params)
         self.optimizer.prepare_for_execution(self.graph,
