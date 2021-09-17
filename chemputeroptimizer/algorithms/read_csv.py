@@ -30,6 +30,7 @@ class FromCSV(AbstractAlgorithm):
         try:
             with open(self.config['csv_path']) as csv_file:
                 self._csv_lines = list(csv_reader(csv_file))
+                self.logger.debug("Reading file %r", csv_file)
                 self.params = iter(self._csv_lines)
         except FileNotFoundError:
             raise FileNotFoundError("CSV file containing parameters for csv \
@@ -37,6 +38,7 @@ reader ({}) not found!".format(self.config['csv_path'])) from None
 
         # Skipping header
         self.csv_header = next(self.params)
+        self.logger.debug("Read header from csv file:\n%s", self.csv_header)
 
     def suggest(
             self,
@@ -46,9 +48,17 @@ reader ({}) not found!".format(self.config['csv_path'])) from None
             n_batches: int = -1,
             n_returns: int = 1,
     ) -> numpy.ndarray:
+
         try:
-            # First line (header) already read, proceed
-            return numpy.array(next(self.params), dtype='float', ndmin=2)
+            points = []
+
+            for _ in range(n_returns):
+                points.append(next(self.params))
+                self.logger.debug("Read from csv file:\n%s",
+                                  points[-1])
+
+            return numpy.array(points, dtype=float)
+
         except StopIteration:
             raise StopIteration("CSV file exhausted, load a new one, or switch \
 the algorithm") from None
