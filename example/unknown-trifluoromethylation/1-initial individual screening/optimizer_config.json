@@ -1,11 +1,11 @@
 {
-    "max_iterations": 8,
+    "max_iterations": 9,
     "target": {
         "novelty": Infinity
     },
     "algorithm": {
-        "name": "random",
-        "random_state": null
+        "name": "fromcsv",
+        "csv_path": "individual_screening.csv"
     },
     "reference": -113.15,
     "batch_size": 1

@@ -59,10 +59,10 @@
         vessel="reactor"
         reagent="cyclohexenone"
         volume="0.2 mL"
-        aspiration_speed="3.0"
+        aspiration_speed="2.0"
         port="0"
         stir="True"
-        priming_volume="0.2 mL" />
+        priming_volume="0.4 mL" />
     </OptimizeStep>
     <OptimizeStep
       id="3"
@@ -71,10 +71,10 @@
         vessel="reactor"
         reagent="acetophenone"
         volume="0.23 mL"
-        aspiration_speed="3.0"
+        aspiration_speed="2.0"
         port="0"
         stir="True"
-        priming_volume="0.2 mL" />
+        priming_volume="0.3 mL" />
     </OptimizeStep>
     <OptimizeStep
       id="5"
@@ -83,10 +83,10 @@
         vessel="reactor"
         reagent="butyrolactone"
         volume="0.16 mL"
-        aspiration_speed="3.0"
+        aspiration_speed="2.0"
         port="0"
         stir="True"
-        priming_volume="0.2 mL" />
+        priming_volume="0.3 mL" />
     </OptimizeStep>
     <OptimizeStep
       id="7"
@@ -95,10 +95,10 @@
         vessel="reactor"
         reagent="myrtenal"
         volume="0.3 mL"
-        aspiration_speed="3.0"
+        aspiration_speed="2.0"
         port="0"
         stir="True"
-        priming_volume="0.2 mL" />
+        priming_volume="0.3 mL" />
     </OptimizeStep>
     <OptimizeStep
       id="8"
@@ -150,7 +150,7 @@
         priming_volume="0.2 mL" />
     </OptimizeStep>
     <ResetHandling
-      solvent="THF" />
+      solvent="THF_for_cleaning" />
     <OptimizeStep
       id="15"
       optimize_properties="{'time': {'max_value': 18000.0, 'min_value': 300.0}}">
@@ -168,7 +168,7 @@
       continue_heatchill="False" />
     <OptimizeStep
       id="17"
-      optimize_properties="{'volume': {'max_value': 10.0, 'min_value': 2.0}}">
+      optimize_properties="{'volume': {'max_value': 6.0, 'min_value': 2.0}}">
       <Add
         vessel="reactor"
         reagent="TBAF (1 M in THF)"
@@ -178,7 +178,7 @@
         priming_volume="0.2 mL" />
     </OptimizeStep>
     <ResetHandling
-      solvent="THF" />
+      solvent="THF_for_cleaning" />
     <OptimizeStep
       id="19"
       optimize_properties="{'time': {'max_value': 3600.0, 'min_value': 300.0}}">
