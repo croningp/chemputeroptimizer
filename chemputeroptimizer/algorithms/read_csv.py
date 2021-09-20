@@ -10,7 +10,6 @@ from typing import Optional
 import numpy
 
 from .base_algorithm import AbstractAlgorithm
-from ..utils.errors import ParameterError
 
 class FromCSV(AbstractAlgorithm):
 
@@ -48,12 +47,17 @@ reader ({}) not found!".format(self.config['csv_path'])) from None
             n_batches: int = -1,
             n_returns: int = 1,
     ) -> numpy.ndarray:
+
         try:
-            # First line (header) already read, proceed
-            next_params = next(self.params)
-            self.logger.debug("Reading next params from csv file:\n%s",
-                              next_params)
-            return numpy.array(next_params, dtype='float', ndmin=2)
+            points = []
+
+            for _ in range(n_returns):
+                points.append(next(self.params))
+                self.logger.debug("Read from csv file:\n%s",
+                                  points[-1])
+
+            return numpy.array(points, dtype=float)
+
         except StopIteration:
             raise StopIteration("CSV file exhausted, load a new one, or switch \
 the algorithm") from None

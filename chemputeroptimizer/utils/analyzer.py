@@ -338,7 +338,6 @@ supported.')
         self.logger.debug('Processing spectrum from NMR')
         # looking only in the most recent uploaded spectrum
         spec = self.spectra[-1]
-        spec.save_data()
 
         # TODO clean up the method to allow for "proper" constraints
         # unpacking constraints

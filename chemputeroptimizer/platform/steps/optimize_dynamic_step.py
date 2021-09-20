@@ -1,52 +1,42 @@
-from chemputeroptimizer.utils.errors import NoDataError
-from xdl.steps.special.callback import Callback
-from chemputeroptimizer.utils import interactive
+"""
+Main dynamic step to run iterative reaction optimization.
+"""
+
+# Std lib
 import logging
 import json
 import re
-import time
-
 from datetime import datetime
 from pathlib import Path
 from typing import List, Callable, Optional, Dict, Any
-from hashlib import sha256
-from AnalyticalLabware import devices
 
-from AnalyticalLabware.devices import chemputer_devices
-from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
-
+# XDL and chemputerXDL
 from xdl import XDL
-from xdl.errors import XDLError
 from xdl.utils.copy import xdl_copy
-
 from xdl.steps.base_steps import (
-    AbstractStep,
     AbstractDynamicStep,
     Step,
     AbstractAsyncStep,
 )
-from chemputerxdl.steps import (
-    HeatChill,
-    HeatChillToTemp,
-    Wait,
-    StopHeatChill,
-    Transfer,
-)
-from chemputerxdl.executor.cleaning import (
-    get_cleaning_schedule,
-)
+from xdl.steps.special.callback import Callback
 from chemputerxdl.scheduling.scheduling import get_schedule
 
-from .steps_analysis import RunRaman
+# AnalyticalLabware
+from AnalyticalLabware.devices import chemputer_devices
+from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
+
+# Relative
 from .utils import (
-    find_instrument,
     forge_xdl_batches,
     get_reagent_flasks,
     get_waste_containers,
     extract_optimization_params,
 )
-from ...utils import SpectraAnalyzer, AlgorithmAPI, simulate_schedule
-
+from ...utils import (
+    SpectraAnalyzer,
+    AlgorithmAPI,
+)
+from ...utils.errors import NoDataError
 
 # for saving iterations
 DATE_FORMAT = "%d%m%y"
@@ -363,7 +353,22 @@ Enter to continue\n'
             'done': False,
         }
 
-        self.save()
+        # Path to store data in
+        self.iterations_path = self._get_data_path()
+
+        # Saving schedule if exists
+        try:
+            xdl_path = Path(self.original_xdl._xdl_file)
+            schedule_fp = self.iterations_path.joinpath(
+                xdl_path.stem + '_schedule.json'
+            )
+            self._xdl_schedule.save_json(
+                file_path=schedule_fp
+            )
+        # Don't save schedule if it does not exist,
+        # I.e. single batch
+        except AttributeError:
+            pass
 
     def load_optimization_config(self, **kwargs):
         """Update the optimization configuration if required"""
@@ -512,7 +517,7 @@ Enter to continue\n'
             self.state['current_result'][batch_id] = result
 
             # Saving
-            self.save_batch(batch_id)
+            self.save_batch(batch_id, spectrum)
 
             # Setting the updated tag to false, to update the
             # procedure when finished
@@ -523,8 +528,10 @@ Enter to continue\n'
     def _check_termination(self):
 
         self.logger.info(
-            'Optimize Dynamic step running, current iteration: <%d>; last result: <%s>',
-            self.state['iteration'], self.state['current_result'])
+            'Finished iteration %d.\nLast parameters: %s\nLast results: %s\n',
+            self.state['iteration'] - 1,
+            self.parameters,
+            self.state['current_result'])
 
         if self.state['iteration'] > self.max_iterations:
             self.logger.info('Max iterations reached. Done.')
@@ -611,11 +618,11 @@ Enter to continue\n'
                 self.parameters,
                 self.state['current_result']
             )
+            # Saving
+            self.save()
             # Updating xdls for the next round of iterations
             self.update_steps_parameters()
             self._update_state()
-            # Saving
-            self.save()
 
         # Reset async steps
         # This is very important to prevent accumulating async steps from
@@ -641,43 +648,25 @@ Enter to continue\n'
     def save(self):
         """Saves the data for the current iteration"""
 
-        today = datetime.today().strftime(DATE_FORMAT)
-
+        # Updating path for saving data
+        self.iterations_path = self._get_data_path()
         xdl_path = Path(self.original_xdl._xdl_file)
-        iterations_path = xdl_path.parent.joinpath(
-            f'iterations_{today}',
-            str(self.state['iteration'])
-        )
-
-        iterations_path.mkdir(parents=True, exist_ok=True)
-
-        # Saving xdl
-        working_xdl_path = iterations_path.joinpath(
-            xdl_path.stem + '_' + str(self.state['iteration'])
-        ).with_suffix('.xdl')
-        self.working_xdl.save(working_xdl_path)
-
-        # Saving parameters
-        params_file = iterations_path.joinpath(
-            xdl_path.stem + '_params',
-        ).with_suffix('.json')
-        with open(params_file, 'w') as f:
-            json.dump(self.parameters, f, indent=4)
 
         # Saving algorithmic data
         try:
-            alg_file = iterations_path.joinpath(
-                xdl_path.stem + '_data',
-            ).with_suffix('.csv')
+            alg_file = self.iterations_path.joinpath(
+                xdl_path.stem + '_data.csv',
+            )
             self.algorithm_class.save(alg_file)
         except NoDataError:
             pass
 
-        # Saving the schedule
+        # Saving schedule if exists
         try:
-            schedule_fp = iterations_path.joinpath(
-                xdl_path.stem + '_schedule'
-            ).with_suffix('.json')
+
+            schedule_fp = self.iterations_path.joinpath(
+                xdl_path.stem + '_schedule.json'
+            )
             self._xdl_schedule.save_json(
                 file_path=schedule_fp
             )
@@ -686,22 +675,20 @@ Enter to continue\n'
         except AttributeError:
             pass
 
-    def save_batch(self, batch_id: str) -> None:
+
+    def save_batch(self, batch_id: str, spec: AbstractSpectrum = None) -> None:
         """Save individual batch data.
 
         Args:
             batch_id (str): Individual batch id to store the data from.
+            spec (AbstractSpectrum): Optionally, save spectrum with batch data.
         """
 
-        today = datetime.today().strftime(DATE_FORMAT)
-
+        # Updating path for saving data
+        self.iterations_path = self._get_data_path()
         xdl_path = Path(self.original_xdl._xdl_file)
-        iterations_path = xdl_path.parent.joinpath(
-            f'iterations_{today}',
-            str(self.state['iteration'])
-        )
-
-        iterations_path.mkdir(parents=True, exist_ok=True)
+        batch_path = self.iterations_path.joinpath(batch_id)
+        batch_path.mkdir(parents=True, exist_ok=True)
 
         # Forging batch data
         batch_data: Dict[str, Dict[str, float]] = {}
@@ -709,8 +696,51 @@ Enter to continue\n'
         batch_data.update(self.state['current_result'][batch_id])
 
         # Saving
-        batch_data_path = iterations_path.joinpath(
-            xdl_path.stem + ' ' + batch_id).with_suffix('.json')
+        batch_file_path = batch_path.joinpath(
+            xdl_path.stem + '_params.json'
+        )
 
-        with open(batch_data_path, 'w') as fobj:
+        with open(batch_file_path, 'w') as fobj:
             json.dump(batch_data, fobj, indent=4)
+
+        self.logger.info('Parameters for %s is saved to %s', batch_id,
+                         batch_file_path.absolute())
+
+        # Saving xdl
+        working_xdl_path = batch_path.joinpath(
+            xdl_path.stem + f'_{self.state["iteration"]}.xdl'
+        )
+        self.working_xdl.save(working_xdl_path)
+
+        self.logger.info('XDL for %s is saved to %s', batch_id,
+                         batch_file_path.absolute())
+
+        if spec:
+            # Hack to save spectrum in proper folder
+            spec.path = batch_path
+            spec.save_data()
+
+    def _get_data_path(self) -> Path:
+        """Get the data path to save the results to.
+
+        If platform controller is initialized, the root is set to the
+        experiment name, otherwise to parent directory of the xdl file.
+        """
+
+        today = datetime.today().strftime(DATE_FORMAT)
+
+        try:
+            root = Path(self._platform_controller.exp_name).absolute()
+        except AttributeError:
+            # If controller is not initialize - set root to the xdl file
+            # Parent directory
+            root = Path(self.original_xdl._xdl_file).absolute().parent
+
+        # Path to store data iteration-wise
+        iterations_path = root.joinpath(
+            f'iterations_{today}',
+            str(self.state['iteration'])
+        )
+        iterations_path.mkdir(parents=True, exist_ok=True)
+
+        return iterations_path

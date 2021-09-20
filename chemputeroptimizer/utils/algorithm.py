@@ -29,6 +29,14 @@ ALGORITHMS = {
     'fromcsv': FromCSV,
 }
 
+# Algorithms that should not be reinstantiated
+# To keep track of parameters
+# Used for novelty search, see details in the corresponding method
+NON_REINITIALIZED_ALGORITHMS = [
+    'random',
+    'fromcsv',
+]
+
 
 class AlgorithmAPI():
     """General class to provide interface for algorithmic optimization."""
@@ -250,7 +258,7 @@ class AlgorithmAPI():
                 if (self.result_matrix is not None
                     and self.result_matrix.size <
                     result_dataset_sizes[-1].size
-                    and self.method_name not in ['random', 'fromcsv']):
+                    and self.method_name not in NON_REINITIALIZED_ALGORITHMS):
                     # Setting the result to the largest dataset, cutting the
                     # last results that correspond to the batch size
                     self.result_matrix = \
