@@ -17,6 +17,7 @@ from ..algorithms import (
     DOE,
     FromCSV,
     AbstractAlgorithm,
+    Reproduce,
 )
 from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
 from .errors import NoDataError
@@ -27,7 +28,7 @@ ALGORITHMS = {
     'smbo': SMBO,
     'ga': GA,
     'doe': DOE,
-    'reproduce': lambda *args, **kwargs: None,
+    'reproduce': Reproduce,
     'fromcsv': FromCSV,
 }
 
@@ -37,6 +38,7 @@ ALGORITHMS = {
 NON_REINITIALIZED_ALGORITHMS = [
     'random',
     'fromcsv',
+    'reproduce',
 ]
 
 DEFAULT_RNG_SEED = 43
@@ -458,12 +460,6 @@ see below:\n%s', reply['exception'])
             # else updating
             # self.strategy = reply.pop('strategy')
             self.current_setup.update(reply)
-
-        elif self.method_name == 'reproduce':
-            # Special case for "reproduce" algorithm
-            # Just return the current setup
-            # TODO this is a bit ugly, must find a better way!
-            return self.current_setup
 
         else:
             self._calculated = self.algorithm.suggest(
