@@ -1,79 +1,176 @@
-#!/usr/bin/env python
-# coding: utf-8
+"""
+Scripts to run the analysis of the products obtained after novelty search.
 
-# In[1]:
+All functions are written to process 19F NMR spectra with fluorobenzene as
+reference. Change corresponding constants for a different processing.
 
+Hints:
+    - Provided path must contain a "full data*.csv" file with all optimization
+        data and "spec file" column with corresponding spectra files.
 
+"""
+
+# pylint: skip-file
+
+### IMPORTS
+# stdlib
+import argparse
 import json
 from pathlib import Path
+from copy import deepcopy
 
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+# Data io
 import pandas as pd
 
+# Calculations
+import numpy as np
+
+# Plotting
+import matplotlib.pyplot as plt
+
+# Misc
+from tqdm import tqdm
+
+# Spectra processing
 from AnalyticalLabware.devices import SpinsolveNMRSpectrum
 
+### CONSTANTS
+# Minimum number of spectra containg a region to include this region into
+# Product analysis
+MIN_SPECTRA_REGION_COUNT = 2
 
-# In[2]:
+# Expand area of the region for integration
+EXPAND_REGION = 0.0
 
+# Settings for regions generation
+DEFAULT_REGIONS_SETTINGS = {
+    'magnitude': False,
+    'derivative': True,
+    'smoothed': False,
+    'd_merge': 0.0,
+    'd_expand': 0.0,
+}
 
-# loading all the data
-DATA_PATH = r'\\SCAPA4\scapa4\group\Artem Leonov\Data\unknown trifluoromethylation'
-path = Path(DATA_PATH)
+# Default specs column name in the full data.csv
+SPECS_COLUMN_NAME = 'spec file'
 
+# Reference on the spectrum, fluorobenzene on 19F by default
+REFERENCE_KWARGS = {
+    'new_position': -113.15,
+    'reference': 'closest'
+}
 
-# In[3]:
+# New configuration file stub
+NEW_CONFIG_FILE_STUB = {
+    'max_iterations': 5,
+    'target': {},
+    'algorithm': {
+        'name': 'smbo',
+        'base_estimator': 'GP',
+        'acq_func': 'LCB',
+        'acq_func_kwargs': {'kappa': 0.001},
+        'random_state': 42
+    },
+    'reference': -113.15,
+    'constraints': [],
+    'batch_size': 1
+}
 
+# New experiment directory name
+NEW_EXPERIMENTS_DIR = 'individual optimizations'
 
-df = pd.read_csv(path.joinpath('trifluoromethylation_B_data annotated.csv'))
+# New configuration file name
+NEW_CONFIG_FILE_NAME = 'optimization_config_exploitation_constrained.json'
 
+### CLI ARGUMENTS
+# Parsing given arguments
+parser = argparse.ArgumentParser(
+    description='Analysing products from novelty search')
 
-# In[4]:
+parser.add_argument(
+    '--path',
+    help='path to all data after running novelty search',
+    type=str
+)
 
+parser.add_argument(
+    '--plots',
+    help='generate plots',
+    action='store_true',
+)
 
-df
+parser.add_argument(
+    '--configs',
+    help='generate new config files',
+    action='store_true',
+)
 
+parser.add_argument(
+    '--constrained',
+    help='if results should be constrained',
+    action='store_true',
+)
 
-# In[5]:
+args = parser.parse_args()
 
+data_path = Path(args.path)
+if not data_path.is_dir():
+    raise FileNotFoundError(f'Provided path {args.path} does not exist.')
 
-spec_paths = [
-    p for p in path.joinpath('nmr_data').iterdir() if int(p.stem) in df['spec file'].to_list()
-]
+HERE = Path(__file__).parent
+FIGURES_PATH = None
 
+if args.plots:
+    FIGURES_PATH = data_path.joinpath('Novelty analysis figures')
+    FIGURES_PATH.mkdir(exist_ok=True)
 
-# In[42]:
+### PARSING DATA
+# Searching for full data table
+specs_found = False
+full_data_tables = list(data_path.rglob('full data*.csv'))
+if full_data_tables:
+    # sorting by creation date
+    full_data_tables.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+    # picking the latest
+    full_data_table = full_data_tables[0]
+    # reading table
+    df = pd.read_csv(full_data_table)
 
+# Fetching specs files
+try:
+    specs = df[SPECS_COLUMN_NAME].astype(str)
+    specs_found = True
+except (KeyError, NameError):
+    # except df not created or target column not found
+    specs_found = False
 
+# Obtaining all spec files
+all_specs_paths = list(data_path.rglob('*.pickle'))
+
+# If no data table was found or data table does not contain spec files column
+# Use all .pickle files in the data dir as spec files
+if specs_found is False:
+    spec_paths = all_specs_paths.copy()
+else:
+    # Else looking for paths for the corresponding spec files
+    ps = [p.stem for p in all_specs_paths]
+    spec_paths = [all_specs_paths[ps.index(p)] for p in specs]
+
+### LOADING SPECTRA
+print('Loading spectra files.')
 specs = {}
-for spec_path in spec_paths:
+for spec_path in tqdm(spec_paths):
     spec = SpinsolveNMRSpectrum(False)
     spec.load_data(spec_path)
-    spec.reference_spectrum(-113.15, 'closest')
+    spec.reference_spectrum(**REFERENCE_KWARGS)
     specs[spec_path.stem] = spec
 
-
-# In[7]:
-
-
-specs
-
-
-# In[8]:
-
-
-regs_params = [False, True, False, .1, .1]
-
-
-# In[277]:
-
-
+### ANALYZING SPECTRA
+# Generating spec regions
+print('Generating spectra regions')
 specs_regs = {}
-for key, spec in specs.items():
-    if key in ['1626813487', '1619429009']:
-        continue
-    regs = spec.generate_peak_regions(*regs_params)
+for key, spec in tqdm(specs.items()):
+    regs = spec.generate_peak_regions(**DEFAULT_REGIONS_SETTINGS)
     regs_x = []
     regs_y = []
     for reg in regs:
@@ -83,306 +180,138 @@ for key, spec in specs.items():
         regs_y.append(reg_y)
     specs_regs[key] = {'x': regs_x, 'y': regs_y}
 
+if args.plots:
+    print('Plotting overall stats')
+    fig, ax = plt.subplots(figsize=(20, 12))
 
-# In[278]:
+    for key, regs in specs_regs.items():
+        for xs, ys in zip(regs['x'], regs['y']):
+            ax.scatter(xs, np.full_like(xs, int(key)), color='xkcd:grey', alpha=.2)
 
+    ax.invert_xaxis()
 
-fig, ax = plt.subplots(figsize=(20, 12))
+    fig.savefig(FIGURES_PATH.joinpath('all novelty regions.svg'))
 
-for key, regs in specs_regs.items():
-    for xs, ys in zip(regs['x'], regs['y']):
-        ax.scatter(xs, np.full_like(xs, int(key)), color='xkcd:grey', alpha=.2)
-ax.invert_xaxis()
+    plt.close()
 
-
-# In[279]:
-
-
+# Counting all regions found
 all_regs_xs = []
 for key, regs in specs_regs.items():
     for xs in regs['x']:
         all_regs_xs.extend(xs)
 
-
-# In[280]:
-
-
-len(all_regs_xs)
-
-
-# In[281]:
-
-
-len(set(all_regs_xs))
-
-
-# In[282]:
-
-
 xs_count = []
 for x in set(all_regs_xs):
     xs_count.append((x, all_regs_xs.count(x)))
 
-
-# In[283]:
-
-
-xs_count[0]
-
-
-# In[284]:
-
-
-fig, ax = plt.subplots(figsize=(20, 12))
-
-spec = specs['1619198007']
-
-ax.scatter(
-    [x_count[0] for x_count in xs_count],
-    [x_count[1] for x_count in xs_count],
-    alpha=.5
-)
-ax.plot(spec.x, spec.y.real/spec.y.real.mean()/2, alpha=.6)
-
-ax.invert_xaxis()
-
-
-# In[285]:
-
-
-fig, ax = plt.subplots(figsize=(20, 12))
-
-spec = specs['1619198007']
-
-for value in range(10):
-    xs_valid = [
-        x_count[0] for x_count in xs_count
-        if x_count[1] > value
-    ]
-    ax.scatter(
-        xs_valid,
-        np.full_like(xs_valid, value*10),
-        alpha=.5,
-        label=value
-    )
-    
-ax.plot(spec.x, spec.y.real/spec.y.real.mean()/2, alpha=.6)
-
-ax.legend()
-ax.invert_xaxis()
-
-
-# In[286]:
-
-
+# Filtering points found only in N spectra
 xs_valid = [
     x_count[0] for x_count in xs_count
-    if x_count[1] > 0
+    if x_count[1] > MIN_SPECTRA_REGION_COUNT
 ]
-
-
-# In[287]:
-
-
 xs_valid.sort()
 xsv = np.array(xs_valid)
 
-
-# In[288]:
-
-
-np.mean(np.diff(xsv))
-
-
-# In[289]:
-
-
-# getting coordinates of points with large diff
-np.argwhere(np.diff(xsv) > np.mean(np.diff(xsv)))
-
-
-# In[290]:
-
-
-# splitting array by the coordinates
+# Breaking all points into regions
 true_regions = np.split(xsv, np.argwhere(np.diff(xsv) > np.mean(np.diff(xsv))).flatten() + 1)
 
+### SAVING RESULTS
+# Plotting
+if args.plots:
+    print('Plotting all spectra and regions')
+    for key, spec in tqdm(specs.items()):
+        fig, ax = plt.subplots(figsize=(16, 10))
 
-# In[291]:
+        ax.plot(spec.x, spec.y.real)
 
-
-for key, spec in specs.items():
-    fig, ax = plt.subplots(figsize=(16, 10))
-    
-    ax.plot(spec.x, spec.y.real)
-    
-    for tr in true_regions[::-1]:
-        xtr = spec.x[np.where((spec.x > tr[0]) & (spec.x < tr[-1]))]
-        ytr = spec.y[np.where((spec.x > tr[0]) & (spec.x < tr[-1]))]
-        area = spec.integrate_area((tr[-1], tr[0]))
-        ax.scatter(xtr, ytr.real, label=area)
-        
-    
-    ax.invert_xaxis()
-    ax.legend()
-    
-    fig.savefig(f'{key} common regions (1).png', dpi=300)
-#     break
+        for tr in true_regions[::-1]:
+            xtr = spec.x[np.where((spec.x > tr[0]) & (spec.x < tr[-1]))]
+            ytr = spec.y[np.where((spec.x > tr[0]) & (spec.x < tr[-1]))]
+            area = spec.integrate_area((tr[-1], tr[0]))
+            # print(tr[-1], tr[0])
+            ax.scatter(xtr, ytr.real, label=area)
 
 
-# In[292]:
+        ax.invert_xaxis()
+        ax.legend()
 
+        fig.savefig(FIGURES_PATH.joinpath(f'{key} common regions.png'), dpi=300)
+        fig.savefig(FIGURES_PATH.joinpath(f'{key} common regions.svg'))
+        plt.close()
 
-# building final data table
-results = {}
-for key, spec in specs.items():
-    results[key] = {}
-    for tr in true_regions[::-1]:
-        xtr = spec.x[np.where((spec.x > tr[0]) & (spec.x < tr[-1]))]
-        ytr = spec.y[np.where((spec.x > tr[0]) & (spec.x < tr[-1]))]
-        area = spec.integrate_area((tr[-1], tr[0]))
-        results[key].update({
-            f'{tr[-1]}_{tr[0]}': area
-        })
-
-
-# In[293]:
-
-
+# Grouping results
 results = {}
 
 for tr in true_regions[::-1]:
     result_key = f'spectrum_integration-area_{tr[-1]}..{tr[0]}'
     results[result_key] = {}
-    
+
     for key, spec in specs.items():
         xtr = spec.x[np.where((spec.x > tr[0]) & (spec.x < tr[-1]))]
         ytr = spec.y[np.where((spec.x > tr[0]) & (spec.x < tr[-1]))]
         area = spec.integrate_area((tr[-1], tr[0]))
-        
+
         results[result_key].update({key: area})
 
-
-# In[294]:
-
-
-results
-
-
-# In[295]:
-
-
-dfi = df.set_index('spec file', drop=False)
-
-
-# In[296]:
-
-
 results_df = pd.DataFrame(results)
-
-
-# In[297]:
-
-
 results_df.index = results_df.index.astype('int64')
 
+# Generating constrained results
+if args.constrained:
+    results_constrained = {}
+    for result_key in results:
+        constraints = [key for key in results if key != result_key]
+        # Calculate constrained result as the result for current region
+        # Divided by the sum of all other regions
+        result_constrained = results_df[result_key] / results_df[constraints].sum(axis=1)
+        results_constrained[result_key] = result_constrained
 
-# In[298]:
+    results_constrained_df = pd.DataFrame(results_constrained)
 
+# Saving all results
+try:
+    dfi = df.set_index(SPECS_COLUMN_NAME, drop=False)
+    full_df = pd.concat((dfi, results_df), axis=1)
+    full_df.to_csv(data_path.joinpath('all products analysis.csv'), index=False)
+except NameError:
+    results_df.to_csv(data_path.joinpath('all products analysis.csv'), index=False)
 
-dfi.index
+if args.constrained:
+    try:
+        dfi = df.set_index(SPECS_COLUMN_NAME, drop=False)
+        full_df_constrained = pd.concat((dfi, results_constrained_df), axis=1)
+        full_df_constrained.to_csv(data_path.joinpath('all products analysis (constrained).csv'), index=False)
+    except NameError:
+        results_constrained_df.to_csv(data_path.joinpath('all products analysis (constrained).csv'), index=False)
 
+### GENERATING NEW CONFIG FILES
+if args.configs:
+    new_experiments_folder = data_path.joinpath(NEW_EXPERIMENTS_DIR)
+    new_experiments_folder.mkdir(exist_ok=True)
 
-# In[299]:
+    i = 1
+    print('Saving new config files in {}'.format(new_experiments_folder.as_posix()))
+    for result_key in tqdm(results):
+        experiment_folder = new_experiments_folder.joinpath(f'experiment {i}')
+        experiment_folder.mkdir(exist_ok=True)
 
+        optimization_config = deepcopy(NEW_CONFIG_FILE_STUB)
 
-results_df.index
+        # Building constraints list
+        # All regions except for target
+        constraints = [
+            key.split('_')[-1] for key in results if key != result_key
+        ]
 
+        optimization_config['target'] = {result_key: float('inf')}
+        if args.constrained:
+            optimization_config['constraints'] = constraints
 
-# In[300]:
+        with open(experiment_folder.joinpath(NEW_CONFIG_FILE_NAME), 'w') as fobj:
+            json.dump(optimization_config, fobj, indent=4)
 
-
-full_df = pd.concat((dfi, results_df), axis=1)
-
-
-# In[302]:
-
-
-full_df.to_csv(path.joinpath('full_dataset (1).csv'), index=False)
-
-
-# In[303]:
-
-
-result_key
-
-
-# In[304]:
-
-
-full_df_cleared = full_df[(full_df['spec file'] != 1626813487) & (full_df['spec file'] != 1619429009)]
-
-
-# In[305]:
-
-
-full_df_cleared.describe()
-
-
-# In[307]:
-
-
-full_df_cleared[full_df.columns[:11].to_list() + [result_key]].info()
-
-
-# In[311]:
-
-
-import json
-
-
-# In[316]:
-
-
-new_experiments_folder = path.joinpath('individual optimization')
-new_experiments_folder.mkdir(exist_ok=True)
-
-optimization_config = {
-    'max_iterations': 5,
-    'target': {},
-    'algorithm': {
-        'name': 'smbo',
-        'base_estimator': 'GP',
-        'acq_func': 'LCB',
-        'acq_func_kwargs': {'kappa': 0.1},
-        'random_state': 42
-    },
-    'reference': -113.15,
-    'batch_size': 1
-}
-
-i = 1
-for result_key in results:
-    experiment_folder = new_experiments_folder.joinpath(f'experiment {i}')
-    experiment_folder.mkdir(exist_ok=True)
-    
-    optimization_config['target'] = {result_key: float('inf')}
-    
-    with open(experiment_folder.joinpath('optimization_config_exploitation.json'), 'w') as fobj:
-        json.dump(optimization_config, fobj, indent=4)
-    
-#     full_df_cleared[full_df.columns[:11].to_list() + [result_key]].to_csv(experiment_folder.joinpath(f'result_table.csv'), index=False)
-    i += 1
-
-
-# In[276]:
-
-
-full_df_cleared.iloc[:, -12:].describe()
-
-
-# In[ ]:
-
-
-
-
+        # Saving results table
+        if args.constrained:
+            full_df_constrained[full_df.columns[:11].to_list() + [result_key]].to_csv(experiment_folder.joinpath(f'result_table_constrained.csv'), index=False)
+        full_df[full_df.columns[:11].to_list() + [result_key]].to_csv(experiment_folder.joinpath(f'result_table.csv'), index=False)
+        i += 1
