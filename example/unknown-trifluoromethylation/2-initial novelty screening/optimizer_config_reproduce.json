@@ -1,0 +1,12 @@
+{
+    "max_iterations": 10,
+    "target": {
+        "novelty": Infinity
+    },
+    "algorithm": {
+        "name": "fromcsv",
+        "csv_path": "to_reproduce.csv"
+    },
+    "reference": -113.15,
+    "batch_size": 1
+}

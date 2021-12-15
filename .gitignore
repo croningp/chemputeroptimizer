@@ -39,6 +39,7 @@ new_xdl.xdl
 *.jpg
 *.script
 *.7z
+*.svg
 
 tests/example
 **/_archive
@@ -48,3 +49,4 @@ scripts/*
 
 # state file
 **/chemputer_state.json
+*.avi

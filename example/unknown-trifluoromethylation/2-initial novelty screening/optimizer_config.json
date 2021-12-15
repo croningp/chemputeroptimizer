@@ -1,0 +1,12 @@
+{
+    "max_iterations": 10,
+    "target": {
+        "novelty": Infinity
+    },
+    "algorithm": {
+        "name": "random",
+        "random_state": 43
+    },
+    "reference": -113.15,
+    "batch_size": 1
+}
