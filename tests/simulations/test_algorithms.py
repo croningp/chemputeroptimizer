@@ -21,7 +21,7 @@ parser.add_argument('-n', metavar='N', type=int, default=1,
 parser.add_argument('-d', '--dimension', type=int, metavar='N', default=3,
                     help='xi vector dimension')
 parser.add_argument('-a', '--algorithm', type=str, default='Random_',
-                    choices=['Random_', 'SMBO', 'GA'])
+                    choices=['Random_', 'SMBO', 'GA', 'DOE'])
 parser.add_argument('-f', '--function', type=str, default='sphere',
                     choices=[k for k in functions])
 parser.add_argument('--iterations', type=int, default=1000)

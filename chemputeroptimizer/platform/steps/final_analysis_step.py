@@ -62,6 +62,7 @@ class FinalAnalysis(Analyze):
         'cleaning_solvent_vessel': str,
         'priming_waste': str,
         # sample related
+        'sample_pump': str,
         'injection_pump': str,
         'sample_excess_volume': float,
         'dilution_vessel': str,
@@ -79,6 +80,7 @@ class FinalAnalysis(Analyze):
         'instrument',
         'reference_step',
         'priming_waste',
+        'sample_pump',
         'injection_pump',
         'sample_excess_volume',
         'cleaning_solvent_vessel',
@@ -116,6 +118,7 @@ class FinalAnalysis(Analyze):
             instrument: Optional[str] = None,
             reference_step: Optional[JSON_PROP_TYPE] = None,
             priming_waste: Optional[str] = None,
+            sample_pump: Optional[str] = None,
             injection_pump: Optional[str] = None,
             sample_excess_volume: Optional[float] = 'default',
             cleaning_solvent_vessel: Optional[str] = None,

@@ -675,7 +675,6 @@ Enter to continue\n'
         except AttributeError:
             pass
 
-
     def save_batch(self, batch_id: str, spec: AbstractSpectrum = None) -> None:
         """Save individual batch data.
 
