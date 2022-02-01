@@ -4,6 +4,7 @@ SUPPORTED_STEPS_PARAMETERS = {
     'Add': {
         "volume",
         "time",
+        "dispense_speed",
     },
     'AddSolid': {
         "mass",

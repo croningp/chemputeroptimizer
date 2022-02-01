@@ -28,7 +28,7 @@ class SMBO(AbstractAlgorithm):
         "random_state": None,
         "acq_func_kwargs": None,
         "acq_optimizer_kwargs": None,
-        "initial_point_generator":'random'
+        "initial_point_generator":"random"
     }
 
     def __init__(self, dimensions, config=None):

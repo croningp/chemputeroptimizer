@@ -83,17 +83,17 @@ class OptimizerClient:
         Opens connection and registers client socket in default selector.
         """
 
-        try:
-            self.client.connect((DEFAULT_HOST, DEFAULT_PORT))
-            self.client.setblocking(False)
-            self.selector.register(self.client, selectors.EVENT_READ)
-            self.receiver_thread.start()
-        except socket.gaierror:
-            raise ConnectionError('Wrong host address') from None
-        except ConnectionRefusedError:
-            raise ConnectionError('Optimizer server is not running') from None
+        # try:
+        #     self.client.connect((DEFAULT_HOST, DEFAULT_PORT))
+        #     self.client.setblocking(False)
+        #     self.selector.register(self.client, selectors.EVENT_READ)
+        #     self.receiver_thread.start()
+        # except socket.gaierror:
+        #     raise ConnectionError('Wrong host address') from None
+        # except ConnectionRefusedError:
+        #     raise ConnectionError('Optimizer server is not running') from None
 
-        self.logger.info('Connection opened')
+        # self.logger.info('Connection opened')
 
     def initialize(self, init_data):
         """ Initializing algorithm on a server side. """
@@ -185,6 +185,7 @@ retrying', DEFAULT_TIMEOUT)
 
     def query(self, data):
         """ Query new data from server. """
+        print(data)
         self._send(data)
         new_data = self._receive()
 

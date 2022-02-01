@@ -164,6 +164,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
             self._xdl_iter = iter(self.working_xdl.steps)
 
         self._update_analysis_steps()
+        self._update_constrained_steps()
 
     def _update_state(self):
         """Updates state attribute when procedure is over"""
@@ -333,6 +334,8 @@ Enter to continue\n'
 
         self._update_analysis_steps()
 
+        self._update_constrained_steps()
+
         # Load necessary tools
         self._analyzer = SpectraAnalyzer(
             reference=self.reference,  # loaded from the config file
@@ -375,6 +378,35 @@ Enter to continue\n'
         for k, v in kwargs.items():
             self.__dict__[k] = v
 
+    def _update_constrained_steps(self):
+        """Updates the constrained steps"""
+        constrained = None
+        updated_value = None
+        osteps = []
+        
+        # find constrained step
+        for step in self.working_xdl.steps:
+            if step.name == "ConstrainedStep":
+                relevant_ids = step.ids
+                constrained = step
+                updated_value = constrained.target
+            elif step.name == "OptimizeStep":
+                osteps.append(step)
+
+        if not constrained:
+            return
+
+        # find relevant optimize steps
+        for step in osteps:
+            if int(step.id) in relevant_ids:
+                value = step.children[0].properties[constrained.parameter]
+                updated_value -= value
+
+        # update the constrained parameter
+        constrained.children[0].properties[constrained.parameter] = updated_value
+
+
+
     def _update_analysis_steps(self):
         """Updates the analysis steps"""
 
@@ -393,6 +425,11 @@ Enter to continue\n'
                 step.on_finish = self.on_final_analysis
                 return
 
+            # Adding necessary callbacks for the monitoring step
+            if step.name == 'StartMonitoring':
+                step.on_going = self._on_monitoring_update
+                step.on_finish = self._on_monitoring_finish
+
             for substep in step.steps:
                 assign_callback(substep)
 
@@ -403,6 +440,21 @@ Enter to continue\n'
                 step.on_going = self._on_monitoring_update
                 step.on_finish = self._on_monitoring_finish
 
+        # Looking for Analyze steps:
+        for i, step in enumerate(self.working_xdl_copy.steps):
+            if step.name == 'Analyze' or step.name == 'FinalAnalysis':
+                # Updating the cleaning solvent
+                if step.cleaning_solvent is None:
+                    step.cleaning_solvent = organic_cleaning_solvents[i]
+
+                # The reason for an extra call here is to update the vessel for
+                # the cleaning solvent which may only be given after the whole
+                # procedure was prepared and the cleaning schedule is set
+                self.working_xdl_copy.executor.add_internal_properties_to_step(
+                    self._graph,
+                    step
+                )
+
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
             return
@@ -411,7 +463,22 @@ Enter to continue\n'
             self.logger.info('Running with interactive FinalAnalysis method')
             return
 
-        self._get_blank_spectrum(self._graph, analysis_method)
+
+    def _on_monitoring_update(self, spectrum: AbstractSpectrum) -> None:
+        """Callback function to update the spectrum during monitoring.
+
+        Args:
+            spectrum (:obj:AbstractSpectrum): Instance from spectrum class,
+                containing all spectral information.
+        """
+
+        self._analyzer.load_spectrum(spectrum=spectrum)
+
+    def _on_monitoring_finish(self) -> None:
+        """Callback function called when the monitoring is stopped.
+
+        Do nothing for now.
+        """
 
     def _on_monitoring_update(self, spectrum: AbstractSpectrum) -> None:
         """Callback function to update the spectrum during monitoring.

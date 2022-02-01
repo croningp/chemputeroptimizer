@@ -10,7 +10,7 @@ import copy
 
 # AnalyticalLabware spectrum classes
 from AnalyticalLabware.devices import (
-    # RamanSpectrum,
+    RamanSpectrum,
     SpinsolveNMRSpectrum,
     AgilentHPLCChromatogram
 )
@@ -144,6 +144,16 @@ def find_closest_region(regions, point, method='mean', threshold=0.0):
         return np.array([])
     return regions[np.argmin(diff_map)]
 
+
+def normalize(self, data, peak, mode='height'):
+    """Normalizes the spectrum with respect to a peak."""
+    if mode == "height":
+        #TODO get height for data[peak]
+        # return data / height
+        pass
+    else:
+        raise NotImplementedError("Mode not supported.")
+
 class SpectraAnalyzer():
     """General class for analyzing spectra differences.
 
@@ -245,6 +255,9 @@ class SpectraAnalyzer():
         """
 
         # spectra specific analysis
+        if isinstance(self.spectra[-1], RamanSpectrum):
+            return self._raman_analysis(reference, target)
+
         if isinstance(self.spectra[-1], AgilentHPLCChromatogram):
             return self._hplc_analysis(reference, target, constraints)
 
@@ -489,6 +502,24 @@ target peak, resolving')
                 novelty = self._nmr_novelty_analysis(spec)
                 return {target_parameter: novelty}
 
+    def _raman_analysis(self, reference, target):
+        self.logger.debug('Processing spectrum from Raman')
+        # looking only in the most recent uploaded spectrum
+        spec = self.spectra[-1]
+        spec.trim(700, 2600)
+        spec.default_processing()
+
+        for objective in target:
+            if 'spectrum' in objective:
+                if 'peak-area' in objective:
+                    _, _, peak_position = objective.split('_')
+                    AUC_target = spec.integrate_area((float(peak_position) - 13, float(peak_position) + 17))
+                    AUC_istandard = spec.integrate_area((float(reference) - 18, float(reference) + 17))
+                    fitness = AUC_target / AUC_istandard
+
+                    #FIXME: reflect "-" in the target name
+                    return {objective: -fitness}
+
     def _hplc_analysis(self, reference, target, constraints):
         """
         Calculates Fitness = AUC_target / AUC_istandard.
@@ -514,6 +545,7 @@ target peak, resolving')
                     area=(spec.x.min(), spec.x.max())
                 )
                 return {objective: peaks.shape[0]}
+
             elif 'multi' in objective:
                 # maximizing area & purity
 
@@ -543,7 +575,6 @@ target peak, resolving')
                 fitness = weight * const * rel_yield + (1 - weight) * rel_purity
                 self.logger.info(f'Area: {rel_yield}, Purity: {rel_purity}')
                 return {objective: fitness}
-
 
     def _nmr_novelty_analysis(self, spec: SpinsolveNMRSpectrum) -> List[float]:
         """Calculates novelty score for the given spectrum and all previously

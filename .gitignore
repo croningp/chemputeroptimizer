@@ -1,6 +1,7 @@
 # Project dirs
 build/
 documentation/_build
+examples/raman/!old
 
 # Python
 .ipynb_checkpoints
@@ -29,6 +30,7 @@ new_xdl.xdl
 **/iterations*
 *.tsv
 *.csv
+*.avi
 
 # analytical data
 *.pickle
