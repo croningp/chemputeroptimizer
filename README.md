@@ -60,12 +60,6 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.3.2 alpha0
-
-* Updated the OptimizerClient (and corresponding Server, see croningroup/personal/ail/summitserver!4)
-  * Supported algorithms are: "SOBO", "ENTMOOT", "SNOBFIT" (see details in [summit docs](https://gosummit.readthedocs.io/en/latest/strategies.html)).
-  * Work in progress, stability is not guaranteed!
-
 ### v0.3.3 alpha0
 
 * Novelty search updated and integrated with batch wise operation. See notes in [novelty search](/chemputeroptimizer/utils/novelty_search.md).
@@ -74,6 +68,11 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 * Fixed `FromCSV` algorithm working in multiple batches (see #85).
 * Fixed certain algorithm from reinstantiation during novelty search (see #93).
 * Improved data saving (see #80).
+
+### v0.3.5 alpha0
+* Added basic constrained optimization (see discussion in #91).
+* Improved processing and analysis for the HPLC and Raman feedback.
+* Updated script for novel product search.
 
 ## Development
 
