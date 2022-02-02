@@ -383,7 +383,7 @@ Enter to continue\n'
         constrained = None
         updated_value = None
         osteps = []
-        
+
         # find constrained step
         for step in self.working_xdl.steps:
             if step.name == "ConstrainedStep":
@@ -439,21 +439,6 @@ Enter to continue\n'
             if step.name == 'StartMonitoring':
                 step.on_going = self._on_monitoring_update
                 step.on_finish = self._on_monitoring_finish
-
-        # Looking for Analyze steps:
-        for i, step in enumerate(self.working_xdl_copy.steps):
-            if step.name == 'Analyze' or step.name == 'FinalAnalysis':
-                # Updating the cleaning solvent
-                if step.cleaning_solvent is None:
-                    step.cleaning_solvent = organic_cleaning_solvents[i]
-
-                # The reason for an extra call here is to update the vessel for
-                # the cleaning solvent which may only be given after the whole
-                # procedure was prepared and the cleaning schedule is set
-                self.working_xdl_copy.executor.add_internal_properties_to_step(
-                    self._graph,
-                    step
-                )
 
         if analysis_method is None:
             self.logger.info('No analysis steps found!')
