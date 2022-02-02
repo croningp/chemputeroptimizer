@@ -164,7 +164,8 @@ method', last_meaningful_step.name, position)
             )
 
     def _initialize_optimize_step(self) -> None:
-        """Initialize Optimize Dynamic step with relevant optimization parameters"""
+        """Initialize Optimize Dynamic step with relevant optimization
+            parameters"""
 
         self.optimizer = OptimizeDynamicStep(
             original_xdl=self._xdl_object,
@@ -204,8 +205,8 @@ method', last_meaningful_step.name, position)
             if step != self._xdl_object.steps[int(sid)].name:
                 raise OptimizerError(
                     f'Step "{step}" does not match original procedure \
-at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].name}.'
-                )
+at position {sid}, procedure.steps[{sid}] is \
+{self._xdl_object.steps[int(sid)].name}.')
 
         return optimization_steps
 
@@ -382,6 +383,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         }
         procedure_target = opt_params['target']
         batch_size = opt_params['batch_size']
+        control = opt_params['control']
         # Validation
         validate_algorithm_batch_size(algorithm_name, batch_size)
 
@@ -392,6 +394,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
             proc_params=procedure_parameters,
             proc_target=procedure_target,
             batch_size=batch_size,
+            control=control,
         )
 
         self.logger.info('Loaded the following parameter dict %s', opt_params)
@@ -412,7 +415,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
 
         self.optimizer.execute(chempiler)
 
-    def initialize_algorithm(
+    def  initialize_algorithm(
         self,
         algorithm_name: str,
         algorithm_config: Dict[str, Any],
@@ -420,6 +423,7 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         proc_params: Dict[str, Dict[str, Any]],
         proc_target: Dict[str, Any],
         batch_size: int,
+        control: Dict[str, int],
     ) -> None:
         """Initialize the AlgorithmAPI and underlying algorithm class.
 
@@ -438,6 +442,10 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
                 parameters keys and values as their constraints.
             proc_target (Dict[str, Any]): Dictionary with the target parameters
                 for the given procedure.
+            batch_size (int): Number of parallel optimizations to perform. Must
+                be consistent with number of available hardware modules, as
+                no additional checks are performed.
+            control (Dict[str, int]): Parameters to run the control experiment.
         """
         # Updating placeholders
         self.algorithm.method_name = algorithm_name
@@ -447,11 +455,13 @@ at position {sid}, procedure.steps[{sid}] is {self._xdl_object.steps[int(sid)].n
         # Special function (proc_data) to forge nested dictionary
         # Used for Optimizer Client
         self.algorithm.initialize(proc_data(
-            proc_hash=proc_hash,
-            parameters=proc_params,
-            target=proc_target,
-            batch_size=batch_size,
-        ))
+                proc_hash=proc_hash,
+                parameters=proc_params,
+                target=proc_target,
+                batch_size=batch_size
+            ),
+            control=control,
+        )
 
     def load_previous_results(self,
                               results: str, update_xdl: bool = True) -> None:

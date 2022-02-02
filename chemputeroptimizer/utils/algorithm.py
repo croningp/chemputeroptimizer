@@ -68,6 +68,10 @@ class AlgorithmAPI():
         # To know when algorithm is first initialized
         self.preload: bool = False
 
+        # To run the control experiment
+        self.control: bool = False  # Flag to know experiment is a control one
+        self.control_options: Dict[str, int] = None
+
     @property
     def method_name(self) -> str:
         """Name of the selected algorithm."""
@@ -155,7 +159,7 @@ class AlgorithmAPI():
         self.preload = True
         self.method_name = method_name
 
-    def initialize(self, data):
+    def initialize(self, data, control=None):
         """First call to initialize the optimization algorithm class."""
 
         self.load_data(data['parameters'])
@@ -184,6 +188,9 @@ class AlgorithmAPI():
                 config=self.method_config,
                 constraints=self.setup_constraints.values()
             )
+
+        if control is not None:
+            self.control_options = control
 
     def load_data(
         self,
