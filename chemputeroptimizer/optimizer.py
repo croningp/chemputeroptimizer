@@ -415,7 +415,7 @@ at position {sid}, procedure.steps[{sid}] is \
 
         self.optimizer.execute(chempiler)
 
-    def  initialize_algorithm(
+    def initialize_algorithm(
         self,
         algorithm_name: str,
         algorithm_config: Dict[str, Any],

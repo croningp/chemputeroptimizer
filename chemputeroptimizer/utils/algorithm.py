@@ -71,6 +71,7 @@ class AlgorithmAPI():
         # To run the control experiment
         self.control: bool = False  # Flag to know experiment is a control one
         self.control_options: Dict[str, int] = None
+        self.iterations: int = 0  # Counting the number of performed experiments
 
     @property
     def method_name(self) -> str:
@@ -214,6 +215,12 @@ class AlgorithmAPI():
             current_result (Dict[str, float]): current results of the
                 experiment {'result_param': <value>}, grouped by batch.
         """
+
+        # Do nothing if it was a control experiment
+        if self.control:
+            # Just reset the flag
+            self.control = False
+            return
 
         # Stripping input from parameter constraints
         for batch_id, batch_data in data.items():
@@ -384,6 +391,19 @@ class AlgorithmAPI():
 
         self.logger.info('Optimizing parameters.')
 
+        # Since every new iteration calls next setup
+        # Counting number of performed iterations here
+        self.iterations += 1
+
+        # Check for control experiment needed
+        if self.control_options['n_runs'] > 0 \
+        and self.iterations >= self.control_options['every']:
+            # Reset iterations count
+            self.iterations = 0
+            # Setting the flag
+            self.control = True
+            return self.query_control_experiment()
+
         if n_batches is None:
             n_batches = len(self.current_setup)
 
@@ -495,3 +515,11 @@ see below:\n%s', reply['exception'])
             )
             with open(file_path, 'w') as fobj:
                 json.dump(self.strategy, fobj, indent=4)
+
+    def query_control_experiment(self):
+        """Return the parameters for the control experiment.
+
+        The parameters are chosen randomly from the list of previously
+        used for optimization.
+        """
+

@@ -448,7 +448,6 @@ Enter to continue\n'
             self.logger.info('Running with interactive FinalAnalysis method')
             return
 
-
     def _on_monitoring_update(self, spectrum: AbstractSpectrum) -> None:
         """Callback function to update the spectrum during monitoring.
 
