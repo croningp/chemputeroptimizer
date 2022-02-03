@@ -395,6 +395,13 @@ class AlgorithmAPI():
         # Counting number of performed iterations here
         self.iterations += 1
 
+        if n_batches is None:
+            n_batches = len(self.current_setup)
+
+        # Number of points to return from the algorithm
+        # Normally equals to number of batches
+        n_returns = n_batches
+
         # Check for control experiment needed
         if self.control_options['n_runs'] > 0 \
         and self.iterations >= self.control_options['every']:
@@ -402,14 +409,7 @@ class AlgorithmAPI():
             self.iterations = 0
             # Setting the flag
             self.control = True
-            return self.query_control_experiment()
-
-        if n_batches is None:
-            n_batches = len(self.current_setup)
-
-        # Number of points to return from the algorithm
-        # Normally equals to number of batches
-        n_returns = n_batches
+            return self.query_control_experiment(n_returns)
 
         if self.preload:
             # Feeding all experimental data to algorithm
@@ -516,10 +516,20 @@ see below:\n%s', reply['exception'])
             with open(file_path, 'w') as fobj:
                 json.dump(self.strategy, fobj, indent=4)
 
-    def query_control_experiment(self):
+    def query_control_experiment(self, n_returns: int) -> Dict:
         """Return the parameters for the control experiment.
 
         The parameters are chosen randomly from the list of previously
         used for optimization.
         """
+        # Random generator
+        rng = np.random.default_rng(43)
+        # Picking up random parameters
+        control_params = rng.choice(self.parameter_matrix, size=n_returns)
+        self.logger.info('Running control experiment.')
+        self.logger.debug('Parameters selected for the control experiment: %s',
+            list(control_params))
+        # Packing into dictionary
+        self._remap_data(control_params)
 
+        return self.current_setup
