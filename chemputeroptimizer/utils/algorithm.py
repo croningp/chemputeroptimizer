@@ -39,6 +39,8 @@ NON_REINITIALIZED_ALGORITHMS = [
     'fromcsv',
 ]
 
+DEFAULT_RNG_SEED = 43
+
 
 class AlgorithmAPI():
     """General class to provide interface for algorithmic optimization."""
@@ -71,6 +73,7 @@ class AlgorithmAPI():
         # To run the control experiment
         self.control: bool = False  # Flag to know experiment is a control one
         self.control_options: Dict[str, int] = None
+        self.control_experiment_idx: Dict[str, int] = None
         self.iterations: int = 0  # Counting the number of performed experiments
 
     @property
@@ -523,9 +526,14 @@ see below:\n%s', reply['exception'])
         used for optimization.
         """
         # Random generator
-        rng = np.random.default_rng(43)
-        # Picking up random parameters
-        control_params = rng.choice(self.parameter_matrix, size=n_returns)
+        rng = np.random.default_rng(DEFAULT_RNG_SEED)
+        # Selecting random parameters from last N runs
+        control_params_ids = rng.integers(
+            low=1,
+            high=self.control_options['every'] + 1,  # Last N experiments
+            size=self.control_options['n_returns'],
+        )
+        control_params = self.parameter_matrix[-control_params_ids]
         self.logger.info('Running control experiment.')
         self.logger.debug('Parameters selected for the control experiment: %s',
             list(control_params))

@@ -670,3 +670,21 @@ target peak, resolving')
             spec.load_data(spec_fp)
             spec.reference_spectrum(self.reference, 'closest')
             self.spectra.append(spec)
+
+    def control_analysis(
+        self,
+        spectrum,
+        control_experiment_idx,
+    ):
+        """Process the spectrum from the control experiment.
+
+        Special case to compare it with one of the previously measured spectrum.
+
+        Args:
+            spectrum (:obj:AnalyticalLabware.AbstractSpectrum): Spectrum object,
+                contaning methods for performing basic processing and analysis.
+            control_experiment_idx (int): Id of the previous experiment to
+                compare the control experiment to.
+        """
+
+        return 42

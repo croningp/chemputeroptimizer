@@ -555,6 +555,13 @@ Enter to continue\n'
                     methods for performing basic processing and analysis.
             """
 
+            # Special case - analyze the control experiment
+            if self.algorithm_class.control:
+                result = self._analyzer.control_analysis(
+                    spectrum,
+                    self.algorithm_class.control_experiment_idx
+                )
+
             self._analyzer.load_spectrum(spectrum)
 
             # Final parsing occurs in SpectraAnalyzer.final_analysis
