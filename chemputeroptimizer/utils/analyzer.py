@@ -211,15 +211,25 @@ class SpectraAnalyzer():
                 in self.load_spectrum.__doc__.
         """
 
-    def spectra_difference(self):
-        """Compares two most recent spectra.
+    def spectra_difference(self, spectrum1, spectrum2):
+        """Compares two spectra.
 
-        Subtract two spectra and give an average difference based on integration
-        of the result.
+        Args:
+            spectrum1, spectrum2 - spectra to calculate the difference.
 
         Returns:
             (float): An average difference between spectra.
         """
+
+        #TODO: additional logic for spectra comparison
+        # For now just take an average difference of the Y axis
+        # Assuming its the same
+        try:
+            return np.abs(np.mean(spectrum1.y, spectrum2.y))
+
+        #FIXME: return something meaningful if there is a data mismatch
+        except ValueError:
+            return 42
 
     def final_analysis(
         self,
@@ -687,4 +697,7 @@ target peak, resolving')
                 compare the control experiment to.
         """
 
-        return 42
+        return self.spectra_difference(
+            spectrum1=spectrum,
+            spectrum2=self.spectra[control_experiment_idx]
+        )

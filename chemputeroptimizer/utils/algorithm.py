@@ -75,7 +75,7 @@ class AlgorithmAPI():
         # To run the control experiment
         self.control: bool = False  # Flag to know experiment is a control one
         self.control_options: Dict[str, int] = None
-        self.control_experiment_idx: Dict[str, int] = None
+        self.control_experiment_idx: Dict[str, int] = {}
         self.iterations: int = 0  # Counting the number of performed experiments
 
     @property
@@ -529,6 +529,11 @@ see below:\n%s', reply['exception'])
             high=self.control_options['every'] + 1,  # Last N experiments
             size=self.control_options['n_returns'],
         )
+        # Saving indexes batchwise
+        for batch, control_id in zip(
+            self.current_setup.keys(), control_params_ids):
+            self.control_experiment_idx[batch] = control_id
+        # Fetching control parameters
         control_params = self.parameter_matrix[-control_params_ids]
         self.logger.info('Running control experiment.')
         self.logger.debug('Parameters selected for the control experiment: %s',

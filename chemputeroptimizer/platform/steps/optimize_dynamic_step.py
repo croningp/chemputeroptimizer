@@ -559,7 +559,7 @@ Enter to continue\n'
             if self.algorithm_class.control:
                 result = self._analyzer.control_analysis(
                     spectrum,
-                    self.algorithm_class.control_experiment_idx
+                    self.algorithm_class.control_experiment_idx[batch_id]
                 )
 
             self._analyzer.load_spectrum(spectrum)
