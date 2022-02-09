@@ -73,11 +73,13 @@ class AlgorithmAPI():
         # To know when algorithm is first initialized
         self.preload: bool = False
 
-        # To run the control experiment
-        self.control: bool = False  # Flag to know experiment is a control one
+        ### To run the control experiment
+        # Counting number of the control experiment performed
+        self.control: int = 0
         self.control_options: Dict[str, int] = None
         self.control_experiment_idx: Dict[str, int] = {}
-        self.iterations: int = 0  # Counting the number of performed experiments
+        # Counting the number of performed experiments
+        self.iterations: int = 0
         # Random generator
         self.rng = np.random.default_rng(DEFAULT_RNG_SEED)
 
@@ -230,8 +232,9 @@ class AlgorithmAPI():
         if self.control:
             # Additional validation here
             self.validate_control_experiment(result)
-            # Reset the flag
-            self.control = False
+            # Reset the count if enough performed
+            if self.control >= self.control_options['n_runs']:
+                self.control = 0
             # Do nothing else
             return
 
@@ -418,8 +421,7 @@ class AlgorithmAPI():
         # Check for control experiment needed
         if (self.control_options['n_runs'] > 0
             and self.iterations % self.control_options['every'] == 0):
-            # Setting the flag
-            self.control = True
+
             return self.query_control_experiment(n_returns)
 
         if self.preload:
@@ -534,17 +536,23 @@ see below:\n%s', reply['exception'])
             high=self.control_options['every'] + 1,  # Last N experiments
             size=n_returns,
         )
+
         # Saving indexes batchwise
         for batch, control_id in zip(
             self.current_setup.keys(), control_params_ids):
             self.control_experiment_idx[batch] = control_id
+
         # Fetching control parameters
         control_params = self.parameter_matrix[-control_params_ids]
         self.logger.info('Running control experiment.')
         self.logger.debug('Parameters selected for the control experiment: %s',
             list(control_params))
+
         # Packing into dictionary
         self._remap_data(control_params)
+
+        # Updating the count
+        self.control += n_returns
 
         return self.current_setup
 
