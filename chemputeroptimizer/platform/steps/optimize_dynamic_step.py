@@ -462,22 +462,6 @@ Enter to continue\n'
         Do nothing for now.
         """
 
-    def _on_monitoring_update(self, spectrum: AbstractSpectrum) -> None:
-        """Callback function to update the spectrum during monitoring.
-
-        Args:
-            spectrum (:obj:AbstractSpectrum): Instance from spectrum class,
-                containing all spectral information.
-        """
-
-        self._analyzer.load_spectrum(spectrum=spectrum)
-
-    def _on_monitoring_finish(self) -> None:
-        """Callback function called when the monitoring is stopped.
-
-        Do nothing for now.
-        """
-
     def _get_blank_spectrum(self, graph, method):
         """Step to measure blank spectrum"""
 
@@ -655,10 +639,11 @@ Enter to continue\n'
             return [next_step]
 
         except StopIteration:
-            # Procedure is over, checking and restarting
 
-            self._check_flasks_full(self._platform_controller)
-            self._check_wastes_empty(self._platform_controller)
+            # Procedure is over, checking and restarting
+            if not self._platform_controller.simulation:
+                self._check_flasks_full(self._platform_controller)
+                self._check_wastes_empty(self._platform_controller)
 
             # All necessary updates wrapped in single method
             self.on_iteration_complete()
@@ -748,7 +733,6 @@ Enter to continue\n'
 
         # Saving schedule if exists
         try:
-
             schedule_fp = self.iterations_path.joinpath(
                 xdl_path.stem + '_schedule.json'
             )
@@ -759,6 +743,13 @@ Enter to continue\n'
         # I.e. single batch
         except AttributeError:
             pass
+
+        # Saving the state to preserve information about control experiment
+        state_fp = self.iterations_path.joinpath(
+            xdl_path.stem + '_state.json'
+        )
+        with open(state_fp, 'w') as fobj:
+            json.dump(self.state, fobj, indent=4)
 
     def save_batch(self, batch_id: str, spec: AbstractSpectrum = None) -> None:
         """Save individual batch data.

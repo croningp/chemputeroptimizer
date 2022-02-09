@@ -4,7 +4,7 @@ The repo contains the optimizer package for Chemputer platform to perform intera
 
 ## Installation
 
-1. Clone the repo into desired folder. Versions tagged with *alpha* (e.g. `v0.3.0a0`) are not extensively tested, consider using a stable version (e.g. `v0.2.5`).
+1. Clone the repo into desired folder. Versions tagged with *alpha* (e.g. `v0.3.0a0`) are **not extensively tested**, consider using a stable version (e.g. `v0.2.5`).
 ```bash
 git clone -b v0.2.5 --single--branch https://gitlab.com/croningroup/chemputer/chemputeroptimizer.git chemputeroptimizer
 
@@ -60,10 +60,6 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.3.3 alpha0
-
-* Novelty search updated and integrated with batch wise operation. See notes in [novelty search](/chemputeroptimizer/utils/novelty_search.md).
-
 ### v0.3.4 alpha0
 * Fixed `FromCSV` algorithm working in multiple batches (see #85).
 * Fixed certain algorithm from reinstantiation during novelty search (see #93).
@@ -73,6 +69,12 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 * Added basic constrained optimization (see discussion in #91).
 * Improved processing and analysis for the HPLC and Raman feedback.
 * Updated script for novel product search.
+
+### v0.3.6 alpha0
+* Minor code fixes after merging Raman and HPLC branches.
+* Added automatic control experiment every N iterations (see #92).
+* Saving state of the `OptimizeDynamicStep` to preserve information about control  experiment result.
+* Simulation improved by suppressing flasks/wastes checks.
 
 ## Development
 

@@ -1,3 +1,4 @@
 xdl @ git+ssh://git@gitlab.com/croningroup/chemputer/xdl.git@legacy-0.5.0#egg=xdl
 chemputerxdl @ git+ssh://git@gitlab.com/croningroup/chemputer/chemputerxdl.git@legacy-1.0.0#egg=chemputerxdl
 AnalyticalLabware @ git+ssh://git@gitlab.com/croningroup/chemputer/analyticallabware.git#egg=AnalyticalLabware[agilent,spinsolve,oceanoptics]
+chempiler @ git+ssh://git@gitlab.com/croningroup/chemputer/chemputerxdl.git@legacy-2.0.9#egg=chempiler
