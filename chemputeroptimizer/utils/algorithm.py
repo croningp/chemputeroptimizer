@@ -235,6 +235,8 @@ class AlgorithmAPI():
             # Reset the count if enough performed
             if self.control >= self.control_options['n_runs']:
                 self.control = 0
+                # Shifting number of iteratons to continue
+                self.iterations += 1
             # Do nothing else
             return
 
@@ -553,6 +555,9 @@ see below:\n%s', reply['exception'])
 
         # Updating the count
         self.control += n_returns
+
+        # Ignoring control experiments in iterations count
+        self.iterations -= n_returns
 
         return self.current_setup
 
