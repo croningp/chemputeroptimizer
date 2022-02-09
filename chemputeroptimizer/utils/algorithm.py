@@ -6,6 +6,7 @@ import logging
 import os
 import json
 
+from copy import deepcopy
 from typing import Dict, Tuple, Optional, List, Any, Iterable
 
 import numpy as np
@@ -221,10 +222,15 @@ class AlgorithmAPI():
                 experiment {'result_param': <value>}, grouped by batch.
         """
 
-        # Do nothing if it was a control experiment
+        # Special treatment of the control experiment results
+        # Those are not added to the final table of parameters/results
+        # And saved separately
         if self.control:
-            # Just reset the flag
+            # Additional validation here
+            self.validate_control_experiment(result)
+            # Reset the flag
             self.control = False
+            # Do nothing else
             return
 
         # Stripping input from parameter constraints
@@ -408,8 +414,8 @@ class AlgorithmAPI():
         n_returns = n_batches
 
         # Check for control experiment needed
-        if self.control_options['n_runs'] > 0 \
-        and self.iterations >= self.control_options['every']:
+        if (self.control_options['n_runs'] > 0
+            and self.iterations >= self.control_options['every']):
             # Reset iterations count
             self.iterations = 0
             # Setting the flag
@@ -527,7 +533,7 @@ see below:\n%s', reply['exception'])
         control_params_ids = rng.integers(
             low=1,
             high=self.control_options['every'] + 1,  # Last N experiments
-            size=self.control_options['n_returns'],
+            size=n_returns,
         )
         # Saving indexes batchwise
         for batch, control_id in zip(
@@ -542,3 +548,14 @@ see below:\n%s', reply['exception'])
         self._remap_data(control_params)
 
         return self.current_setup
+
+    def validate_control_experiment(self, control_result) -> Any:
+        """Validate the results of the control experiment.
+
+        Only saves data for now
+        """
+
+        self.logger.info(
+            'Validating control experiment: %.2f', control_result)
+
+        #TODO: additional logic here

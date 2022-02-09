@@ -225,7 +225,7 @@ class SpectraAnalyzer():
         # For now just take an average difference of the Y axis
         # Assuming its the same
         try:
-            return np.abs(np.mean(spectrum1.y, spectrum2.y))
+            return np.abs(np.mean(spectrum1.y - spectrum2.y))
 
         #FIXME: return something meaningful if there is a data mismatch
         except ValueError:
@@ -697,7 +697,13 @@ target peak, resolving')
                 compare the control experiment to.
         """
 
-        return self.spectra_difference(
+        control_result = self.spectra_difference(
             spectrum1=spectrum,
-            spectrum2=self.spectra[control_experiment_idx]
+            # Indexing from last
+            spectrum2=self.spectra[-control_experiment_idx]
         )
+
+        self.logger.info('Analyzing control experiment. Result: %.2f',
+            control_result)
+
+        return control_result
