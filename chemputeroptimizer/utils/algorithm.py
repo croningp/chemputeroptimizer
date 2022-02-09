@@ -570,4 +570,11 @@ see below:\n%s', reply['exception'])
         self.logger.info(
             'Validating control experiment: %.2f', control_result)
 
+        # "Special" treatment for the novelty experiment
+        if 'novelty' in control_result['batch 1']:
+            # Rewriting the result to contain only the latest result
+            for batch_id in control_result:
+                control_result[batch_id]['novelty'] = \
+                    control_result[batch_id]['novelty'].pop(-1)
+
         #TODO: additional logic here
