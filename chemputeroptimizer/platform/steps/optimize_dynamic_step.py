@@ -405,8 +405,6 @@ Enter to continue\n'
         # update the constrained parameter
         constrained.children[0].properties[constrained.parameter] = updated_value
 
-
-
     def _update_analysis_steps(self):
         """Updates the analysis steps"""
 
@@ -555,13 +553,6 @@ Enter to continue\n'
                     methods for performing basic processing and analysis.
             """
 
-            # Special case - analyze the control experiment
-            if self.algorithm_class.control:
-                result = self._analyzer.control_analysis(
-                    spectrum,
-                    self.algorithm_class.control_experiment_idx[batch_id]
-                )
-
             self._analyzer.load_spectrum(spectrum)
 
             # Final parsing occurs in SpectraAnalyzer.final_analysis
@@ -581,7 +572,36 @@ Enter to continue\n'
             # procedure when finished
             self.state['updated'] = False
 
+            # Special case - analyze the control experiment
+            if self.algorithm_class.control:
+                # Calculate special control result
+                control_result = self._analyzer.control_analysis(
+                    spectrum,
+                    self.algorithm_class.control_experiment_idx[batch_id]
+                )
+                # Save it
+                self.state['control_result'] = control_result
+                # Remove control spectrum from the list of spectra
+                # This is mainly done to preserve the pipeline of the
+                # Novelty exploration, where the spectra are compared
+                self._analyzer.spectra.pop()
+
         return update_result
+
+    def _check_control(self) -> bool:
+        """Check the results of the control experiment.
+
+        The validation is based on the result returned after spectra comparison
+        in the SpectraAnalyzer class. Any additional comparison logic should
+        be written there. This method is a utility method to validate the
+        result of the control experiment and decide, whether the optimization
+        is worth proceeding.
+
+        Does nothing for now.
+        """
+
+        #TODO
+        return True
 
     def _check_termination(self):
 
@@ -678,6 +698,13 @@ Enter to continue\n'
             )
             # Saving
             self.save()
+
+            if not self._check_control():
+                # Do something if the control experiment result is not
+                # Satisfying
+                #TODO: additional logic here if needed
+                pass
+
             # Updating xdls for the next round of iterations
             self.update_steps_parameters()
             self._update_state()
