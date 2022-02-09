@@ -78,6 +78,8 @@ class AlgorithmAPI():
         self.control_options: Dict[str, int] = None
         self.control_experiment_idx: Dict[str, int] = {}
         self.iterations: int = 0  # Counting the number of performed experiments
+        # Random generator
+        self.rng = np.random.default_rng(DEFAULT_RNG_SEED)
 
     @property
     def method_name(self) -> str:
@@ -527,10 +529,9 @@ see below:\n%s', reply['exception'])
         The parameters are chosen randomly from the list of previously
         used for optimization.
         """
-        # Random generator
-        rng = np.random.default_rng(DEFAULT_RNG_SEED)
+
         # Selecting random parameters from last N runs
-        control_params_ids = rng.integers(
+        control_params_ids = self.rng.integers(
             low=1,
             high=self.control_options['every'] + 1,  # Last N experiments
             size=n_returns,
