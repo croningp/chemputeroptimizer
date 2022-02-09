@@ -771,7 +771,11 @@ Enter to continue\n'
         # Updating path for saving data
         self.iterations_path = self._get_data_path()
         xdl_path = Path(self.original_xdl._xdl_file)
-        batch_path = self.iterations_path.joinpath(batch_id)
+        batch_dir = '{}{}'.format(
+            batch_id,
+            ' control' if self.algorithm_class.control else ''
+        )
+        batch_path = self.iterations_path.joinpath(batch_dir)
         batch_path.mkdir(parents=True, exist_ok=True)
 
         # Forging batch data
