@@ -417,9 +417,7 @@ class AlgorithmAPI():
 
         # Check for control experiment needed
         if (self.control_options['n_runs'] > 0
-            and self.iterations >= self.control_options['every']):
-            # Reset iterations count
-            self.iterations = 0
+            and self.iterations % self.control_options['every'] == 0):
             # Setting the flag
             self.control = True
             return self.query_control_experiment(n_returns)
