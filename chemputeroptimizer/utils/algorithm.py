@@ -6,6 +6,7 @@ import logging
 import os
 import json
 
+from copy import deepcopy
 from typing import Dict, Tuple, Optional, List, Any, Iterable
 
 import numpy as np
@@ -17,6 +18,7 @@ from ..algorithms import (
     DOE,
     FromCSV,
     AbstractAlgorithm,
+    Reproduce,
 )
 from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
 from .errors import NoDataError
@@ -27,7 +29,7 @@ ALGORITHMS = {
     'smbo': SMBO,
     'ga': GA,
     'doe': DOE,
-    'reproduce': lambda *args, **kwargs: None,
+    'reproduce': Reproduce,
     'fromcsv': FromCSV,
 }
 
@@ -37,7 +39,10 @@ ALGORITHMS = {
 NON_REINITIALIZED_ALGORITHMS = [
     'random',
     'fromcsv',
+    'reproduce',
 ]
+
+DEFAULT_RNG_SEED = 43
 
 
 class AlgorithmAPI():
@@ -67,6 +72,16 @@ class AlgorithmAPI():
 
         # To know when algorithm is first initialized
         self.preload: bool = False
+
+        ### To run the control experiment
+        # Counting number of the control experiment performed
+        self.control: int = 0
+        self.control_options: Dict[str, int] = None
+        self.control_experiment_idx: Dict[str, int] = {}
+        # Counting the number of performed experiments
+        self.iterations: int = 0
+        # Random generator
+        self.rng = np.random.default_rng(DEFAULT_RNG_SEED)
 
     @property
     def method_name(self) -> str:
@@ -155,7 +170,7 @@ class AlgorithmAPI():
         self.preload = True
         self.method_name = method_name
 
-    def initialize(self, data):
+    def initialize(self, data, control=None):
         """First call to initialize the optimization algorithm class."""
 
         self.load_data(data['parameters'])
@@ -185,6 +200,9 @@ class AlgorithmAPI():
                 constraints=self.setup_constraints.values()
             )
 
+        if control is not None:
+            self.control_options = control
+
     def load_data(
         self,
         data: Dict[str, Dict[str, Dict[str, float]]],
@@ -207,6 +225,20 @@ class AlgorithmAPI():
             current_result (Dict[str, float]): current results of the
                 experiment {'result_param': <value>}, grouped by batch.
         """
+
+        # Special treatment of the control experiment results
+        # Those are not added to the final table of parameters/results
+        # And saved separately
+        if self.control:
+            # Additional validation here
+            self.validate_control_experiment(result)
+            # Reset the count if enough performed
+            if self.control >= self.control_options['n_runs']:
+                self.control = 0
+                # Shifting number of iteratons to continue
+                self.iterations += 1
+            # Do nothing else
+            return
 
         # Stripping input from parameter constraints
         for batch_id, batch_data in data.items():
@@ -377,12 +409,22 @@ class AlgorithmAPI():
 
         self.logger.info('Optimizing parameters.')
 
+        # Since every new iteration calls next setup
+        # Counting number of performed iterations here
+        self.iterations += 1
+
         if n_batches is None:
             n_batches = len(self.current_setup)
 
         # Number of points to return from the algorithm
         # Normally equals to number of batches
         n_returns = n_batches
+
+        # Check for control experiment needed
+        if (self.control_options['n_runs'] > 0
+            and self.iterations % self.control_options['every'] == 0):
+
+            return self.query_control_experiment(n_returns)
 
         if self.preload:
             # Feeding all experimental data to algorithm
@@ -428,12 +470,6 @@ see below:\n%s', reply['exception'])
             # else updating
             # self.strategy = reply.pop('strategy')
             self.current_setup.update(reply)
-
-        elif self.method_name == 'reproduce':
-            # Special case for "reproduce" algorithm
-            # Just return the current setup
-            # TODO this is a bit ugly, must find a better way!
-            return self.current_setup
 
         else:
             self._calculated = self.algorithm.suggest(
@@ -488,3 +524,57 @@ see below:\n%s', reply['exception'])
             )
             with open(file_path, 'w') as fobj:
                 json.dump(self.strategy, fobj, indent=4)
+
+    def query_control_experiment(self, n_returns: int) -> Dict:
+        """Return the parameters for the control experiment.
+
+        The parameters are chosen randomly from the list of previously
+        used for optimization.
+        """
+
+        # Selecting random parameters from last N runs
+        control_params_ids = self.rng.integers(
+            low=1,
+            high=self.control_options['every'] + 1,  # Last N experiments
+            size=n_returns,
+        )
+
+        # Saving indexes batchwise
+        for batch, control_id in zip(
+            self.current_setup.keys(), control_params_ids):
+            self.control_experiment_idx[batch] = control_id
+
+        # Fetching control parameters
+        control_params = self.parameter_matrix[-control_params_ids]
+        self.logger.info('Running control experiment.')
+        self.logger.debug('Parameters selected for the control experiment: %s',
+            list(control_params))
+
+        # Packing into dictionary
+        self._remap_data(control_params)
+
+        # Updating the count
+        self.control += n_returns
+
+        # Ignoring control experiments in iterations count
+        self.iterations -= n_returns
+
+        return self.current_setup
+
+    def validate_control_experiment(self, control_result) -> Any:
+        """Validate the results of the control experiment.
+
+        Only saves data for now
+        """
+
+        self.logger.info(
+            'Validating control experiment: %.2f', control_result)
+
+        # "Special" treatment for the novelty experiment
+        if 'novelty' in control_result['batch 1']:
+            # Rewriting the result to contain only the latest result
+            for batch_id in control_result:
+                control_result[batch_id]['novelty'] = \
+                    control_result[batch_id]['novelty'].pop(-1)
+
+        #TODO: additional logic here

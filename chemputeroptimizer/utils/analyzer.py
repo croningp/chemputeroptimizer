@@ -211,15 +211,25 @@ class SpectraAnalyzer():
                 in self.load_spectrum.__doc__.
         """
 
-    def spectra_difference(self):
-        """Compares two most recent spectra.
+    def spectra_difference(self, spectrum1, spectrum2):
+        """Compares two spectra.
 
-        Subtract two spectra and give an average difference based on integration
-        of the result.
+        Args:
+            spectrum1, spectrum2 - spectra to calculate the difference.
 
         Returns:
             (float): An average difference between spectra.
         """
+
+        #TODO: additional logic for spectra comparison
+        # For now just take an average difference of the Y axis
+        # Assuming its the same
+        try:
+            return np.abs(np.mean(spectrum1.y - spectrum2.y))
+
+        #FIXME: return something meaningful if there is a data mismatch
+        except ValueError:
+            return 42
 
     def final_analysis(
         self,
@@ -670,3 +680,30 @@ target peak, resolving')
             spec.load_data(spec_fp)
             spec.reference_spectrum(self.reference, 'closest')
             self.spectra.append(spec)
+
+    def control_analysis(
+        self,
+        spectrum,
+        control_experiment_idx,
+    ):
+        """Process the spectrum from the control experiment.
+
+        Special case to compare it with one of the previously measured spectrum.
+
+        Args:
+            spectrum (:obj:AnalyticalLabware.AbstractSpectrum): Spectrum object,
+                contaning methods for performing basic processing and analysis.
+            control_experiment_idx (int): Id of the previous experiment to
+                compare the control experiment to.
+        """
+
+        control_result = self.spectra_difference(
+            spectrum1=spectrum,
+            # Indexing from last
+            spectrum2=self.spectra[-control_experiment_idx]
+        )
+
+        self.logger.info('Analyzing control experiment. Result: %.2f',
+            control_result)
+
+        return control_result
