@@ -1,6 +1,8 @@
 """ Utility function for the Optimizer and Optimize Dynamic Step."""
 
 from typing import List, Dict, Tuple, Optional, Any
+from itertools import chain
+from logging import Logger
 
 from xdl.steps import Step
 from xdl.constants import INERT_GAS_SYNONYMS
@@ -18,6 +20,12 @@ from networkx import MultiDiGraph
 from ...constants import ANALYTICAL_INSTRUMENTS
 from .steps_analysis.constants import SHIMMING_SOLVENTS
 
+
+# For volume tracking
+SAFETY_EXCESS_VOLUME = 1.5  # 20 %
+
+# Input messages
+USER_INPUT_MESSAGE = 'Please {} {} and press Enter to continue\n'
 
 def find_instrument(graph: MultiDiGraph, method: str) -> Optional[str]:
     """Get the analytical instrument for the given method
@@ -137,31 +145,21 @@ def find_shimming_solvent_flask(
 
     return None
 
-def extract_optimization_params(xdl: XDL) -> Dict[str, Dict[str, Any]]:
-    """Get dictionary of all parameters to be optimized.
+def extract_optimization_params(
+    xdl: XDL,
+    batch_size: int,
+) -> Dict[str, Dict[str, Dict[str, float]]]:
+    """Get dictionary of all parameters to be optimized and pack it batchwise.
 
-    Updates parameters attribute in form:
-        (Dict): Nested dictionary of optimizing steps and corresponding
-            parameters of the form:
-            {
-                "step_ID-parameter": {
-                    "max_value": <maximum parameter value>,
-                    "min_value": <minimum parameter value>,
-                    "current_value": <parameter value>,
-                }
-            }
-
-    Example:
-        {
-            "HeatChill_1-temp": {
-                "max_value": 70,
-                "min_value": 25,
-                "current_value": 35,
-            }
-        }
+    Args:
+        xdl (XDL):
     """
-    param_template = {}
 
+    parameters: Dict[str, Dict[str, Dict[str, float]]] = {}
+
+    # Getting general parameter set
+    # It'll be same for all batches, but updated later batch-wise
+    param_template = {}
     for i, step in enumerate(xdl.steps):
         if step.name == 'OptimizeStep':
             param_template.update(
@@ -174,7 +172,11 @@ def extract_optimization_params(xdl: XDL) -> Dict[str, Dict[str, Any]]:
                 }
             )
 
-    return param_template
+    # Appending parameters batchwise
+    for batch_number in range(1, batch_size + 1):
+        parameters[f'batch {batch_number}'] = param_template
+
+    return parameters
 
 def forge_xdl_batches(
     xdl: XDL,
@@ -218,3 +220,86 @@ def forge_xdl_batches(
         xdls.append(new_xdl)
 
     return xdls
+
+def get_volumes(graph: MultiDiGraph) -> dict[str, list[float, float]]:
+    """
+    Gets the map of flasks/wastes and their current volumes from the graph.
+    """
+
+    volumes = {}
+
+    reagent_flasks = get_reagent_flasks(graph=graph)
+    waste_containers = get_waste_containers(graph=graph)
+
+    for container in chain(reagent_flasks, waste_containers):
+        volumes[container['name']] = [
+            container['current_volume'],
+            container['max_volume']
+        ]
+
+    return volumes
+
+def check_volumes(
+    graph: MultiDiGraph,
+    previous_volumes: dict[str, list[float, float]],
+    logger: Logger,
+) -> bool:
+    """Checks volumes in flasks and waste containers.
+
+    Prompts user input if not enough material/space available.
+
+    Args:
+        graph (MultiDiGraph): networkx MutliDiGraph object from the current
+            state of the chemputer run.
+        previous_volumes (dict): Mapping of reagent flasks and waste containers
+            with their volumes, recorded previously.
+        logger (Logger): Logger object to keep the record.
+    """
+
+    # Get new list of volumes
+    new_volumes = get_volumes(graph=graph)
+
+    for container, (current_volume, max_volume) in new_volumes.items():
+        try:
+            # Calculate the difference
+            volume_diff = current_volume - previous_volumes[container][0]
+            logger.info(
+                'Volume change in %s is %.2f ml, current volume is %.2f',
+                container,
+                volume_diff,
+                current_volume
+            )
+
+            # If material was used and insufficient amount left
+            if (volume_diff < 0 and
+                abs(volume_diff) * SAFETY_EXCESS_VOLUME > current_volume):
+
+                # Ask to refill
+                input(USER_INPUT_MESSAGE.format('refill', container))
+
+                # Update the volume after user input
+                previous_volumes[container][0] = max_volume
+                # And in the graph
+                graph.nodes[container]['current_volume'] = max_volume
+
+            # If contanier filled and not enough space left
+            elif (volume_diff > 0 and
+                  volume_diff * SAFETY_EXCESS_VOLUME > \
+                    max_volume - current_volume):
+
+                # Ask to empty
+                input(USER_INPUT_MESSAGE.format('empty', container))
+
+                # Update the volume after user input
+                previous_volumes[container][0] = 0
+                # And in the graph
+                graph.nodes[container]['current_volume'] = 0
+
+            # Just update the volume tracking dictionary
+            else:
+                previous_volumes[container][0] += volume_diff
+
+        except KeyError:
+            logger.critical('Container %s not found in the volume map.')
+
+    return True

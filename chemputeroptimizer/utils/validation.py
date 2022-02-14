@@ -3,7 +3,16 @@ Module contains functions to validate various settings for the
 ChemputerOptimizer configuration.
 """
 
-from .errors import OptimizerError
+from logging import Logger
+from typing import Union
+
+from xdl import XDL
+
+from .errors import OptimizerError, ParameterError
+from ..constants import (
+    SUPPORTED_STEPS_PARAMETERS,
+    DEFAULT_OPTIMIZATION_PARAMETERS,
+)
 
 
 def validate_algorithm(algorithm_name: str) -> bool:
@@ -42,3 +51,88 @@ def validate_algorithm_batch_size(
     elif algorithm_name == "NelderMead" and batch_size > 1:
         raise OptimizerError('NelderMead is not guaranteed to work in batches. \
 Consider using a different algorithm.')
+
+def find_and_validate_optimize_steps(
+    procedure: XDL,
+    logger: Logger,
+) -> dict[str, dict]:
+    """Find and validate OptimizeSteps in the procedure.
+
+    Args:
+        procedure (XDL): XDL procedure to validate.
+        logger (Logger): Logger object, for debugging purposes.
+
+    Returns:
+        dict[str, dict]: Nested dictionary with OptimizeSteps names and
+            properties.
+
+    Raises:
+        OptimizerError: If XDL step used in OptimizeStep is not supported.
+        ParameterError: If any of the parameters found in OptimizeStep are not
+            supported for its child step.
+    """
+
+    optimize_steps: dict[str, dict] = {}
+
+    for step in procedure.steps:
+        if step.name == 'OptimizeStep':
+            # Validating the OptimizeStep child
+            optimized_step = step.children[0].name
+            if optimized_step not in SUPPORTED_STEPS_PARAMETERS:
+                raise OptimizerError(f'Step {optimized_step} is not \
+    supported for optimization')
+
+            # Validating target properties for the child step
+            for parameter in step.optimize_properties:
+                if parameter not in SUPPORTED_STEPS_PARAMETERS[optimized_step]:
+                    raise ParameterError(f'Parameter {parameter} is not \
+    supported for step {step}')
+
+            optimize_steps.update(
+                {f'{optimized_step}_{step.id}': f'{step.optimize_properties}'}
+            )
+
+            logger.debug('Found OptimizeStep for %s.', optimized_step)
+
+    return {}
+
+def validate_optimization_config(
+    config: dict[str, Union[str, dict]]) -> None:
+    """Validate given optimization config.
+
+    Check if any key is absent in the default config and therefore invalid.
+
+    Args:
+        config (dict[str, Union[str, dict]]): Configuration dictionary to
+            validate.
+
+    Raises:
+        ParameterError: If any parameters in the configuration are not valid.
+    """
+
+    for parameter in config:
+        if parameter not in DEFAULT_OPTIMIZATION_PARAMETERS:
+            raise ParameterError(
+                f'<{parameter}> not a valid optimization parameter!')
+
+def update_configuration(
+    config1: dict[str, Union[str, dict]],
+    config2: dict[str, Union[str, dict]]
+) -> None:
+    """Recursively update missing values from two configurations.
+
+    Args:
+        config1 (dict): Configuration dictionary to update.
+        config2 (dict): Reference configuration dictionary, to pick up missing
+            values from.
+    """
+    for key, value in config2.items():
+        if key not in config1:
+            config1[key] = value
+        elif key == 'target':
+            # Special case - don't update the "target" parameter
+            # Otherwise "final_parameter" from default will be appended
+            pass
+        else:
+            if isinstance(value, dict):
+                update_configuration(config1[key], value)

@@ -4,30 +4,26 @@ Module to run chemical reaction optimization.
 
 # std lib
 import json
-import os
+from pathlib import Path
 from typing import Dict, Any
 from copy import deepcopy
 from csv import reader as csv_reader
 
 # xdl
 from xdl import XDL
-from xdl.steps import Step
 
 # relative
 from .platform import OptimizerPlatform
 from .platform.steps import (
     OptimizeDynamicStep,
-    OptimizeStep,
-    FinalAnalysis,
+    Analyze,
 )
 from .platform.steps.utils import (
-    find_last_meaningful_step,
     extract_optimization_params,
 )
 from .constants import (
     SUPPORTED_STEPS_PARAMETERS,
     DEFAULT_OPTIMIZATION_PARAMETERS,
-    SUPPORTED_FINAL_ANALYSIS_STEPS,
 )
 from .utils.errors import (
     OptimizerError,
@@ -39,6 +35,7 @@ from .utils import (
     interactive_optimization_config,
     interactive_optimization_steps,
     AlgorithmAPI,
+    create_optimize_step,
 )
 # Optimizer Client specific
 from .utils.client import (
@@ -48,6 +45,9 @@ from .utils.client import (
 from .utils.validation import (
     validate_algorithm,
     validate_algorithm_batch_size,
+    find_and_validate_optimize_steps,
+    validate_optimization_config,
+    update_configuration,
 )
 
 
@@ -70,7 +70,6 @@ class ChemputerOptimizer():
             self,
             procedure: str,
             graph_file: str,
-            optimize_steps: str = None,
             interactive: bool = False,
         ):
 
@@ -83,28 +82,14 @@ class ChemputerOptimizer():
         self.algorithm = AlgorithmAPI()
 
         self._xdl_object = XDL(procedure, platform=OptimizerPlatform)
+
+        # Check for necessary optimization steps
+        # Or insert missing if needed
         self._check_final_analysis_steps()
-        self.logger.debug('Initialized xdl object (id %d).',
-                          id(self._xdl_object))
-
-        if optimize_steps and isinstance(optimize_steps, str):
-            self.logger.debug(
-                'Found optimization steps config file %s, \
-loading.', optimize_steps)
-            try:
-                self._optimization_steps = self._load_optimization_steps(
-                    optimize_steps)
-            except FileNotFoundError:
-                raise FileNotFoundError(
-                    f'File "{optimize_steps}" not found!') from None
-        else:
-            self._optimization_steps = {}
-
         self._check_optimization_steps_and_parameters()
 
-        if not self._optimization_steps:
-            # TODO public methods for loading optimization steps
-            raise OptimizerError('No OptimizeSteps found or given!')
+        self.logger.debug('Initialized xdl object (id %d).',
+                          id(self._xdl_object))
 
         self._initialize_optimize_step()
 
@@ -126,40 +111,35 @@ loading.', optimize_steps)
         final_analysis_steps = []
 
         for i, step in enumerate(self._xdl_object.steps):
-            if step.name == 'FinalAnalysis':
-                # building reference step dictionary
+            if step.name == 'FinalAnalysis' or step.name == 'Analyze':
+                # Building reference step dictionary
                 reference_step = {
                     'step': self._xdl_object.steps[i - 1].name,
                     'properties': self._xdl_object.steps[i - 1].properties,
                 }
+                # Reference step is used to allow additional preparations
+                # To execute the analysis
+                # For example cooling down, filtering, evaporating, etc.
                 step.reference_step = reference_step
                 final_analysis_steps.append(step)
 
+        # Raise an error if no analysis steps found
+        # And running in non-interactive mode
         if not final_analysis_steps and not self.interactive:
             raise OptimizerError('No FinalAnalysis steps found, please \
 add them to the procedure or run ChemputerOptimizer in interactive mode.')
 
+        # If no steps found, but running in interactive mode
+        # Append an interactive Analyze step at the end
         if not final_analysis_steps and self.interactive:
-            position, last_meaningful_step = find_last_meaningful_step(
-                self._xdl_object.steps,
-                SUPPORTED_FINAL_ANALYSIS_STEPS,
-            )
+            self.logger.info('No FinalAnalysis steps found, appending one \
+at the end of the procedure with an interactive method.')
 
-            self.logger.info('No FinalAnalysis steps found, will insert one \
-after the last %s step in the procedure (at position %s) with an interactive \
-method', last_meaningful_step.name, position)
-
-            last_meaningful_step = {
-                'step': last_meaningful_step.name,
-                'properties': last_meaningful_step.properties,
-            }
-
-            self._xdl_object.steps.insert(
-                position,
-                FinalAnalysis(
-                    vessel=last_meaningful_step['properties']['vessel'],
+            self._xdl_object.steps.append(
+                Analyze(
+                    vessel=None,
                     method='interactive',
-                    reference_step=last_meaningful_step,
+                    reference_step=None,
                 )
             )
 
@@ -173,43 +153,6 @@ method', last_meaningful_step.name, position)
             )
         self.logger.debug('Initialized Optimize dynamic step.')
 
-    def _load_optimization_steps(self, file: str) -> Dict:
-        """Loads optimization steps from .json config file
-
-        Args:
-            file (str): Path to .json configuration for steps to Optimize,
-                see examples in /tests/config/
-        Returns:
-            Dict: Dictionary of steps to Optimize, following pattern -
-                {'StepName_StepID':
-                    {'param':
-                        {'min_value': value,
-                         'max_value': value,
-                        }
-                    }
-                }
-
-        Raises:
-            OptimizerError: If the 'StepName_StepID' pattern doesn't match
-                the original xdl procedure.
-        """
-
-        with open(file, 'r') as f:
-            optimization_steps = json.load(f)
-
-        # check for consistency vs xdl procedure
-        for step_id in optimization_steps:
-            # unpacking step data from "Step_ID"
-            step, sid = step_id.split('_')
-
-            if step != self._xdl_object.steps[int(sid)].name:
-                raise OptimizerError(
-                    f'Step "{step}" does not match original procedure \
-at position {sid}, procedure.steps[{sid}] is \
-{self._xdl_object.steps[int(sid)].name}.')
-
-        return optimization_steps
-
     def _check_optimization_steps_and_parameters(self) -> None:
         """Get the optimization parameters and validate them if needed.
 
@@ -221,98 +164,34 @@ at position {sid}, procedure.steps[{sid}] is \
 
         self.logger.debug('Probing for OptimizeStep steps in xdl object.')
 
-        # internal tag to avoid step unnecessary step creation
-        consistent = False
+        # Looking for optimization steps
+        optimize_steps = find_and_validate_optimize_steps(
+            procedure=self._xdl_object,
+            logger=self.logger,
+        )
 
-        # checking procedure for consistency
-        for step in self._xdl_object.steps:
-            if step.name == 'OptimizeStep':
-                optimized_step = step.children[0].name
-                if optimized_step not in SUPPORTED_STEPS_PARAMETERS:
-                    raise OptimizerError(
-                        f'Step {optimized_step} is not supported for optimization')
-
-                for parameter in step.optimize_properties:
-                    if parameter not in SUPPORTED_STEPS_PARAMETERS[optimized_step]:
-                        raise ParameterError(
-                            f'Parameter {parameter} is not supported for step {step}'
-                        )
-                self._optimization_steps.update(
-                    {f'{optimized_step}_{step.id}': f'{step.optimize_properties}'}
-                )
-                self.logger.debug('Found OptimizeStep for %s.', optimized_step)
-                consistent = True
-
-        # creating steps only if no OptimizeStep found in the procedure
-        if self._optimization_steps and not consistent:
-            for optimization_step in self._optimization_steps:
-                # unpacking step data from "Step_ID"
-                step, sid = optimization_step.split('_')
-
-                self._xdl_object.steps[int(sid)] = self._create_optimize_step(
-                    self._xdl_object.steps[int(sid)],
-                    int(sid),
-                    self._optimization_steps[optimization_step])
-
-        if not self._optimization_steps:
+        # If no steps found - create them
+        if not optimize_steps:
             self.logger.info('OptimizeStep steps were not found, creating.')
             for i, step in enumerate(self._xdl_object.steps):
+                # Looking for steps "suitable" for optimization
                 if step.name in SUPPORTED_STEPS_PARAMETERS:
+                    # Placeholder for OptimizeStep parameters
                     params = None
                     if self.interactive:
-                        params = interactive_optimization_steps(
-                            step, i)
+                        # Prompt user for parameters for the OptimizeSteps
+                        params = interactive_optimization_steps(step, i)
+                        # Skip, if no parameters returned
                         if not params:
                             continue
 
-                    self._xdl_object.steps[i] = self._create_optimize_step(
-                        step, i, params)
-                    self._optimization_steps.update(
-                        {f'{step.name}_{i}': f'{params}'})
-
-    def _create_optimize_step(
-            self,
-            step: Step,
-            step_id: int,
-            params: Dict = None,
-        ) -> Step:
-        """Creates an OptimizeStep from supplied xdl step
-
-        Args:
-            step (Step): XDL step to be wrapped with OptimizeStep,
-                must be supported.
-            step_id (int): Ordinal number of a step.
-            params (Dict, optional): Parameters for the OptimizeStep as
-                nested dictionary.
-
-        Example params:
-            {'<param>': {'max_value': <value>, 'min_value': <value>}}
-
-        Returns:
-            :obj: XDL.Step: An OptimizeStep step wrapper for the
-                XDL step to be optimized.
-        """
-        if params is None:
-            params = {
-                param: {
-                    'max_value': float(step.properties[param]) * 1.2,
-                    'min_value': float(step.properties[param]) * 0.8,
-                }
-                for param in SUPPORTED_STEPS_PARAMETERS[step.name]
-                if step.properties[param] is not None
-            }
-
-        optimize_step = OptimizeStep(
-            id=str(step_id),
-            children=[step],
-            optimize_properties=params,
-        )
-
-        self.logger.debug(
-            'Created OptimizeStep for <%s_%d> with following parameters %s',
-            step.name, step_id, params)
-
-        return optimize_step
+                    # Now create an OptimizeStep at the position of ith step
+                    self._xdl_object.steps[i] = create_optimize_step(
+                        step=step,
+                        step_id=i,
+                        params=params,
+                        logger=self.logger,
+                    )
 
     def prepare_for_optimization(
             self,
@@ -336,39 +215,40 @@ at position {sid}, procedure.steps[{sid}] is \
                 optimization.
         """
 
+        # Do not prepare twice!
         if self.prepared:
             self.logger.warning('Already prepared!')
             return
 
+        # Build optimization config with user input
         if self.interactive:
             opt_params = interactive_optimization_config()
 
+        # OR read config from json file
         elif isinstance(opt_params, str):
-            if '.json' in opt_params:
-                self.logger.debug('Loading json configuration from %s',
-                                  opt_params)
+            try:
                 with open(opt_params, 'r') as f:
+                    self.logger.debug('Loading json configuration from %s',
+                                  opt_params)
                     opt_params = json.load(f)
-            else:
-                raise OptimizerError('Parameters must be .json file!')
+            except FileNotFoundError:
+                raise OptimizerError('Please provide a valid optimization \
+configuration file.') from None
 
+        # OR load default configuration
         else:
             opt_params = deepcopy(DEFAULT_OPTIMIZATION_PARAMETERS)
 
-        for k, _ in opt_params.items():
-            if k not in DEFAULT_OPTIMIZATION_PARAMETERS:
-                raise ParameterError(
-                    f'<{k}> not a valid optimization parameter!')
+        # Valide the input
+        validate_optimization_config(config=opt_params)
 
-        # loading missing default parameters
-        for k, v in DEFAULT_OPTIMIZATION_PARAMETERS.items():
-            if k not in opt_params:
-                opt_params[k] = v
+        # Loading missing default parameters
+        update_configuration(opt_params, DEFAULT_OPTIMIZATION_PARAMETERS)
 
         # saving updated config if running in interactive mode
         if self.interactive:
-            here = os.path.dirname(self._original_procedure)
-            json_file = os.path.join(here, 'optimizer_config.json')
+            here = Path(self._original_procedure).parent
+            json_file = here.joinpath('optimizer_config.json')
             with open(json_file, 'w') as f:
                 json.dump(opt_params, f, indent=4)
 
@@ -378,9 +258,7 @@ at position {sid}, procedure.steps[{sid}] is \
         # Validation
         validate_algorithm(algorithm_name)
         procedure_hash = calculate_procedure_hash(self._xdl_object.as_string())
-        procedure_parameters = {
-            'batch 1': extract_optimization_params(self._xdl_object)
-        }
+        procedure_parameters = extract_optimization_params(self._xdl_object, 1)
         procedure_target = opt_params['target']
         batch_size = opt_params['batch_size']
         control = opt_params['control']

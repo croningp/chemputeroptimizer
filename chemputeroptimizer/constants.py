@@ -75,3 +75,7 @@ DEFAULT_OPTIMIZATION_PARAMETERS = {
         'every': 5
     }
 }
+
+# If no parameters for the OptimizeStep are given,
+# Using this as a range from the default setting
+DEFAULT_OPTIMIZE_STEP_PARAMETER_RANGE = (0.8, 1.2)  # plus-minus 20%
