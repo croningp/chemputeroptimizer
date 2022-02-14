@@ -3,6 +3,7 @@ Module for processing, analysis and comparison of several spectra.
 """
 import logging
 import json
+import warnings
 from typing import List, Optional, Dict
 
 import numpy as np
@@ -92,7 +93,7 @@ def resolve_point_between_regions(regions, point, method='mean'):
         diff_map = np.abs(regions_means - point)
         return regions[np.argmin(diff_map)]
 
-    print('Other methods are not supported')
+    warnings.warn('Other methods are not supported')
     return regions[-1]
 
 def find_closest_region(regions, point, method='mean', threshold=0.0):
@@ -136,7 +137,7 @@ def find_closest_region(regions, point, method='mean', threshold=0.0):
         # Second (right) border for all regions
         regions_ = regions[:, 1]
     else:
-        print('Other methods are not supported')
+        warnings.warn('Other methods are not supported')
         return regions[-1]
 
     diff_map = np.abs(regions_ - point)

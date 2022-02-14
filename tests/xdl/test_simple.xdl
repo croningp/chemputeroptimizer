@@ -10,6 +10,7 @@
   <Reagents>
     <Reagent
       id="water"
+      name="water"
     />
   </Reagents>
 

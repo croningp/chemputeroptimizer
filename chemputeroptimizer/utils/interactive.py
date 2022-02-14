@@ -1,11 +1,18 @@
 """Methods for interactive parameter input"""
 
+from logging import Logger
+
+from xdl.steps import Step
+
 from .algorithm import ALGORITHMS
+from ..platform.steps.optimize_step import OptimizeStep
 from ..constants import (
     DEFAULT_OPTIMIZATION_PARAMETERS,
     TARGET_PARAMETERS,
     SUPPORTED_STEPS_PARAMETERS,
+    DEFAULT_OPTIMIZE_STEP_PARAMETER_RANGE
 )
+
 
 def interactive_optimization_config():
     print('Welcome to interactive optimization configuration.')
@@ -127,3 +134,52 @@ for the optimization:\n'
             param = input('Any other parameters? ([n], y) ')
 
     return params
+
+def create_optimize_step(
+    step: Step,
+    step_id: int,
+    params: dict = None,
+    logger: Logger = None,
+) -> OptimizeStep:
+    """Creates an OptimizeStep from supplied xdl step
+
+    Args:
+        step (Step): XDL step to be wrapped with OptimizeStep,
+            must be supported.
+        step_id (int): Ordinal number of a step.
+        params (dict, optional): Parameters for the OptimizeStep as
+            nested dictionary.
+
+    Example params:
+        {'<param>': {'max_value': <value>, 'min_value': <value>}}
+
+    Returns:
+        OptimizeStep: An OptimizeStep step wrapped around the XDL step to be
+            optimized.
+    """
+
+    min_value_range, max_value_range = DEFAULT_OPTIMIZE_STEP_PARAMETER_RANGE
+
+    # If no params given, forge them by default
+    if params is None:
+        params = {
+            param: {
+                'max_value': float(step.properties[param]) * max_value_range,
+                'min_value': float(step.properties[param]) * min_value_range,
+            }
+            for param in SUPPORTED_STEPS_PARAMETERS[step.name]
+            if step.properties[param] is not None
+        }
+
+    # Build an OptimizeStep
+    optimize_step = OptimizeStep(
+        id=str(step_id),
+        children=[step],
+        optimize_properties=params,
+    )
+
+    logger.debug(
+        'Created OptimizeStep for <%s_%d> with following parameters %s',
+        step.name, step_id, params)
+
+    return optimize_step

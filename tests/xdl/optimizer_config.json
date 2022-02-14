@@ -1,11 +1,17 @@
 {
-    "max_iterations": 5.0,
+    "max_iterations": 1,
     "target": {
         "final_parameter": 1
     },
     "algorithm": {
-        "name": "random"
+        "name": "random",
+        "random_state": 42
     },
     "reference": null,
-    "batch_size": 2
+    "batch_size": 1,
+    "constraints": null,
+    "control": {
+        "n_runs": 1,
+        "every": 5
+    }
 }
