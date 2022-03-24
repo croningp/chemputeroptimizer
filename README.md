@@ -1,16 +1,16 @@
 # ChemputerOptimizer
 
-The repo contains the optimizer package for Chemputer platform to perform interactive chemical reaction optimizations.
+The repo contains the optimizer package for Chemputer platform to perform interactive chemical reaction optimizations. Checkout [documentation](/docs/README.md) for details about installation, usage and development. Below is a short guide.
 
 ## Installation
 
-1. Clone the repo into desired folder. Versions tagged with *alpha* (e.g. `v0.3.0a0`) are **not extensively tested**, consider using a stable version (e.g. `v0.2.5`).
+1. Clone the repo into desired folder.
 ```bash
-git clone -b v0.2.5 --single--branch https://gitlab.com/croningroup/chemputer/chemputeroptimizer.git chemputeroptimizer
+git clone https://gitlab.com/croningroup/chemputer/chemputeroptimizer.git chemputeroptimizer
 
 cd chemputeroptimizer
 ```
-2. Install Chemputer requirements if needed ([XDL](https://gitlab.com/croningroup/chemputer/xdl) and [AnalyticalLabware](https://gitlab.com/croningroup/chemputer/analyticallabware)). Mind using legacy version (i.e. `xdl@legacy-0.5.0` and `chemputerxdl@legacy-1.0.0`)
+2. Install Chemputer requirements if needed ([XDL](https://gitlab.com/croningroup/chemputer/xdl) and [AnalyticalLabware](https://gitlab.com/croningroup/chemputer/analyticallabware)). Mind using correct version (i.e. `xdl@1.1` and `chemputerxdl@1.1`)
 ```bash
 pip install -r requirements.txt
 ```
@@ -52,18 +52,10 @@ Optionally some steps may be wrapped *FinalAnalysis* step with supported analyti
 </FinalAnalysis>
 ```
 
-**Note**
-You can omit both OptimizeStep and FinalAnalysis wrappers and run optimization of any procedure interactively by instantiating *ChemputerOptimizer* with `interactive=True` attribute.
-
 ### Optimizer Client
 ChemputerOptimizer now supports interaction with  Summit benchmarking framework (through [SummitServer](https://gitlab.com/croningroup/personal/ail/summitserver)). List of available algorithms is stored in [/client.py](/chemputeroptimizer/utils/client.py). To use them, run SummitServer main loop on chosen host and change the corresponding constants in `client.py`.
 
 ## Features
-
-### v0.3.4 alpha0
-* Fixed `FromCSV` algorithm working in multiple batches (see #85).
-* Fixed certain algorithm from reinstantiation during novelty search (see #93).
-* Improved data saving (see #80).
 
 ### v0.3.5 alpha0
 * Added basic constrained optimization (see discussion in #91).
@@ -75,6 +67,12 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 * Added automatic control experiment every N iterations (see #92).
 * Saving state of the `OptimizeDynamicStep` to preserve information about control  experiment result.
 * Simulation improved by suppressing flasks/wastes checks.
+
+### v0.4.0
+* Major release to catch up with xdl/chemputerxdl v1.1.
+* Explicit loss functions.
+* Integration tests.
+* [Documentation](/docs/README.md).
 
 ## Development
 

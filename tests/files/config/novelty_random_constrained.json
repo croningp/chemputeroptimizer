@@ -1,0 +1,18 @@
+{
+    "max_iterations": 10,
+    "target": {
+        "novelty_": Infinity
+    },
+    "algorithm": {
+        "name": "random"
+    },
+    "reference": 5,
+    "batch_size": 1,
+    "constraints": [
+        "3..4"
+    ],
+    "control": {
+        "n_runs": 0,
+        "every": 5
+    }
+}

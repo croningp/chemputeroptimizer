@@ -1,0 +1,16 @@
+{
+    "max_iterations": 10,
+    "target": {
+        "spectrum_peak_area_3": Infinity
+    },
+    "algorithm": {
+        "name": "doe"
+    },
+    "reference": 5,
+    "batch_size": 1,
+    "constraints": null,
+    "control": {
+        "n_runs": 0,
+        "every": 5
+    }
+}

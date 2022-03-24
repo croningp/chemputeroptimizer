@@ -19,17 +19,12 @@ from chemputerxdl.utils.execution import (
 from chemputerxdl.steps import (
     Transfer,
     Wait,
-    HeatChill,
-    HeatChillToTemp,
     Wait,
-    Stir,
     CleanBackbone,
-    PrimePumpForAdd,
-    Add,
     CleanVessel,
-    Unlock,
     CMove
 )
+from chemputerxdl.steps.steps_utility.locks import Unlock
 
 from chemputerxdl.steps.base_step import ChemputerStep
 

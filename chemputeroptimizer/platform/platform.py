@@ -1,3 +1,5 @@
+"""Optimizer Platform module."""
+
 from chemputerxdl import ChemputerPlatform
 
 from .steps import (

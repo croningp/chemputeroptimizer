@@ -1,0 +1,16 @@
+{
+    "max_iterations": 10,
+    "target": {
+        "novelty_": Infinity
+    },
+    "algorithm": {
+        "name": "doe"
+    },
+    "reference": 5,
+    "batch_size": 1,
+    "constraints": null,
+    "control": {
+        "n_runs": 1,
+        "every": 5
+    }
+}

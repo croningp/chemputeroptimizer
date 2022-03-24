@@ -1,0 +1,72 @@
+<?xdl version="1.0.0" ?>
+<XDL>
+
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="reactor"
+      type="reactor" />
+    <Component
+      id="waste_G"
+      type="waste" />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      name="isopropanol"
+      role="reagent" />
+    <Reagent
+      name="acetonitrile"
+      role="reagent" />
+  </Reagents>
+
+  <Procedure>
+  <ResetHandling
+      solvent="acetonitrile"
+      volume="0.5"
+      repeats="1" />
+    <OptimizeStep
+      id="0"
+      optimize_properties="{'volume': {'max_value': 5.0, 'min_value': 0.0}}">
+      <Add
+        vessel="reactor"
+        reagent="isopropanol"
+        aspiration_speed="2.0"
+        volume="0"
+        priming_volume="0.4 mL" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="1"
+      optimize_properties="{'volume': {'max_value': 5.0, 'min_value': 0.0}}">
+      <Add
+        vessel="reactor"
+        reagent="acetonitrile"
+        aspiration_speed="2.0"
+        volume="0"
+        priming_volume="0.4 mL" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="2"
+      optimize_properties="{'time': {'max_value': 60.0, 'min_value': 0.0}}">
+      <Stir
+        vessel="reactor"
+        time="0 s" />
+    </OptimizeStep>
+    <Analyze
+      vessel="reactor"
+      method="NMR"
+      sample_volume="2.5"
+      method_props="{'protocol': '1D EXTENDED+', 'protocol_options': {'Number': 16, 'AcquisitionTime': 1.6, 'RepetitionTime': 2, 'PulseAngle': 90}}"
+      cleaning_solvent="acetonitrile"
+      force_shimming="False" />
+    <Transfer
+      from_vessel="reactor"
+      to_vessel="waste_G"
+      aspiration_speed="3.0"
+      volume="all" />
+  </Procedure>
+
+</Synthesis>
+
+</XDL>

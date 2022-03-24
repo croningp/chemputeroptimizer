@@ -4,7 +4,7 @@ For details see:
 https://scikit-optimize.github.io/stable/modules/generated/skopt.Optimizer.html
 """
 
-from typing import Optional, Union
+from typing import Optional
 
 from skopt import Optimizer
 

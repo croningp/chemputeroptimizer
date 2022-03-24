@@ -1,0 +1,109 @@
+<?xdl version="0.2.1" ?>
+
+<Synthesis>
+
+  <Hardware>
+    <Component
+      id="waste_reactors"
+      type="ChemputerWaste" />
+    <Component
+      id="reactor"
+      type="reactor" />
+  </Hardware>
+
+  <Reagents>
+    <Reagent
+      name="methanol"
+      role="reagent" />
+    <Reagent
+      name="4-formylbenzonitrile"
+      role="reagent" />
+    <Reagent
+      name="tosmic"
+      role="reagent" />
+    <Reagent
+      name="dbu"
+      role="reagent" />
+  </Reagents>
+
+  <Procedure>
+    <OptimizeStep
+      id="1"
+      optimize_properties="{'volume': {'max_value': 6.15, 'min_value': 4.1}}">
+      <Add
+        stir="True"
+        volume="5.125 mL"
+        vessel="reactor"
+        aspiration_speed="5.0"
+        priming_volume="1 mL"
+        reagent="tosmic" />
+    </OptimizeStep>
+    <Add
+      stir="True"
+      volume="4.1 mL"
+      vessel="reactor"
+      aspiration_speed="5.0"
+      priming_volume="1 mL"
+      reagent="4-formylbenzonitrile" />
+    <OptimizeStep
+      id="2"
+      optimize_properties="{'volume': {'max_value': 0.308, 'min_value': 0.154}}">
+      <Add
+        stir="True"
+        volume="0.231 mL"
+        vessel="reactor"
+        aspiration_speed="1.0"
+        priming_volume="1 mL"
+        reagent="dbu" />
+    </OptimizeStep>
+    <Add
+      stir="True"
+      volume="5.0 mL"
+      vessel="reactor"
+      aspiration_speed="5.0"
+      priming_volume="1 mL"
+      reagent="methanol" />
+    <OptimizeStep
+      id="3"
+      optimize_properties="{'temp': {'max_value': 75.0, 'min_value': 25.0}}">
+      <HeatChillToTemp
+        vessel="reactor"
+        temp="60.0"
+        stir="True"
+        purpose="reaction" />
+    </OptimizeStep>
+    <OptimizeStep
+      id="4"
+      optimize_properties="{'time': {'max_value': 10800, 'min_value': 1800}}">
+      <Stir
+        time="1800"
+        vessel="reactor" />
+    </OptimizeStep>
+    <HeatChillToTemp
+      vessel="reactor"
+      temp="25.0"
+      continue_heatchill="False"
+      stir="True" />
+    <FinalAnalysis
+      vessel="reactor"
+      method="HPLC"
+      method_props="{'run_method':'AH_default', 'cleaning_method':'AH_cleaning', 'channel':'B'}"
+      sample_volume="0.5"
+      dilution_vessel="dilution"
+      dilution_volume="19.5"
+      dilution_solvent="acetonitrile"
+      cleaning_solvent="methanol" />
+    <Transfer
+      from_vessel="reactor"
+      to_vessel="waste_reactors"
+      volume="30 mL" />
+    <CleanVessel
+      vessel="reactor"
+      solvent="methanol"
+      volume="15 mL"
+      temp= "22.0"
+      repeats= "3" />
+
+  </Procedure>
+
+</Synthesis>

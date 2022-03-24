@@ -4,6 +4,7 @@ from xdl.steps.base_steps import AbstractBaseStep
 
 # time the IDEX valve is left in sampling position
 SAMPLE_TIME = 60 # seconds
+SIMULATION_SAMPLE_TIME = 0.1
 
 # delay between checking the instrument status
 CHECK_STATUS_INTERVAL = 10 # seconds
@@ -33,7 +34,7 @@ class RunHPLC(AbstractBaseStep):
     def locks(self, chempiler):
         return [], [], []
 
-    def execute(self, chempiler: 'Chempiler', logger=None, level=0):
+    def execute(self, chempiler: 'Chempiler', logger=None, level=0, **kwargs):
         hplc = chempiler[self.hplc]
         idex = chempiler[self.valve]
 
@@ -53,7 +54,10 @@ class RunHPLC(AbstractBaseStep):
             sleep(CHECK_STATUS_INTERVAL)
         # start run
         hplc.run_method(hplc.data_dir, fname)
-        idex.sample(SAMPLE_TIME)
+        if chempiler.simulation:
+            idex.sample(SIMULATION_SAMPLE_TIME)
+        else:
+            idex.sample(SAMPLE_TIME)
 
         # wait until run is finished
         while not hplc.status()[0] == 'PRERUN':
