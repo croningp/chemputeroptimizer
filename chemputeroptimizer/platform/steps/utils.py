@@ -1,13 +1,14 @@
 """ Utility function for the Optimizer and Optimize Dynamic Step."""
 
-from typing import List, Dict, Tuple, Optional, Any
+import typing
+import copy
+from typing import Optional
 from itertools import chain
 from logging import Logger
 
-from xdl.steps import Step
-from xdl.constants import INERT_GAS_SYNONYMS
 from xdl import XDL
-from xdl.utils.copy import xdl_copy
+from xdl.hardware import Hardware
+from xdl.constants import INERT_GAS_SYNONYMS
 
 from chemputerxdl.constants import (
     CHEMPUTER_FLASK,
@@ -15,10 +16,13 @@ from chemputerxdl.constants import (
 )
 from chemputerxdl.utils.execution import get_vessel_stirrer
 
-from networkx import MultiDiGraph
-
 from ...constants import ANALYTICAL_INSTRUMENTS
 from .steps_analysis.constants import SHIMMING_SOLVENTS
+
+# For type annotations
+if typing.TYPE_CHECKING:
+    from xdl.steps import Step
+    from networkx import MultiDiGraph
 
 
 # For volume tracking
@@ -27,7 +31,72 @@ SAFETY_EXCESS_VOLUME = 1.5  # 20 %
 # Input messages
 USER_INPUT_MESSAGE = 'Please {} {} and press Enter to continue\n'
 
-def find_instrument(graph: MultiDiGraph, method: str) -> Optional[str]:
+def deep_copy_step(step: 'Step'):
+    """Deprecated. Step.__deepcopy__ now implemented so you can just do
+    ``copy.deepcopy(step)``. This remains here for backwards compatibility
+    but should eventually be removed.
+
+    Return a deep copy of a step. Written this way with children handled
+    specially for compatibility with Python 3.6.
+    """
+    # Copy children
+    children = []
+    if 'children' in step.properties and step.children:
+        for child in step.children:
+            children.append(deep_copy_step(child))
+
+    # Copy properties
+    copy_props = {}
+    for k, v in step.properties.items():
+        if k != 'children':
+            copy_props[k] = v
+    copy_props['children'] = children
+
+    # Make new step
+    copied_step = type(step)(**copy_props)
+
+    return copied_step
+
+def xdl_copy(xdl_obj: 'XDL') -> 'XDL':
+    """Deprecated. XDL.__deepcopy__ now implemented so you can just do
+    ``copy.deepcopy(xdl_obj)``. This remains here for backwards compatibility
+    but should eventually be removed.
+
+    Returns a deepcopy of a XDL object. copy.deepcopy can be used with
+    Python 3.7, but for Python 3.6 you have to use this.
+
+    Args:
+        xdl_obj (XDL): XDL object to copy.
+
+    Returns:
+        XDL: Deep copy of xdl_obj.
+    """
+    copy_steps = []
+    copy_reagents = []
+    copy_hardware = []
+
+    # Copy steps
+    for step in xdl_obj.steps:
+        copy_steps.append(deep_copy_step(step))
+
+    # Copy reagents
+    for reagent in xdl_obj.reagents:
+        copy_props = copy.deepcopy(reagent.properties)
+        copy_reagents.append(type(reagent)(**copy_props))
+
+    # Copy hardware
+    for component in xdl_obj.hardware:
+        copy_props = copy.deepcopy(component.properties)
+        copy_hardware.append(type(component)(**copy_props))
+
+    # Return new XDL object
+    return XDL(steps=copy_steps,
+               reagents=copy_reagents,
+               hardware=Hardware(copy_hardware),
+               logging_level=xdl_obj.logging_level,
+               internal_platform=xdl_obj._internal_platform)
+
+def find_instrument(graph: 'MultiDiGraph', method: str) -> Optional[str]:
     """Get the analytical instrument for the given method
 
     Args:
@@ -41,9 +110,9 @@ def find_instrument(graph: MultiDiGraph, method: str) -> Optional[str]:
             return node
 
 def find_last_meaningful_step(
-        procedure: List[Step],
-        meaningful_steps: List[str]
-    ) -> Optional[Step]:
+        procedure: list['Step'],
+        meaningful_steps: list['str']
+    ) -> Optional['Step']:
     """Get the last step significant for the synthetic procedure.
 
     Mainly used for including of the FinalAnalysis step.
@@ -61,8 +130,8 @@ def find_last_meaningful_step(
             return len(procedure) - i, step
 
 def get_reagent_flasks(
-        graph: MultiDiGraph
-    ) -> Optional[List[Dict]]:
+        graph: 'MultiDiGraph'
+    ) -> Optional[list[dict]]:
     """Get the list of reagent and solvent flasks from the graph
 
     Reagent and solvent flasks are assumed to have valid "chemical" attribute.
@@ -83,8 +152,8 @@ def get_reagent_flasks(
     return flasks_reagents
 
 def get_waste_containers(
-    graph: MultiDiGraph,
-) -> Optional[List[Dict]]:
+    graph: 'MultiDiGraph',
+) -> Optional[list[dict]]:
     """Get the list of waste containers on the graph
 
     Returns:
@@ -99,7 +168,7 @@ def get_waste_containers(
 
     return waste_containers
 
-def get_dilution_flask(graph: MultiDiGraph) -> Optional[str]:
+def get_dilution_flask(graph: 'MultiDiGraph') -> Optional[str]:
     """ Get an empty flask with a stirrer attached to it.
 
         Used to dilute the analyte before injecting into analytical instrument.
@@ -122,7 +191,7 @@ def get_dilution_flask(graph: MultiDiGraph) -> Optional[str]:
     return None
 
 def find_shimming_solvent_flask(
-    graph: MultiDiGraph) -> Optional[Tuple[str, float]]:
+    graph: 'MultiDiGraph') -> Optional[tuple[str, float]]:
     """
     Returns flask with the solvent suitable for shimming and corresponding
     reference peak in ppm.
@@ -148,14 +217,14 @@ def find_shimming_solvent_flask(
 def extract_optimization_params(
     xdl: XDL,
     batch_size: int,
-) -> Dict[str, Dict[str, Dict[str, float]]]:
+) -> dict[str, dict[str, dict[str, float]]]:
     """Get dictionary of all parameters to be optimized and pack it batchwise.
 
     Args:
         xdl (XDL):
     """
 
-    parameters: Dict[str, Dict[str, Dict[str, float]]] = {}
+    parameters: dict[str, dict[str, dict[str, float]]] = {}
 
     # Getting general parameter set
     # It'll be same for all batches, but updated later batch-wise
@@ -180,8 +249,8 @@ def extract_optimization_params(
 
 def forge_xdl_batches(
     xdl: XDL,
-    parameters: Dict[str, Dict[str, Dict[str, float]]],
-) -> List[XDL]:
+    parameters: dict[str, dict[str, dict[str, float]]],
+) -> list[XDL]:
     """Create several xdls from their batches parameters.
 
     Args:
@@ -193,7 +262,7 @@ def forge_xdl_batches(
         List[XDL]: List of xdl objects, which differ by their parameters for
             optimization.
     """
-    xdls: List[XDL] = []
+    xdls: list[XDL] = []
 
     for batch_id, batch_params in parameters.items():
 
@@ -221,7 +290,7 @@ def forge_xdl_batches(
 
     return xdls
 
-def get_volumes(graph: MultiDiGraph) -> dict[str, list[float, float]]:
+def get_volumes(graph: 'MultiDiGraph') -> dict[str, list[float, float]]:
     """
     Gets the map of flasks/wastes and their current volumes from the graph.
     """
@@ -240,7 +309,7 @@ def get_volumes(graph: MultiDiGraph) -> dict[str, list[float, float]]:
     return volumes
 
 def check_volumes(
-    graph: MultiDiGraph,
+    graph: 'MultiDiGraph',
     previous_volumes: dict[str, list[float, float]],
     logger: Logger,
 ) -> bool:
