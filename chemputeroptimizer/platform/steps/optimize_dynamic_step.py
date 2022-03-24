@@ -14,7 +14,6 @@ from typing import List, Callable, Optional, Dict, Any
 
 # XDL and chemputerXDL
 from xdl import XDL
-from xdl.utils.copy import xdl_copy
 from xdl.steps.base_steps import (
     AbstractDynamicStep,
     Step,
@@ -33,6 +32,10 @@ from .utils import (
     extract_optimization_params,
     get_volumes,
     check_volumes,
+    xdl_copy,
+)
+from ...constants import (
+    BATCH_1,
 )
 from ...constants import (
     BATCH_1,
@@ -321,7 +324,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
             # Preparing the xdl for execution
             self.working_xdl.prepare_for_execution(
-                self.graph,
+                self._graph,
                 interactive=False,
                 device_modules=[chemputer_devices]
             )

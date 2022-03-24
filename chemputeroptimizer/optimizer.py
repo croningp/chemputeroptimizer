@@ -297,6 +297,7 @@ configuration file.') from None
 parameters : %s', algorithm_name, algorithm_parameters)
 
         self.optimizer.load_optimization_config(**opt_params)
+        self.optimizer.on_prepare_for_execution(self.graph)
         self.optimizer.prepare_for_execution(self.graph,
                                              self._xdl_object.executor,)
 
