@@ -3,7 +3,7 @@
 import logging
 
 from abc import ABC, abstractmethod
-from typing import Optional, Union
+from typing import Optional
 
 import numpy
 
@@ -34,7 +34,8 @@ class AbstractAlgorithm(ABC):
         If redefined in the ancestor classes, should be called to setup the
         logger.
         """
-        if not hasattr(self, 'name'): self.name = self.__class__.__name__
+        if not hasattr(self, 'name'):
+            self.name = self.__class__.__name__
         self.logger = logging.getLogger(f'optimizer.algorithm.{self.name}')
         try:
             self.dimensions = list(dimensions)

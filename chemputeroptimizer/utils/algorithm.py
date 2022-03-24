@@ -6,7 +6,6 @@ import logging
 import os
 import json
 
-from copy import deepcopy
 from typing import Dict, Tuple, Optional, List, Any, Iterable
 
 import numpy as np
@@ -19,6 +18,14 @@ from ..algorithms import (
     FromCSV,
     AbstractAlgorithm,
     Reproduce,
+)
+from ..constants import (
+    NOVELTY,
+    ALGORITHM,
+    CURRENT_VALUE,
+    BATCH_1,
+    MIN_VALUE,
+    MAX_VALUE,
 )
 from .client import OptimizerClient, SERVER_SUPPORTED_ALGORITHMS
 from .errors import NoDataError
@@ -184,9 +191,9 @@ class AlgorithmAPI():
 
             # forging initialization message
             init_msg = data.copy()
-            init_msg['algorithm'] = {'name': self.method_name}
+            init_msg[ALGORITHM] = {'name': self.method_name}
             if self.method_config:
-                init_msg['algorithm'].update(self.method_config)
+                init_msg[ALGORITHM].update(self.method_config)
 
             self.logger.debug('Init msg: %s', init_msg)
             # initializing and recording strategy
@@ -235,7 +242,7 @@ class AlgorithmAPI():
             # Reset the count if enough performed
             if self.control >= self.control_options['n_runs']:
                 self.control = 0
-                # Shifting number of iteratons to continue
+                # Shifting number of iterations to continue
                 self.iterations += 1
             # Do nothing else
             return
@@ -245,7 +252,7 @@ class AlgorithmAPI():
             self.current_setup[batch_id] = {}
             for param, param_set in batch_data.items():
                 self.current_setup[batch_id].update(
-                    {param: param_set['current_value']}
+                    {param: param_set[CURRENT_VALUE]}
                 )
 
         # Saving constraints
@@ -253,14 +260,14 @@ class AlgorithmAPI():
             # Using only first batch, assuming:
             # a) it is always present;
             # b) constraints are same across batches
-            for param, param_set in data['batch 1'].items():
+            for param, param_set in data[BATCH_1].items():
                 self.setup_constraints.update(
-                    {param: (param_set['min_value'], param_set['max_value'])})
+                    {param: (param_set[MIN_VALUE], param_set[MAX_VALUE])})
 
         # Special case: dealing with novelty search
         # For which the results for all previous experiments
         # Should be updated with each experiment
-        if result is not None and 'novelty' in result['batch 1']:
+        if result is not None and NOVELTY in result[BATCH_1]:
             # Due to the way novelty search works, each "batch_id" in the
             # result dictionary contains the information about all previously
             # stored data + the current batch. Thus, the last executed batch
@@ -273,12 +280,12 @@ class AlgorithmAPI():
             try:
                 for batch_id in result:
                     result_dataset_sizes.append(
-                        np.array(result[batch_id]['novelty'], ndmin=2).T
+                        np.array(result[batch_id][NOVELTY], ndmin=2).T
                     )
 
                     # Rewriting the result to contain only the current result
-                    result[batch_id]['novelty'] = \
-                        result[batch_id]['novelty'].pop(-1)
+                    result[batch_id][NOVELTY] = \
+                        result[batch_id][NOVELTY].pop(-1)
 
                 # Sorting by the dataset size
                 # The latest batch, that contains the data for all batches and
@@ -443,7 +450,7 @@ class AlgorithmAPI():
                     self.parameter_matrix.T.tolist()
                 )) if self.parameter_matrix is not None else None
             results = dict(zip(
-                    self.current_result['batch 1'],
+                    self.current_result[BATCH_1],
                     self.result_matrix.T.tolist()
                 )) if self.result_matrix is not None else None
             # Forging query msg
@@ -501,10 +508,10 @@ see below:\n%s', reply['exception'])
 
         # Pick a header from batch 1, assuming all batches have same parameters
         # And "batch 1" is always present
-        for key in self.current_setup['batch 1']:
+        for key in self.current_setup[BATCH_1]:
             header += f'{key},'
 
-        for key in self.current_result['batch 1']:
+        for key in self.current_result[BATCH_1]:
             header += f'{key},'
 
         np.savetxt(
@@ -571,10 +578,16 @@ see below:\n%s', reply['exception'])
             'Validating control experiment: %.2f', control_result)
 
         # "Special" treatment for the novelty experiment
-        if 'novelty' in control_result['batch 1']:
+        if NOVELTY in control_result[BATCH_1]:
             # Rewriting the result to contain only the latest result
+            # ATM only valid for NMR spectra, where the "novelty" score
+            # Returns list of novelties for all previous spectra
             for batch_id in control_result:
-                control_result[batch_id]['novelty'] = \
-                    control_result[batch_id]['novelty'].pop(-1)
+                try:
+                    control_result[batch_id][NOVELTY] = \
+                        control_result[batch_id][NOVELTY].pop(-1)
+                except AttributeError:
+                    # If novelty is not a list, i.e. for normal novelty score
+                    pass
 
         #TODO: additional logic here

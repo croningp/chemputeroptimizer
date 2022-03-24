@@ -6,4 +6,3 @@ from .interactive import (
     interactive_optimization_steps,
     create_optimize_step
 )
-from .simulate_schedule import simulate_schedule

@@ -3,16 +3,22 @@ Dummy "algorithm" to output the parameters from already performed experiments.
 Used, as the name suggest, to check reproducibility of the platform.
 """
 
-import random
+import typing
 from typing import Optional
 
 import numpy
-from numpy.random import Generator
 
 from .base_algorithm import AbstractAlgorithm
 
 
+if typing.TYPE_CHECKING:
+    from numpy.random import Generator
+
 class Reproduce(AbstractAlgorithm):
+    """Dummy algorithm, suggesting same experimental setup on each iterations.
+
+    Used to check the experiment for reproducibility.
+    """
 
     DEFAULT_CONFIG = {
         'random_state': 42,  # random state for selecting parameters
@@ -25,7 +31,7 @@ class Reproduce(AbstractAlgorithm):
 
         super().__init__(dimensions=dimensions, config=config)
 
-        self.rng: Generator = numpy.random.default_rng(
+        self.rng: 'Generator' = numpy.random.default_rng(
             self.config['random_state'])
 
         self.counter: int = 0  # counting number of experiments

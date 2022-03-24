@@ -12,6 +12,9 @@ import numpy
 from .base_algorithm import AbstractAlgorithm
 
 class FromCSV(AbstractAlgorithm):
+    """Dummy algorithm suggesting next experimental setup as read from
+    indicated .csv file.
+    """
 
     DEFAULT_CONFIG = {
         # Defaults to parameters.csv in the current directory

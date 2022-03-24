@@ -5,6 +5,7 @@ ChemputerOptimizer configuration.
 
 from logging import Logger
 from typing import Union
+import warnings
 
 from xdl import XDL
 
@@ -12,6 +13,8 @@ from .errors import OptimizerError, ParameterError
 from ..constants import (
     SUPPORTED_STEPS_PARAMETERS,
     DEFAULT_OPTIMIZATION_PARAMETERS,
+    NOVELTY,
+    TARGET,
 )
 
 
@@ -115,6 +118,32 @@ def validate_optimization_config(
             raise ParameterError(
                 f'<{parameter}> not a valid optimization parameter!')
 
+    # Patching target name
+    for target_name in config[TARGET]:
+        if 'spectrum_peak-area_' in target_name:
+            warnings.warn('"spectrum_peak-area_XXX" is obsolete objective \
+name, use "spectrum_peak_area_XXX" instead.', category=FutureWarning)
+            *_, peak_position = target_name.split('_')
+            new_target_name = f'spectrum_peak_area_{peak_position}'
+            config[TARGET] = {
+                new_target_name: config[TARGET][target_name]
+            }
+
+        if 'spectrum_integration-area_' in target_name:
+            warnings.warn('"spectrum_integration-area_" is obsolete objective \
+name, use "spectrum_integration_area_" instead.', category=FutureWarning)
+            *_, area = target_name.split('_')
+            new_target_name = f'spectrum_integration_area_{area}'
+            config[TARGET] = {
+                new_target_name: config[TARGET][target_name]
+            }
+
+        if 'novelty' in target_name:
+            new_target_name = NOVELTY
+            config[TARGET] = {
+                new_target_name: config[TARGET][target_name]
+            }
+
 def update_configuration(
     config1: dict[str, Union[str, dict]],
     config2: dict[str, Union[str, dict]]
@@ -129,7 +158,7 @@ def update_configuration(
     for key, value in config2.items():
         if key not in config1:
             config1[key] = value
-        elif key == 'target':
+        elif key == TARGET:
             # Special case - don't update the "target" parameter
             # Otherwise "final_parameter" from default will be appended
             pass

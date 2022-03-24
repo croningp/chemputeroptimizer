@@ -1,4 +1,4 @@
-# from xdl.steps import Add, HeatChill, HeatChillToTemp, Stir
+"""Module contains all necessary constants for the ChemputerOptimizer."""
 
 SUPPORTED_STEPS_PARAMETERS = {
     'Add': {
@@ -28,7 +28,7 @@ SUPPORTED_ANALYTICAL_METHODS = [
     'HPLC',
     'Raman',
     'NMR',
-    'pH',
+    # 'pH',
     'interactive',
 ]
 
@@ -49,13 +49,21 @@ ANALYTICAL_INSTRUMENTS = {
     'IDEX': 'IDEXMXIIValve'
 }
 
+# Spectra objects that have special methods for analysis
+# And calculation of the corresponding loss function
+SUPPORTED_SPECTRA_FOR_ANALYSIS = [
+    'spinsolvenmrspectrum',
+    'ramanspectrum',
+    'agilenthplcchromatogram',
+]
+
 TARGET_PARAMETERS = [
-    'final_yield',
-    'final_conversion',
-    'final_purity',
-    'final_parameter',
-    'spectrum_peak-area_XXX', # peak X coordinate (XXX)
-    'spectrum_integration-area_LLL..RRR', # area left (LLL) and right (RRR) border
+    # 'final_yield',
+    # 'final_conversion',
+    # 'final_purity',
+    # 'final_parameter',
+    'spectrum_peak_area_XXX', # peak X coordinate (XXX)
+    'spectrum_integration_area_LLL..RRR', # area left (LLL) and right (RRR) border
     'novelty', # e.g. number of new peaks on the product spectrum
 ]
 
@@ -79,3 +87,12 @@ DEFAULT_OPTIMIZATION_PARAMETERS = {
 # If no parameters for the OptimizeStep are given,
 # Using this as a range from the default setting
 DEFAULT_OPTIMIZE_STEP_PARAMETER_RANGE = (0.8, 1.2)  # plus-minus 20%
+
+# Special variables names
+NOVELTY = 'novelty_'  # "_" is added for the correct parsing
+TARGET = 'target'
+BATCH_1 = 'batch 1'
+CURRENT_VALUE = 'current_value'
+MIN_VALUE = 'min_value'
+MAX_VALUE = 'max_value'
+ALGORITHM = 'algorithm'

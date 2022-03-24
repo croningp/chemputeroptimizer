@@ -1,0 +1,17 @@
+{
+    "max_iterations": 10,
+    "target": {
+        "spectrum_integration_area_2.0..1.8": Infinity
+    },
+    "algorithm": {
+        "name": "smbo"
+    },
+    "batch_size": 1,
+    "constraints": [
+        "1.4..1.0"
+    ],
+    "control": {
+        "n_runs": 1,
+        "every": 5
+    }
+}

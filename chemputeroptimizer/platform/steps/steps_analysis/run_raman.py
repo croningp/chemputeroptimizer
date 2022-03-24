@@ -37,7 +37,7 @@ class RunRaman(AbstractBaseStep):
     def locks(self, chempiler):
         return [], [], []
 
-    def execute(self, chempiler: 'Chempiler', logger=None, level=0):
+    def execute(self, chempiler: 'Chempiler', logger=None, level=0, **kwargs):
         """Measure raman spectrum and pass the result to on_finish."""
 
         raman: OceanOpticsRaman = chempiler[self.raman]
@@ -61,8 +61,12 @@ class RunRaman(AbstractBaseStep):
             raman.spectrum.save_data(filename=fname, verbose=True)
 
             # processing
-            if raman.spectrum.reference:
-                raman.spectrum.subtract_reference()
+            try:
+                if raman.spectrum.reference:
+                    raman.spectrum.subtract_reference()
+            except AttributeError:
+                # No reference for the simulated spectrum
+                pass
 
             #raman.spectrum.default_processing()
 

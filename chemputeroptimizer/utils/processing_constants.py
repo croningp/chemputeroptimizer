@@ -26,3 +26,6 @@ NOVELTY_REGIONS_ANALYSIS = {
 
 # Maximum distance to peak to region (in ppm)
 TARGET_THRESHOLD_DISTANCE = 0.5
+
+# Method for referencing the spectrum
+DEFAULT_NMR_REFERENCING_METHOD = 'closest'

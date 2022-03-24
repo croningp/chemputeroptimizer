@@ -12,6 +12,9 @@ from csv import reader as csv_reader
 # xdl
 from xdl import XDL
 
+# chempiler
+from chempiler.tools.graph import load_graph
+
 # relative
 from .platform import OptimizerPlatform
 from .platform.steps import (
@@ -24,6 +27,7 @@ from .platform.steps.utils import (
 from .constants import (
     SUPPORTED_STEPS_PARAMETERS,
     DEFAULT_OPTIMIZATION_PARAMETERS,
+    BATCH_1,
 )
 from .utils.errors import (
     OptimizerError,
@@ -76,7 +80,7 @@ class ChemputerOptimizer():
         self.logger = get_logger()
 
         self._original_procedure = procedure
-        self.graph = graph_file
+        self.graph = load_graph(graph_file)
         self.interactive = interactive
 
         self.algorithm = AlgorithmAPI()
@@ -113,14 +117,27 @@ class ChemputerOptimizer():
         for i, step in enumerate(self._xdl_object.steps):
             if step.name == 'FinalAnalysis' or step.name == 'Analyze':
                 # Building reference step dictionary
-                reference_step = {
-                    'step': self._xdl_object.steps[i - 1].name,
-                    'properties': self._xdl_object.steps[i - 1].properties,
-                }
+                reference_step_name = self._xdl_object.steps[i - 1].name
+                if reference_step_name == 'OptimizeStep':
+                    # Stripping to the children step
+                    reference_step = self._xdl_object.steps[i - 1].children[0]
+                else:
+                    reference_step = self._xdl_object.steps[i - 1]
+
                 # Reference step is used to allow additional preparations
                 # To execute the analysis
                 # For example cooling down, filtering, evaporating, etc.
-                step.reference_step = reference_step
+                step.reference_step = {
+                    'step': reference_step.name,
+                    'properties': {
+                        prop: value
+                        for prop, value
+                        in reference_step.properties.items()
+                        # Don't save context property
+                        # As its not JSON serializable
+                        if 'context' not in prop
+                    }
+                }
                 final_analysis_steps.append(step)
 
         # Raise an error if no analysis steps found
@@ -276,8 +293,8 @@ configuration file.') from None
         )
 
         self.logger.info('Loaded the following parameter dict %s', opt_params)
-        self.logger.info('Loaded the following algorithm: %s',
-                          algorithm_parameters)
+        self.logger.info('Loaded the %s algorithm with the following \
+parameters : %s', algorithm_name, algorithm_parameters)
 
         self.optimizer.load_optimization_config(**opt_params)
         self.optimizer.prepare_for_execution(self.graph,
@@ -385,8 +402,8 @@ contain:\n{}'.format(set(results[0]), set(self.algorithm.setup_constraints))
                 results[0][-1]: float(row[-1])
             }
             # Wrapping everything in a "single batch" data
-            data = {'batch 1': data}
-            result = {'batch 1': result}
+            data = {BATCH_1: data}
+            result = {BATCH_1: result}
             # Now loading to the algorithm
             self.algorithm.load_data(data=data, result=result)
 

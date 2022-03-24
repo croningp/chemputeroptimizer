@@ -30,11 +30,12 @@ from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
 # Relative
 from .utils import (
     forge_xdl_batches,
-    get_reagent_flasks,
-    get_waste_containers,
     extract_optimization_params,
     get_volumes,
     check_volumes,
+)
+from ...constants import (
+    BATCH_1,
 )
 from ...utils import (
     SpectraAnalyzer,
@@ -77,6 +78,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         """Dirty hack to get the state of the chemputer from its graph"""
 
         self._platform_controller = platform_controller
+        self.graph = platform_controller.graph
         super().execute(platform_controller, logger, level)
 
     def get_simulation_steps(self):
@@ -102,7 +104,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         """
 
         continue_block = self.on_continue()
-        self.executor.prepare_block_for_execution(self.graph, continue_block)
+        self.executor.prepare_block_for_execution(
+            self._platform_controller.graph, continue_block)
 
         while continue_block:
             for step in continue_block:
@@ -117,7 +120,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
 
             continue_block = self.on_continue()
             self.executor.prepare_block_for_execution(
-                self.graph,
+                self._platform_controller.graph,
                 continue_block
             )
 
@@ -414,9 +417,9 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         except StopIteration:
 
             # Procedure is over, checking and restarting
-            if self._platform_controller.simulation:
+            if not self._platform_controller.simulation:
                 check_volumes(
-                    graph=self._platform_controller.graph.graph,
+                    graph=self._platform_controller.graph,
                     previous_volumes=self._previous_volume,
                     logger=self.logger
                 )
@@ -493,7 +496,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         """
 
         if batch_id is None:
-            batch_id = 'batch 1'
+            batch_id = BATCH_1
 
         def update_result(spectrum: AbstractSpectrum) -> None:
             """Closure function to update the result for a given batch id.
@@ -543,7 +546,7 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         """Callback function to prompt user input for final analysis"""
 
         if batch_id is None:
-            batch_id = 'batch 1'
+            batch_id = BATCH_1
 
         def interactive_update(spectrum: AbstractSpectrum = None) -> None:
 
@@ -592,6 +595,8 @@ class OptimizeDynamicStep(AbstractDynamicStep):
         """Special callback function to update the ODS state at the end of
         single iteration.
         """
+
+        self.logger.debug(self.state)
 
         if not self.state['updated']:
             # Loading results into algorithmAPI

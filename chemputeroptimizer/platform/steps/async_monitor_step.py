@@ -13,7 +13,7 @@ from networkx import MultiDiGraph
 from AnalyticalLabware.analysis.base_spectrum import AbstractSpectrum
 
 # XDL
-from xdl.steps.base_steps import AbstractAwaitStep, AbstractAsyncStep
+from xdl.steps.base_steps import AbstractAsyncStep
 from xdl.steps.utils import FTNDuration
 from xdl.errors import XDLError
 
@@ -79,7 +79,7 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
         self.finished: bool = False
         self.exception: Exception = None
         self.start_time: float = None
-        
+
         # All non base steps should have steps
         # Later on will depend on the method used
         # Right now just an empty list
@@ -163,7 +163,7 @@ class StartMonitoring(ChemputerStep, AbstractAsyncStep):
 
         return duration
 
-class StopMonitoring(ChemputerStep, AbstractAwaitStep):
+class StopMonitoring(ChemputerStep):
     """Utility step to stop the background monitoring step.
 
     Args:
