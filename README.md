@@ -10,7 +10,7 @@ git clone https://gitlab.com/croningroup/chemputer/chemputeroptimizer.git chempu
 
 cd chemputeroptimizer
 ```
-2. Install Chemputer requirements if needed ([XDL](https://gitlab.com/croningroup/chemputer/xdl) and [AnalyticalLabware](https://gitlab.com/croningroup/chemputer/analyticallabware)). Mind using correct version (i.e. `xdl@1.1` and `chemputerxdl@1.1`)
+2. Install Chemputer requirements if needed ([XDL](https://gitlab.com/croningroup/chemputer/xdl) and [AnalyticalLabware](https://gitlab.com/croningroup/chemputer/analyticallabware)).
 ```bash
 pip install -r requirements.txt
 ```
@@ -57,11 +57,6 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.3.5 alpha0
-* Added basic constrained optimization (see discussion in #91).
-* Improved processing and analysis for the HPLC and Raman feedback.
-* Updated script for novel product search.
-
 ### v0.3.6 alpha0
 * Minor code fixes after merging Raman and HPLC branches.
 * Added automatic control experiment every N iterations (see #92).
@@ -73,6 +68,9 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 * Explicit loss functions.
 * Integration tests.
 * [Documentation](/docs/README.md).
+
+### v0.4.1
+* Catch up with xdl/chemputerxdl v1.5.
 
 ## Development
 
