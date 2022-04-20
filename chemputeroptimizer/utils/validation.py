@@ -97,7 +97,7 @@ def find_and_validate_optimize_steps(
 
             logger.debug('Found OptimizeStep for %s.', optimized_step)
 
-    return {}
+    return optimize_steps
 
 def validate_optimization_config(
     config: dict[str, Union[str, dict]]) -> None:

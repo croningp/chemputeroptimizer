@@ -72,6 +72,9 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 ### v0.4.1
 * Catch up with xdl/chemputerxdl v1.5.
 
+### v0.4.2
+* Fixed incorrect `OptimizeStep` validation.
+
 ## Development
 
 Please check the issue list for the relevant things to do.
