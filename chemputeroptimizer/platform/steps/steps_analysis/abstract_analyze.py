@@ -2,11 +2,17 @@
 Generic interface class for all steps dedicated for analysis.
 """
 
+import typing
+from typing import Callable, Union, Optional
 from abc import abstractmethod
 
+from xdl.constants import JSON_PROP_TYPE
 from xdl.steps.base_steps import AbstractStep
 
 from chemputerxdl.steps.base_step import ChemputerStep
+
+if typing.TYPE_CHECKING:
+    from AnalyticalLabware.devices.chemputer_devices import AbstractSpectrum
 
 class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
     """Abstract step to run the analysis.
@@ -28,9 +34,109 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
             be used.
         method_properties (dict): Dictionary with additional properties, passed
             to the low-level analysis step.
+        on_finish (Callable[[str], Callable]): Callback function to execute
+            when analysis is performed. This function should accept a string
+            argument and return a new callable -> the one which is passed to
+            the low-level analytical step and executed with a spectrum as an
+            argument.
+        on_finish_arg (str): Argument for the on_finish callback factory.
+        reference_step (dict): Properties from the "reference" step, that
+            dictates the necessary preparations before the analysis. E.g.,
+            cooling reaction mixture from previous HeatChill step.
+    Attrs aka INTERNAL_PROPS:
+        instrument (str): Name of the analytical instrument on graph.
+        cleaning_solvent_vessel (str): Name of the cleaning solvent vessel on
+            the graph.
+        priming_waste (str): Name of the waste container to dispose the sample
+            after tubing priming.
+        sample_pump (str): Name of the pump to withdraw the sample, i.e. pump
+            closest to the "vessel".
+        injection_pump (str): Name of the pump to inject the sample, i.e. pump
+            closest to the "instrument".
+        sample_excess_volume (float): Extra volume taken with sample to
+            eliminate air gap during sample injection. Is either discarded to
+            "injection_waste" or returned to the sample "vessel".
+        injection_waste (str): Name of the waste container to discard the
+            excess/remaining of the sample after injection.
+        dilution_vessel (str): Name of the container to dilute the sample.
+            Should have a stirrer, otherwise sample dilution is not guaranteed.
+        dilution_solvent_vessel (str): Name of the dilution solvent vessel on
+            the graph.
     """
 
-    def __init__(self):
+    PROP_TYPES = {
+        # step related
+        'vessel': str,
+        'method': str,
+        'sample_volume': float,
+        'dilution_volume': float,
+        'dilution_solvent': str,
+        'instrument': str,
+        'on_finish': Callable[[str], Union[Callable[['AbstractSpectrum'], None], None]],
+        'reference_step': JSON_PROP_TYPE,
+        'method_properties': JSON_PROP_TYPE,
+        'on_finish_arg': str,
+        # method related
+        'cleaning_solvent': str,
+        'cleaning_solvent_vessel': str,
+        'priming_waste': str,
+        # sample related
+        'sample_pump': str,
+        'injection_pump': str,
+        'sample_excess_volume': float,
+        'dilution_vessel': str,
+        'dilution_solvent_vessel': str,
+        'injection_waste': str,
+    }
+
+    INTERNAL_PROPS = [
+        'instrument',
+        'reference_step',
+        'priming_waste',
+        'sample_pump',
+        'injection_pump',
+        'sample_excess_volume',
+        'cleaning_solvent_vessel',
+        'dilution_vessel',
+        'dilution_solvent_vessel',
+        'distribution_valve',
+        'injection_waste',
+        'on_finish_arg',
+    ]
+
+    DEFAULT_PROPS = {
+        # anonymous function to take a string argument
+        # and return a new callable
+        'on_finish': lambda arg: lambda spec: None,
+        # volume left in the syringe after sample is injected
+        'sample_excess_volume': 2,
+        'method_props': {},
+    }
+
+    def __init__(
+        self,
+        vessel: str,
+        method: str,
+        cleaning_solvent: Optional[str] = None,
+        sample_volume: Optional[float] = None,
+        on_finish: Optional[Callable] = 'default',
+        method_props: JSON_PROP_TYPE = 'default',
+        dilution_volume: Optional[float] = None,
+        dilution_solvent: Optional[str] = None,
+        # Internal properties
+        instrument: Optional[str] = None,
+        reference_step: Optional[JSON_PROP_TYPE] = None,
+        priming_waste: Optional[str] = None,
+        sample_pump: Optional[str] = None,
+        injection_pump: Optional[str] = None,
+        sample_excess_volume: Optional[float] = 'default',
+        cleaning_solvent_vessel: Optional[str] = None,
+        dilution_solvent_vessel: Optional[str] = None,
+        dilution_vessel: Optional[str] = None,
+        injection_waste: Optional[str] = None,
+        on_finish_arg: Optional[str] = None,
+        **kwargs
+    ) -> None:
         pass
 
     @abstractmethod
