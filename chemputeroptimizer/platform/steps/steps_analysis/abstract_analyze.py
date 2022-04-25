@@ -23,12 +23,7 @@ from chemputerxdl.constants import (
     CHEMPUTER_WASTE,
 )
 from chemputerxdl.steps import (
-    Transfer,
-    Wait,
     ResetHandling,
-    CleanVessel,
-    CMove,
-    Add,
 )
 
 from ..utils import (
@@ -40,6 +35,7 @@ from .utils import (
     validate_dilution,
     validate_dilution_vessel,
 )
+from .dilute_sample import DiluteSample
 
 if typing.TYPE_CHECKING:
     from AnalyticalLabware.devices.chemputer_devices import AbstractSpectrum
@@ -276,8 +272,18 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         dilution_steps.extend([
             # Clean backbone with dilution solvent
             ResetHandling(solvent=self.dilution_solvent),
-            # Mimic Add step from vessel to dilution_vessel
 
+            # Special step to withdraw and dilute a sample
+            DiluteSample(
+                vessel=self.vessel,
+                sample_volume=self.sample_volume,
+                dilution_volume=self.dilution_volume,
+                dilution_solvent=self.dilution_solvent,
+                dilution_vessel=self.dilution_vessel,
+            ),
+
+            # Another backbone cleaning
+            ResetHandling(solvent=self.dilution_solvent),
         ])
 
         return dilution_steps
