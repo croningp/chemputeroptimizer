@@ -8,8 +8,9 @@ import time
 
 import ChemputerAPI
 from chempiler import Chempiler
-from chemputeroptimizer import ChemputerOptimizer
+from chemputeroptimizer import ChemputerOptimizer, OptimizerPlatform
 from AnalyticalLabware.devices import chemputer_devices
+from xdl import XDL
 
 
 ROOT = Path(__file__).parent
@@ -31,6 +32,14 @@ def get_chemputer_optimizer(xdl_file: str, graph_file: str) -> ChemputerOptimize
         xdl_file,
         graph_file,
     )
+
+def get_prepared_xdl(xdl_file: str, graph_file: str) -> XDL:
+
+    xdl = XDL(xdl_file, platform=OptimizerPlatform)
+
+    xdl.prepare_for_execution(graph_file=graph_file, interactive=False)
+
+    return xdl
 
 def generic_optimizer_test(
     chempiler: Chempiler,
