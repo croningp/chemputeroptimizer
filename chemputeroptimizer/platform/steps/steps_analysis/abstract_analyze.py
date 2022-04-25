@@ -2,6 +2,8 @@
 Generic interface class for all steps dedicated for analysis.
 """
 
+# pylint: disable=unused-argument,attribute-defined-outside-init
+
 import typing
 from typing import Callable, Union, Optional
 from abc import abstractmethod
@@ -10,6 +12,11 @@ from xdl.constants import JSON_PROP_TYPE
 from xdl.steps.base_steps import AbstractStep
 
 from chemputerxdl.steps.base_step import ChemputerStep
+
+from .utils import (
+    validate_cleaning,
+    validate_dilution
+)
 
 if typing.TYPE_CHECKING:
     from AnalyticalLabware.devices.chemputer_devices import AbstractSpectrum
@@ -137,7 +144,31 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         on_finish_arg: Optional[str] = None,
         **kwargs
     ) -> None:
-        pass
+        super().__init__(locals())
+
+        self.validate_props()
+
+    def validate_props(self):
+        """Validates given step properties.
+
+        E.g. if dilution volume is given -> dilution solvent must be chosen.
+
+        Validation is unique for a given instrument and is normally extended in
+        an ancestor class.
+        """
+
+        # Validating cleaning solvent is given
+        validate_cleaning(
+            sample_volume=self.sample_volume,
+            dilution_volume=self.dilution_volume,
+            cleaning_solvent=self.cleaning_solvent
+        )
+
+        # Validating dilution solvent is given
+        validate_dilution(
+            dilution_volume=self.dilution_volume,
+            dilution_solvent=self.dilution_solvent
+        )
 
     @abstractmethod
     def get_preparation_steps(self):
