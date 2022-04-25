@@ -15,7 +15,8 @@ from chemputerxdl.steps.base_step import ChemputerStep
 from chemputerxdl.utils.execution import (
     get_nearest_node,
     get_reagent_vessel,
-    get_pump_max_volume
+    get_pump_max_volume,
+    get_aspiration_pump,
 )
 from chemputerxdl.constants import (
     CHEMPUTER_PUMP,
@@ -86,6 +87,9 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
             excess/remaining of the sample after injection.
         dilution_solvent_vessel (str): Name of the dilution solvent vessel on
             the graph.
+        analyte_vessel (str): Name of the vessel containing the analyte. Is
+            updated depending on the sample preparations, i.e. if dilution is
+            required -> `analyte_vessel` = `dilution_vessel`.
     """
 
     PROP_TYPES = {
@@ -111,6 +115,7 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         'dilution_vessel': str,
         'dilution_solvent_vessel': str,
         'injection_waste': str,
+        'analyte_vessel': str,
     }
 
     INTERNAL_PROPS = [
@@ -125,7 +130,9 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         'dilution_solvent_vessel',
         'distribution_valve',
         'injection_waste',
+        'on_finish',
         'on_finish_arg',
+        'analyte_vessel',
     ]
 
     DEFAULT_PROPS = {
@@ -159,6 +166,7 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         dilution_vessel: Optional[str] = None,
         injection_waste: Optional[str] = None,
         on_finish_arg: Optional[str] = None,
+        analyte_vessel: Optional[str] = None,
         **kwargs
     ) -> None:
         super().__init__(locals())
@@ -194,7 +202,11 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
             # nothing needed if running the analysis "interactively"
             return
 
+        # Updating the instrument
         self.instrument = find_instrument(graph, self.method)
+
+        # Updating the analyte vessel
+        self.analyte_vessel = self.vessel
 
         if self.sample_volume:
             self._prepare_for_sampling(graph=graph)
@@ -204,6 +216,13 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
 
     def _prepare_for_sampling(self, graph: 'MultiDiGraph') -> None:
         """Necessary preparations if sampling is required."""
+
+        # Pump to withdraw the sample
+        self.sample_pump = get_aspiration_pump(
+            graph=graph,
+            src_vessel=self.vessel,
+        )
+
         # Nearest pump needed to store "buffer" of the sample volume
         self.injection_pump = get_nearest_node(
             graph=graph,
@@ -242,6 +261,9 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
             target_vessel_class=CHEMPUTER_WASTE
         )
 
+        # Updating the vessel with analyte
+        self.analyte_vessel = self.vessel
+
     def _prepare_for_dilution(self, graph: 'MultiDiGraph') -> None:
         """Necessary preparations if dilution is required."""
         self.dilution_solvent_vessel = get_reagent_vessel(
@@ -255,6 +277,15 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
 
             self.dilution_vessel = validate_dilution_vessel(
                 vessels_for_dilution)
+
+        # Updating analyte_vessel
+        self.analyte_vessel = self.dilution_vessel
+
+        # Updating the sample pump
+        self.sample_pump = get_aspiration_pump(
+            graph=graph,
+            src_vessel=self.analyte_vessel
+        )
 
     @abstractmethod
     def get_preparation_steps(self):
