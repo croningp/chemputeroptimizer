@@ -12,7 +12,20 @@ from xdl.constants import JSON_PROP_TYPE
 from xdl.steps.base_steps import AbstractStep
 
 from chemputerxdl.steps.base_step import ChemputerStep
+from chemputerxdl.utils.execution import (
+    get_nearest_node,
+    get_reagent_vessel,
+    get_pump_max_volume
+)
+from chemputerxdl.constants import (
+    CHEMPUTER_PUMP,
+    CHEMPUTER_WASTE,
+)
 
+from ..utils import (
+    find_instrument,
+    get_dilution_flask,
+)
 from .utils import (
     validate_cleaning,
     validate_dilution
@@ -20,6 +33,7 @@ from .utils import (
 
 if typing.TYPE_CHECKING:
     from AnalyticalLabware.devices.chemputer_devices import AbstractSpectrum
+    from networkx import MultiDiGraph
 
 class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
     """Abstract step to run the analysis.
@@ -169,6 +183,64 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
             dilution_volume=self.dilution_volume,
             dilution_solvent=self.dilution_solvent
         )
+
+    def on_prepare_for_execution(self, graph: 'MultiDiGraph') -> None:
+        """Necessary preparations before step may be executed."""
+
+        if self.method == 'interactive':
+            # nothing needed if running the analysis "interactively"
+            return
+
+        self.instrument = find_instrument(graph, self.method)
+
+        if self.sample_volume:
+            self._prepare_for_sampling(graph=graph)
+
+        if self.dilution_volume:
+            self._prepare_for_dilution(graph=graph)
+
+    def _prepare_for_sampling(self, graph: 'MultiDiGraph') -> None:
+        """Necessary preparations if sampling is required."""
+        # Nearest pump needed to store "buffer" of the sample volume
+        self.injection_pump = get_nearest_node(
+            graph=graph,
+            src=self.instrument,
+            target_vessel_class=CHEMPUTER_PUMP
+        )
+
+        injection_pump_max_volume = get_pump_max_volume(
+            graph=graph,
+            aspiration_pump=self.injection_pump
+        )
+
+        # Reducing if the desired volume exceeds the pump's max volume
+        if (self.sample_excess_volume + self.sample_volume >
+        injection_pump_max_volume):
+            self.sample_excess_volume = \
+                injection_pump_max_volume - self.sample_volume
+
+        # Obtaining cleaning solvent vessel
+        self.cleaning_solvent_vessel = get_reagent_vessel(
+            graph,
+            self.cleaning_solvent
+        )
+
+        # Obtaining nearest waste to dispose sample after priming
+        self.priming_waste = get_nearest_node(
+            graph=graph,
+            src=self.vessel,
+            target_vessel_class=CHEMPUTER_WASTE
+        )
+
+        # Obtaining nearest waste to dispose sample before injection
+        self.injection_waste = get_nearest_node(
+            graph=graph,
+            src=self.instrument,
+            target_vessel_class=CHEMPUTER_WASTE
+        )
+
+    def _prepare_for_dilution(self, graph: 'MultiDiGraph') -> None:
+        """Necessary preparations if dilution is required."""
 
     @abstractmethod
     def get_preparation_steps(self):

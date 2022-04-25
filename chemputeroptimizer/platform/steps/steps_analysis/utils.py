@@ -40,7 +40,7 @@ def validate_cleaning(
     sample_volume: Union[float, None],
     dilution_volume: Union[float, None],
     cleaning_solvent: Union[str, None],
-):
+) -> None:
     """Validate if cleaning is required and necessary properties given.
 
     If either sample volume or dilution volume were given -> cleaning solvent
