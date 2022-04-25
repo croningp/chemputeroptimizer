@@ -16,13 +16,13 @@ import typing
 from typing import Optional
 
 from xdl.steps.base_steps import AbstractStep
-from xdl.steps.special_steps import Repeat
 
 from chemputerxdl.steps.base_step import ChemputerStep
 from chemputerxdl.utils.execution import (
-    get_waste_on_valve,
-    get_waste_vessel,
-    get_aspiration_valve,
+    get_aspiration_pump,
+    get_nearest_node,
+    get_pump_max_volume,
+    get_reagent_vessel,
 )
 
 from chemputerxdl.steps import (
@@ -31,12 +31,9 @@ from chemputerxdl.steps import (
     CMove,
     Add,
 )
-
-from ..utils import (
-    get_flasks_for_dilution
-)
-from .utils import (
-    validate_dilution_vessel
+from chemputerxdl.constants import (
+    CHEMPUTER_PUMP,
+    CHEMPUTER_WASTE,
 )
 
 if typing.TYPE_CHECKING:
@@ -54,7 +51,7 @@ class InjectSample(ChemputerStep, AbstractStep):
         sample_volume (float): Volume of the sample to withdraw.
         target_vessel (str): Name of the vessel where sample is injected.
         priming_volume (float): Volume to prime tubing. Defaults to .5 mL.
-        waste_vessel (str): Name of the vessel to dump sample excess. Unless
+        injection_waste (str): Name of the vessel to dump sample excess. Unless
             given, excess returns to `sample_vessel`.
         injection_speed (float): Speed of sample injection (in mL/min), aka
             `dispense_speed`. Defaults to 5 mL/min.
@@ -63,26 +60,32 @@ class InjectSample(ChemputerStep, AbstractStep):
             does not fit `sample_volume` + `sample_excess_volume`.
 
     Attrs aka INTERNAL_PROPS:
-        injection_pump (str): Name of the pump, used to inject sample, i.e.
+        injection_pump (str): Name of the pump used to inject sample, i.e.
             closest to the target vessel.
+        sample_pump (str): Name of the pump used to aspirate the sample, i.e.
+            closest to the sample vessel.
     """
 
     PROP_TYPES = {
         'sample_vessel': str,
         'sample_volume': float,
-        'waste_vessel': str,
+        'injection_waste': str,
         'priming_volume': float,
         'aspiration_speed': float,
         'move_speed': float,
         'injection_speed': float,
         'aspiration_valve': str,
         'sample_excess_volume': float,
+        'injection_pump': str,
+        'sample_pump': str,
     }
 
     INTERNAL_PROPS = [
         'dilution_solvent_vessel',
-        'waste_vessel',
+        'injection_waste',
         'sample_excess_volume',
+        'injection_pump',
+        'sample_pump',
     ]
 
     DEFAULT_PROPS = {
@@ -98,13 +101,15 @@ class InjectSample(ChemputerStep, AbstractStep):
         self,
         sample_vessel: str,
         sample_volume: float,
-        waste_vessel: Optional[str] = None,
+        injection_waste: Optional[str] = None,
         priming_volume: Optional[float] = 'default',
         aspiration_speed: Optional[float] = 'default',
         move_speed: Optional[float] = 'default',
         injection_speed: Optional[float] = 'default',
         aspiration_valve: Optional[str] = None,
         sample_excess_volume: Optional[float] = 'default',
+        injection_pump: Optional[str] = None,
+        sample_pump: Optional[str] = None,
 
         **kwargs
     ) -> None:
@@ -113,11 +118,49 @@ class InjectSample(ChemputerStep, AbstractStep):
     def on_prepare_for_execution(self, graph: 'MultiDiGraph') -> None:
         """Prepares step for execution."""
 
-        if self.waste_vessel is None:
-            # Normally return the excess back to the sample vessel
-            self.waste_vessel = self.sample_vessel
+        # Pump to withdraw the sample
+        self.sample_pump = get_aspiration_pump(
+            graph=graph,
+            src_vessel=self.sample_vessel,
+        )
 
-        # Reduce excess volume if needed
+        # Nearest pump needed to store "buffer" of the sample volume
+        self.injection_pump = get_nearest_node(
+            graph=graph,
+            src=self.target_vessel,
+            target_vessel_class=CHEMPUTER_PUMP
+        )
+
+        injection_pump_max_volume = get_pump_max_volume(
+            graph=graph,
+            aspiration_pump=self.injection_pump
+        )
+
+        # Reducing if the desired volume exceeds the pump's max volume
+        if (self.sample_excess_volume + self.sample_volume >
+        injection_pump_max_volume):
+            self.sample_excess_volume = \
+                injection_pump_max_volume - self.sample_volume
+
+        # Obtaining cleaning solvent vessel
+        self.cleaning_solvent_vessel = get_reagent_vessel(
+            graph,
+            self.cleaning_solvent
+        )
+
+        # Obtaining nearest waste to dispose sample after priming
+        self.priming_waste = get_nearest_node(
+            graph=graph,
+            src=self.sample_vessel,
+            target_vessel_class=CHEMPUTER_WASTE
+        )
+
+        # Obtaining nearest waste to dispose sample before injection
+        self.injection_waste = get_nearest_node(
+            graph=graph,
+            src=self.target_vessel,
+            target_vessel_class=CHEMPUTER_WASTE
+        )
 
     def get_steps(self) -> list['Step']:
         """Steps to withdraw, transfer and dilute sample.

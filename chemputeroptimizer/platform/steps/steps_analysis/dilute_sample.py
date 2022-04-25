@@ -91,7 +91,7 @@ class DiluteSample(ChemputerStep, AbstractStep):
         'aspiration_speed': 10,  # mL/min
         'move_speed': 20,  # mL/min,
         'dispense_speed': 20,  # mL/min
-        'dissolution_time': 60,  # mL/min
+        'dissolution_time': 60,  # seconds
     }
 
     def __init__(
