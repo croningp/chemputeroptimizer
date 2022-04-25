@@ -22,6 +22,14 @@ from chemputerxdl.constants import (
     CHEMPUTER_PUMP,
     CHEMPUTER_WASTE,
 )
+from chemputerxdl.steps import (
+    Transfer,
+    Wait,
+    ResetHandling,
+    CleanVessel,
+    CMove,
+    Add,
+)
 
 from ..utils import (
     find_instrument,
@@ -36,6 +44,7 @@ from .utils import (
 if typing.TYPE_CHECKING:
     from AnalyticalLabware.devices.chemputer_devices import AbstractSpectrum
     from networkx import MultiDiGraph
+    from xdl.steps.base_steps import Step
 
 class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
     """Abstract step to run the analysis.
@@ -173,8 +182,9 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
 
         self.validate_props()
 
+    ### VALIDATION
     def validate_props(self):
-        """Validates given step properties.
+        """Validate given step properties.
 
         E.g. if dilution volume is given -> dilution solvent must be chosen.
 
@@ -195,6 +205,7 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
             dilution_solvent=self.dilution_solvent
         )
 
+    ### EXECUTION
     def on_prepare_for_execution(self, graph: 'MultiDiGraph') -> None:
         """Necessary preparations before step may be executed."""
 
@@ -214,6 +225,95 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         if self.dilution_volume:
             self._prepare_for_dilution(graph=graph)
 
+        # Analysis-specific preparations
+        self._prepare_for_analysis(graph=graph)
+
+    ### SUBSTEPS
+    ### ABSTRACT
+    @abstractmethod
+    def get_preparation_steps(self) -> list['Step']:
+        """Get steps required to prepare the mixture prior to analysis.
+
+        Preparation steps are unique depending on the initial material location
+        e.g. filter/flask/reactor and analytical instrument in use.
+
+        Such steps might include: cooling reaction mixture; dissolving
+        precipitate; drying material; etc.
+
+        RESERVED FOR FUTURE USE!
+        """
+
+    @abstractmethod
+    def get_analysis_steps(self) -> list['Step']:
+        """Get steps required to acquire the analytical data.
+
+        Steps are unique for the given instrument.
+        """
+
+    @abstractmethod
+    def get_postanalysis_steps(self) -> list['Step']:
+        """Get steps required after the data's been acquired.
+
+        Steps are unique for the given instrument.
+        """
+
+    ### GENERIC
+    def get_sampling_steps(self) -> list['Step']:
+        """Get steps required to acquire the sample.
+
+        Basically a given volume + some access is transferred to the syringe
+        and slowly injected into the instrument.
+        """
+
+    def get_dilution_steps(self) -> list['Step']:
+        """Get steps required to dilute the sample.
+
+        These steps are performed FIRST in the substeps sequence.
+        """
+
+        dilution_steps = []
+
+        dilution_steps.extend([
+            # Clean backbone with dilution solvent
+            ResetHandling(solvent=self.dilution_solvent),
+            # Mimic Add step from vessel to dilution_vessel
+
+        ])
+
+        return dilution_steps
+
+    def get_cleaning_steps(self) -> list['Step']:
+        """Get steps required to clean the instrument (and dilution vessel).
+        """
+
+    def get_steps(self) -> list['Step']:
+        """Get substeps."""
+
+        substeps = []
+
+        # Any reaction/sample preparations
+        substeps.extend(self.get_preparation_steps())
+
+        # Dilution
+        if self.dilution_volume:
+            substeps.extend(self.get_dilution_steps())
+
+        # Sampling
+        if self.sample_volume:
+            substeps.extend(self.get_sampling_steps())
+
+        # Analysis
+        substeps.extend(self.get_analysis_steps())
+
+        # Post-analysis
+        substeps.extend(self.get_postanalysis_steps())
+
+        # Cleaning
+        substeps.extend(self.get_cleaning_steps())
+
+        return substeps
+
+    ### PREPARATION
     def _prepare_for_sampling(self, graph: 'MultiDiGraph') -> None:
         """Necessary preparations if sampling is required."""
 
@@ -266,6 +366,7 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
 
     def _prepare_for_dilution(self, graph: 'MultiDiGraph') -> None:
         """Necessary preparations if dilution is required."""
+
         self.dilution_solvent_vessel = get_reagent_vessel(
             graph,
             self.dilution_solvent
@@ -288,39 +389,8 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         )
 
     @abstractmethod
-    def get_preparation_steps(self):
-        """Gets steps required to prepare the mixture prior to analysis.
+    def _prepare_for_analysis(self, graph: 'MultiDiGraph') -> None:
+        """Additional preparations.
 
-        Preparation steps are unique depending on the initial material location
-        e.g. filter/flask/reactor and analytical instrument in use.
-
-        Such steps might include: cooling reaction mixture; dissolving
-        precipitate; drying material; etc.
-
-        RESERVED FOR FUTURE USE!
-        """
-
-    @abstractmethod
-    def get_analysis_steps(self):
-        """Gets steps required to acquire the analytical data.
-
-        Steps are unique for the given instrument.
-        """
-
-    @abstractmethod
-    def get_postanalysis_steps(self):
-        """Gets steps required after the data's been acquired.
-
-        Steps are unique for the given instrument.
-        """
-
-    def get_sampling_steps(self):
-        """Gets steps required to acquire the sample.
-
-        Basically a given volume + some access is transferred to the syringe
-        and slowly injected into the instrument.
-        """
-
-    def get_cleaning_steps(self):
-        """Gets steps required to clean the instrument (and dilution vessel).
+        These are unique for the given instrument.
         """
