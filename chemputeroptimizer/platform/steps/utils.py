@@ -2,7 +2,7 @@
 
 import typing
 import copy
-from typing import Optional
+from typing import Optional, Union
 from itertools import chain
 from logging import Logger
 
@@ -189,6 +189,26 @@ def get_dilution_flask(graph: 'MultiDiGraph') -> Optional[str]:
             return flask
 
     return None
+
+def get_flasks_for_dilution(graph: 'MultiDiGraph') -> Union[str, list]:
+    """Get a list of empty flasks with a stirrers.
+
+    Used to locate a flask to dilute the analyte before injecting into
+    analytical instrument.
+    """
+
+    empty_flasks = [
+        flask
+        for flask, data in graph.nodes(data=True)
+        if data['class'] == CHEMPUTER_FLASK and not data['chemical']
+    ]
+
+    empty_flasks_with_stirrers = [
+        flask for flask in empty_flasks
+        if get_vessel_stirrer(graph, flask)
+    ]
+
+    return empty_flasks_with_stirrers
 
 def find_shimming_solvent_flask(
     graph: 'MultiDiGraph') -> Optional[tuple[str, float]]:

@@ -24,11 +24,12 @@ from chemputerxdl.constants import (
 
 from ..utils import (
     find_instrument,
-    get_dilution_flask,
+    get_flasks_for_dilution,
 )
 from .utils import (
     validate_cleaning,
-    validate_dilution
+    validate_dilution,
+    validate_dilution_vessel,
 )
 
 if typing.TYPE_CHECKING:
@@ -64,6 +65,10 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         reference_step (dict): Properties from the "reference" step, that
             dictates the necessary preparations before the analysis. E.g.,
             cooling reaction mixture from previous HeatChill step.
+        dilution_vessel (str): Name of the container to dilute the sample.
+            Must have a stirrer, otherwise sample dilution is not guaranteed.
+            If not given -> locate first empty flask with stirrer on the graph.
+
     Attrs aka INTERNAL_PROPS:
         instrument (str): Name of the analytical instrument on graph.
         cleaning_solvent_vessel (str): Name of the cleaning solvent vessel on
@@ -79,8 +84,6 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
             "injection_waste" or returned to the sample "vessel".
         injection_waste (str): Name of the waste container to discard the
             excess/remaining of the sample after injection.
-        dilution_vessel (str): Name of the container to dilute the sample.
-            Should have a stirrer, otherwise sample dilution is not guaranteed.
         dilution_solvent_vessel (str): Name of the dilution solvent vessel on
             the graph.
     """
@@ -241,6 +244,17 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
 
     def _prepare_for_dilution(self, graph: 'MultiDiGraph') -> None:
         """Necessary preparations if dilution is required."""
+        self.dilution_solvent_vessel = get_reagent_vessel(
+            graph,
+            self.dilution_solvent
+        )
+
+        if self.dilution_vessel is None:
+            # Get all flasks suitable for dilution
+            vessels_for_dilution = get_flasks_for_dilution(graph)
+
+            self.dilution_vessel = validate_dilution_vessel(
+                vessels_for_dilution)
 
     @abstractmethod
     def get_preparation_steps(self):
