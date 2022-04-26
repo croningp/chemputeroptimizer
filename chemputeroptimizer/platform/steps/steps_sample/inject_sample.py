@@ -171,10 +171,10 @@ class InjectSample(ChemputerStep, AbstractStep):
                 move_speed=self.injection_speed,
                 dispense_speed=self.injection_speed,
             ),
-            # Returning the excess back to sample vessel
+            # Discard sample_excess_volume to injection waste
             CMove(
                 from_vessel=self.injection_pump,
-                to_vessel=self.sample_vessel,
+                to_vessel=self.injection_waste,
                 volume=self.sample_excess_volume,
                 aspiration_speed=self.move_speed,
                 move_speed=self.move_speed,
