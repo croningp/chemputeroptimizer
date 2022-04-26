@@ -13,17 +13,11 @@ from xdl.steps.base_steps import AbstractStep
 
 from chemputerxdl.steps.base_step import ChemputerStep
 from chemputerxdl.utils.execution import (
-    get_nearest_node,
     get_reagent_vessel,
-    get_pump_max_volume,
-    get_aspiration_pump,
-)
-from chemputerxdl.constants import (
-    CHEMPUTER_PUMP,
-    CHEMPUTER_WASTE,
 )
 from chemputerxdl.steps import (
     ResetHandling,
+    CleanVessel
 )
 
 from ..utils import (
@@ -273,6 +267,39 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
     def get_cleaning_steps(self) -> list['Step']:
         """Get steps required to clean the instrument (and dilution vessel).
         """
+
+        cleaning_steps = []
+
+        # Clean backbone first
+        cleaning_steps.append(
+            ResetHandling(
+                solvent=self.cleaning_solvent
+            )
+        )
+
+        # If sample was taken - clean analytical instrument
+        if self.sample_volume:
+            cleaning_steps.append(
+                CleanVessel(
+                    vessel=self.instrument,
+                    solvent=self.cleaning_solvent,
+                    # Actual time of "cleaning"
+                    stir_time=600,  # seconds
+                    # Normally analytical instruments don't have a dry option
+                    dry=False,
+                )
+            )
+
+        # If sample was diluted - clean dilution vessel
+        if self.dilution_volume:
+            cleaning_steps.append(
+                CleanVessel(
+                    vessel=self.dilution_vessel,
+                    solvent=self.cleaning_solvent,
+                )
+            )
+
+        return cleaning_steps
 
     def get_steps(self) -> list['Step']:
         """Get substeps."""
