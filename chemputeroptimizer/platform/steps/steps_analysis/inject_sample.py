@@ -22,7 +22,6 @@ from chemputerxdl.utils.execution import (
     get_aspiration_pump,
     get_nearest_node,
     get_pump_max_volume,
-    get_reagent_vessel,
 )
 
 from chemputerxdl.steps import (
@@ -62,8 +61,6 @@ class InjectSample(ChemputerStep, AbstractStep):
     Attrs aka INTERNAL_PROPS:
         injection_pump (str): Name of the pump used to inject sample, i.e.
             closest to the target vessel.
-        sample_pump (str): Name of the pump used to aspirate the sample, i.e.
-            closest to the sample vessel.
     """
 
     PROP_TYPES = {
@@ -77,7 +74,6 @@ class InjectSample(ChemputerStep, AbstractStep):
         'aspiration_valve': str,
         'sample_excess_volume': float,
         'injection_pump': str,
-        'sample_pump': str,
     }
 
     INTERNAL_PROPS = [
@@ -85,7 +81,6 @@ class InjectSample(ChemputerStep, AbstractStep):
         'injection_waste',
         'sample_excess_volume',
         'injection_pump',
-        'sample_pump',
     ]
 
     DEFAULT_PROPS = {
@@ -109,7 +104,6 @@ class InjectSample(ChemputerStep, AbstractStep):
         aspiration_valve: Optional[str] = None,
         sample_excess_volume: Optional[float] = 'default',
         injection_pump: Optional[str] = None,
-        sample_pump: Optional[str] = None,
 
         **kwargs
     ) -> None:
@@ -117,12 +111,6 @@ class InjectSample(ChemputerStep, AbstractStep):
 
     def on_prepare_for_execution(self, graph: 'MultiDiGraph') -> None:
         """Prepares step for execution."""
-
-        # Pump to withdraw the sample
-        self.sample_pump = get_aspiration_pump(
-            graph=graph,
-            src_vessel=self.sample_vessel,
-        )
 
         # Nearest pump needed to store "buffer" of the sample volume
         self.injection_pump = get_nearest_node(
@@ -142,19 +130,6 @@ class InjectSample(ChemputerStep, AbstractStep):
             self.sample_excess_volume = \
                 injection_pump_max_volume - self.sample_volume
 
-        # Obtaining cleaning solvent vessel
-        self.cleaning_solvent_vessel = get_reagent_vessel(
-            graph,
-            self.cleaning_solvent
-        )
-
-        # Obtaining nearest waste to dispose sample after priming
-        self.priming_waste = get_nearest_node(
-            graph=graph,
-            src=self.sample_vessel,
-            target_vessel_class=CHEMPUTER_WASTE
-        )
-
         # Obtaining nearest waste to dispose sample before injection
         self.injection_waste = get_nearest_node(
             graph=graph,
@@ -163,12 +138,44 @@ class InjectSample(ChemputerStep, AbstractStep):
         )
 
     def get_steps(self) -> list['Step']:
-        """Steps to withdraw, transfer and dilute sample.
-
-        Substeps basically mimic the Add step with "reagent" being "reaction
-        mixture".
+        """Steps to withdraw, transfer and inject a sample.
         """
 
-        substeps = []
-
-        return substeps
+        return [
+            # Obtain sample and send it to injection pump
+            Transfer(
+                from_vessel=self.sample_vessel,
+                to_vessel=self.injection_pump,
+                volume=self.sample_excess_volume + self.sample_volume,
+                aspiration_speed=self.aspiration_speed,
+                move_speed=self.move_speed,
+                dispense_speed=self.move_speed,
+            ),
+            # Prime the tubing
+            CMove(
+                from_vessel=self.injection_pump,
+                to_vessel=self.injection_waste,
+                volume=self.priming_volume,
+                aspiration_speed=self.move_speed,
+                move_speed=self.move_speed,
+                dispense_speed=self.move_speed,
+            ),
+            # Injecting the sample
+            CMove(
+                from_vessel=self.injection_pump,
+                to_vessel=self.target_vessel,
+                volume=self.sample_volume,
+                aspiration_speed=self.injection_speed,
+                move_speed=self.injection_speed,
+                dispense_speed=self.injection_speed,
+            ),
+            # Returning the excess back to sample vessel
+            CMove(
+                from_vessel=self.injection_pump,
+                to_vessel=self.sample_vessel,
+                volume=self.sample_excess_volume,
+                aspiration_speed=self.move_speed,
+                move_speed=self.move_speed,
+                dispense_speed=self.move_speed,
+            )
+        ]
