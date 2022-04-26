@@ -2,7 +2,7 @@
 
 import typing
 import copy
-from typing import Optional, Union
+from typing import Optional
 from itertools import chain
 from logging import Logger
 
@@ -11,13 +11,10 @@ from xdl.hardware import Hardware
 from xdl.constants import INERT_GAS_SYNONYMS
 
 from chemputerxdl.constants import (
-    CHEMPUTER_FLASK,
     CHEMPUTER_WASTE,
 )
 from chemputerxdl.utils.execution import get_vessel_stirrer
 
-from ...constants import ANALYTICAL_INSTRUMENTS
-from .steps_analysis.constants import SHIMMING_SOLVENTS
 
 # For type annotations
 if typing.TYPE_CHECKING:
@@ -96,19 +93,6 @@ def xdl_copy(xdl_obj: 'XDL') -> 'XDL':
                logging_level=xdl_obj.logging_level,
                internal_platform=xdl_obj._internal_platform)
 
-def find_instrument(graph: 'MultiDiGraph', method: str) -> Optional[str]:
-    """Get the analytical instrument for the given method
-
-    Args:
-        method (str): Name of the desired analytical method
-
-    Returns:
-        str: ID of the analytical instrument on the supplied graph
-    """
-    for node, data in graph.nodes(data=True):
-        if data['class'] == ANALYTICAL_INSTRUMENTS[method]:
-            return node
-
 def find_last_meaningful_step(
         procedure: list['Step'],
         meaningful_steps: list['str']
@@ -167,72 +151,6 @@ def get_waste_containers(
             waste_containers.append(graph.nodes[node])
 
     return waste_containers
-
-def get_dilution_flask(graph: 'MultiDiGraph') -> Optional[str]:
-    """ Get an empty flask with a stirrer attached to it.
-
-        Used to dilute the analyte before injecting into analytical instrument.
-    """
-
-    empty_flasks = [
-        flask
-        for flask, data in graph.nodes(data=True)
-        if data['class'] == CHEMPUTER_FLASK and not data['chemical']
-    ]
-
-    for flask in empty_flasks:
-        # looking for stirrer attached
-        found_stirrer = get_vessel_stirrer(graph, flask)
-
-        # if found stirrer, return current flask
-        if found_stirrer:
-            return flask
-
-    return None
-
-def get_flasks_for_dilution(graph: 'MultiDiGraph') -> Union[str, list]:
-    """Get a list of empty flasks with a stirrers.
-
-    Used to locate a flask to dilute the analyte before injecting into
-    analytical instrument.
-    """
-
-    empty_flasks = [
-        flask
-        for flask, data in graph.nodes(data=True)
-        if data['class'] == CHEMPUTER_FLASK and not data['chemical']
-    ]
-
-    empty_flasks_with_stirrers = [
-        flask for flask in empty_flasks
-        if get_vessel_stirrer(graph, flask)
-    ]
-
-    return empty_flasks_with_stirrers
-
-def find_shimming_solvent_flask(
-    graph: 'MultiDiGraph') -> Optional[tuple[str, float]]:
-    """
-    Returns flask with the solvent suitable for shimming and corresponding
-    reference peak in ppm.
-    """
-
-    # Map all chemicals with their flasks
-    chemicals_flasks = {
-        data['chemical']: flask
-        for flask, data in graph.nodes(data=True)
-        if data['class'] == CHEMPUTER_FLASK
-    }
-
-    # solvents for shimming
-    shimming_solvents = chemicals_flasks.keys() & SHIMMING_SOLVENTS.keys()
-
-    # iterating to preserve solvent priority in SHIMMING_SOLVENTS
-    for solvent in SHIMMING_SOLVENTS:
-        if solvent in shimming_solvents:
-            return chemicals_flasks[solvent], SHIMMING_SOLVENTS[solvent]
-
-    return None
 
 def extract_optimization_params(
     xdl: XDL,

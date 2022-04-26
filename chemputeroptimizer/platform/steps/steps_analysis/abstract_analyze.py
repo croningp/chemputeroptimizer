@@ -20,17 +20,17 @@ from chemputerxdl.steps import (
     CleanVessel
 )
 
-from ..utils import (
-    find_instrument,
-    get_flasks_for_dilution,
-)
 from .utils import (
+    find_instrument,
     validate_cleaning,
     validate_dilution,
+)
+from ..steps_sample.utils import (
+    get_flasks_for_dilution,
     validate_dilution_vessel,
 )
-from .dilute_sample import DiluteSample
-from .inject_sample import InjectSample
+from ..steps_sample.dilute_sample import DiluteSample
+from ..steps_sample.inject_sample import InjectSample
 
 if typing.TYPE_CHECKING:
     from AnalyticalLabware.devices.chemputer_devices import AbstractSpectrum

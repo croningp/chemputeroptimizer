@@ -7,8 +7,8 @@ from xdl.errors import XDLError
 from xdl.steps.base_steps import AbstractStep, AbstractDynamicStep, Step
 from xdl.steps.special_steps import Async, Await
 from chemputerxdl.steps import HeatChill, HeatChillToTemp, Wait, StopHeatChill, Transfer, StartStir, Stir
-from chemputeroptimizer.platform.steps.utils import find_instrument
-from chemputeroptimizer.platform.steps import RunRaman
+from .steps_analysis.utils import find_instrument
+from .steps_analytical_instruments import RunRaman
 
 # from .utils import SpectraAnalyzer
 
@@ -96,8 +96,8 @@ class Monitor(AbstractDynamicStep):
         # Not optimising time, just execute steps.
 
         return [Async(
-            pid="monitoring", 
-            children=[self.step], 
+            pid="monitoring",
+            children=[self.step],
             on_finish=self._on_child_finish)]
 
     def on_continue(self):

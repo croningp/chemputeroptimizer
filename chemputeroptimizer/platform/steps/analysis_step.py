@@ -4,7 +4,7 @@ Contains all necessary methods to construct a complete step depending on the
 analytical method and the target vessel.
 """
 
-from typing import Any, Optional, List, Callable
+from typing import Optional, List, Callable
 
 from networkx import MultiDiGraph
 
@@ -19,7 +19,6 @@ from chemputerxdl.utils.execution import (
 from chemputerxdl.steps import (
     Transfer,
     Wait,
-    Wait,
     CleanBackbone,
     CleanVessel,
     CMove
@@ -28,13 +27,20 @@ from chemputerxdl.steps.steps_utility.locks import Unlock
 
 from chemputerxdl.steps.base_step import ChemputerStep
 
-from .steps_analysis import RunNMR, RunRaman, RunHPLC
-from .steps_analysis.shim_nmr import ShimNMR, check_last_shimming_results
-from .utils import (
-    find_instrument,
-    get_dilution_flask,
-    find_shimming_solvent_flask,
+# Analytical low-level steps
+from .steps_analytical_instruments import (
+    RunNMR,
+    RunRaman,
+    RunHPLC,
+    ShimNMR,
 )
+# Utility functions
+from .steps_analytical_instruments.utils import (
+    find_shimming_solvent_flask,
+    check_last_shimming_results,
+)
+from .steps_sample.utils import get_dilution_flask
+from .steps_analysis.utils import find_instrument
 from ...utils.errors import OptimizerError
 from ...constants import (
     SUPPORTED_ANALYTICAL_METHODS,

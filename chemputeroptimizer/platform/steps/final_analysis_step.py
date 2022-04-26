@@ -1,31 +1,10 @@
-from typing import List, Callable, Optional, Dict, Any
+"""Deprecated high-level XDL step to perform reactionanalysis."""
 
-from networkx import MultiDiGraph
+from typing import Callable, Optional
 
-from xdl.errors import XDLError
 from xdl.constants import JSON_PROP_TYPE
-from xdl.steps.base_steps import AbstractStep, Step
-from xdl.steps.special_steps import Callback
-from chemputerxdl.steps import (
-    HeatChill,
-    HeatChillToTemp,
-    Wait,
-    StopHeatChill,
-    Transfer,
-    Dissolve,
-    Stir,
-    Add,
-)
 
 from .analysis_step import Analyze
-from .steps_analysis import RunRaman, RunNMR
-from .utils import find_instrument
-from ...utils import SpectraAnalyzer
-from ...utils.errors import OptimizerError
-from ...constants import (
-    SUPPORTED_ANALYTICAL_METHODS,
-    SUPPORTED_FINAL_ANALYSIS_STEPS,
-)
 
 
 class FinalAnalysis(Analyze):

@@ -1,26 +1,24 @@
 """Collection of utility functions for analysis steps."""
 
+import typing
 from typing import Optional, Union
 import warnings
 
 from ....utils.errors import OptimizerError
+from ....constants import ANALYTICAL_INSTRUMENTS
 
+if typing.TYPE_CHECKING:
+    from networkx import MultiDiGraph
 
 # Validation exceptions
 class NoDilutionSolvent(OptimizerError):
     """Exception for missing dilution solvent."""
-
-class NoDilutionVessel(OptimizerError):
-    """Exception for missing dilution vessel."""
 
 class MinDilutionRequired(OptimizerError):
     """Exception for insufficient dilution volume defined."""
 
 class NoCleaningSolvent(OptimizerError):
     """Exception for missing cleaning solvent."""
-
-class OptimizerWarning(Warning):
-    """Generic warning for stuff related to ChemputerOptimizer."""
 
 # Validation utility functions
 def validate_dilution(
@@ -62,18 +60,17 @@ no cleaning solvent is defined to clean it.")
         raise NoCleaningSolvent("Dilution is performed, but no cleaning \
 solvent for dilution vessel is defined.")
 
-def validate_dilution_vessel(
-    vessels_for_dilution: list[Optional[str]],
-) -> str:
-    """Validates if dilution vessel is present."""
+def find_instrument(graph: 'MultiDiGraph', method: str) -> Optional[str]:
+    """Get the analytical instrument for the given method
 
-    if len(vessels_for_dilution) > 1:
-        warning = OptimizerWarning("More than one possible flask for dilution \
-found on graph. Consider selecting the one in your procedure.")
-        warnings.warn(warning)
+    Args:
+        method (str): Name of the desired analytical method
 
-    elif len(vessels_for_dilution) == 0:
-        raise NoDilutionVessel("No dilution vessel found on the graph. Please \
-add at least one empty flask with stirrer attached.")
+    Returns:
+        str: ID of the analytical instrument on the supplied graph
+    """
+    for node, data in graph.nodes(data=True):
+        if data['class'] == ANALYTICAL_INSTRUMENTS[method]:
+            return node
 
-    return vessels_for_dilution[0]
+    return None

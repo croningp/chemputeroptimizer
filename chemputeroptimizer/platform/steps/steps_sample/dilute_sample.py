@@ -27,10 +27,8 @@ from chemputerxdl.steps import (
     FlushTubing,
 )
 
-from ..utils import (
-    get_flasks_for_dilution
-)
 from .utils import (
+    get_flasks_for_dilution,
     validate_dilution_vessel
 )
 

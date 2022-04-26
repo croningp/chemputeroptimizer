@@ -1,4 +1,6 @@
 from .steps_analysis import *
+from .steps_analytical_instruments import *
+from .steps_sample import *
 
 from .monitor_step import Monitor
 from .final_analysis_step import FinalAnalysis

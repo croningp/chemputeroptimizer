@@ -7,7 +7,7 @@ from random import sample
 
 import pytest
 
-from chemputeroptimizer.platform.steps.steps_analysis.utils import (
+from chemputeroptimizer.platform.steps.steps_sample.utils import (
     NoDilutionVessel,
 )
 

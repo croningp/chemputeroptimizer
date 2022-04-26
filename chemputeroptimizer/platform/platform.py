@@ -13,9 +13,10 @@ from .steps import (
     ConstrainedStep,
     DiluteSample,
     InjectSample,
+    RunNMR,
+    RunRaman,
+    RunHPLC,
 )
-
-from .steps.steps_analysis import RunNMR, RunRaman, RunHPLC
 
 
 class OptimizerPlatform(ChemputerPlatform):

@@ -20,8 +20,8 @@ from xdl.errors import XDLError
 from chemputerxdl.steps.base_step import ChemputerStep
 
 # Relative
-from .steps_analysis import RunRaman
-from .utils import find_instrument
+from .steps_analytical_instruments import RunRaman
+from .steps_analysis.utils import find_instrument
 
 # Constants
 SUPPORTED_METHODS = ['Raman']
