@@ -37,6 +37,9 @@ if typing.TYPE_CHECKING:
     from xdl.steps.base_steps import Step
 
 
+class SampleError(Exception):
+    """Generic exception related to handling sample."""
+
 class InjectSample(ChemputerStep, AbstractStep):
     """XDL step to acquire sample and inject it in another vessel.
 
@@ -121,6 +124,13 @@ class InjectSample(ChemputerStep, AbstractStep):
             graph=graph,
             aspiration_pump=self.injection_pump
         )
+
+        # Validating
+        if (injection_pump_max_volume <
+            self.sample_volume + self.priming_volume):
+            raise SampleError(f"Pump {self.injection_pump} with syringe \
+volume of {injection_pump_max_volume} is not sufficient to hold sample \
+volume. Please allow at least 0.5 mL excess.")
 
         # Reducing if the desired volume exceeds the pump's max volume
         if (
