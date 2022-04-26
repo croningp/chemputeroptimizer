@@ -16,6 +16,7 @@ from .steps import (
     RunNMR,
     RunRaman,
     RunHPLC,
+    NMRAnalyze,
 )
 
 
@@ -36,4 +37,5 @@ class OptimizerPlatform(ChemputerPlatform):
         step_lib['ConstrainedStep'] = ConstrainedStep
         step_lib['DiluteSample'] = DiluteSample
         step_lib['InjectSample'] = InjectSample
+        step_lib['NMRAnalyze'] = NMRAnalyze
         return step_lib
