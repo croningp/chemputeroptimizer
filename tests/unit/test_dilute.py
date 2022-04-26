@@ -3,7 +3,6 @@
 # pylint: disable-all
 
 from pathlib import Path
-from random import sample
 
 import pytest
 
@@ -13,10 +12,10 @@ from chemputeroptimizer.platform.steps.steps_sample.utils import (
 
 from ..utils import (
     get_chempiler,
-    generic_optimizer_test,
     remove_chempiler_files,
     remove_all_logs,
     get_prepared_xdl,
+    remove_xdlexes,
 )
 
 
@@ -39,9 +38,19 @@ def chempiler():
     remove_all_logs()
     remove_chempiler_files()
 
+@pytest.fixture
+def xdl():
+
+    def _get_xdl(xdl_file, graph):
+        return get_prepared_xdl(xdl_file, graph)
+
+    yield _get_xdl
+
+    remove_xdlexes(FILES.joinpath('xdl').absolute())
+
 @pytest.mark.unit
 @pytest.mark.parametrize('graph', GRAPHS)
-def test_dilute_step(chempiler, graph):
+def test_dilute_step(chempiler, xdl, graph):
 
     # Path to string
     graph = graph.absolute().as_posix()
@@ -52,7 +61,7 @@ def test_dilute_step(chempiler, graph):
     # Launching XDL
     # Should fail with "not_okay" graph
     try:
-        xdl = get_prepared_xdl(XDL, graph)
+        xdl = xdl(XDL, graph)
     except NoDilutionVessel:
         # Should fail with "*_not_okay.json" graph
         assert 'not_okay' in graph

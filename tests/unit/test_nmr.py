@@ -8,18 +8,18 @@ import pytest
 
 from ..utils import (
     get_chempiler,
-    generic_optimizer_test,
     remove_chempiler_files,
     remove_all_logs,
     get_prepared_xdl,
+    remove_xdlexes,
 )
 
 
 HERE = Path(__file__).parent
 FILES = HERE.parent.joinpath('files')
 
-XDLS = FILES.joinpath('xdl').glob('nmr_analyze*')
-NMR_GRAPH = FILES.joinpath('graph', 'nmr_analyze.json').absolute().as_posix()
+XDLS = FILES.joinpath('xdl').glob('nmr_analyze*.xdl')
+NMR_GRAPH = FILES.joinpath('graph', 'graph_nmr_analyze.json').absolute().as_posix()
 
 @pytest.fixture
 def chempiler():
@@ -34,18 +34,26 @@ def chempiler():
     remove_all_logs()
     remove_chempiler_files()
 
+@pytest.fixture
+def xdl():
+
+    def _get_xdl(xdl_file, graph):
+        return get_prepared_xdl(xdl_file, graph)
+
+    yield _get_xdl
+
+    remove_xdlexes(FILES.joinpath('xdl').absolute())
+
 @pytest.mark.unit
-@pytest.mark.parametrize('xdl', XDLS)
-def test_nmr_analyze(chempiler, xdl):
+@pytest.mark.parametrize('xdl_file', XDLS)
+def test_nmr_analyze(chempiler, xdl, xdl_file):
 
     # Path -> string
-    xdl = xdl.absolute().as_posix()
+    xdl_file = xdl_file.absolute().as_posix()
 
     # Instantiating
     chempiler = chempiler(NMR_GRAPH)
-
-    # Launching XDL
-    xdl = get_prepared_xdl(xdl, NMR_GRAPH)
+    xdl = xdl(xdl_file, NMR_GRAPH)
 
     # Testing
     xdl.execute(chempiler)

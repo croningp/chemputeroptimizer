@@ -171,10 +171,12 @@
       "type": "custom",
       "x": 440,
       "y": 280,
-      "class": "ChemputerNMR",
       "internalId": 30,
-      "label": "nmr",
-      "name": "nmr"
+      "label": 30,
+      "name": "nmr",
+      "max_volume": 5,
+      "current_volume": 0,
+      "class": "ChemputerNMR"
     }
   ],
   "links": [
@@ -337,6 +339,14 @@
       "source": 30,
       "target": "valve_B",
       "port": "(0,1)"
+    },
+    {
+      "id": 33,
+      "sourceInternal": 3,
+      "targetInternal": 26,
+      "source": "valve_B",
+      "target": "flask_methanol",
+      "port": "(5,0)"
     }
   ]
 }

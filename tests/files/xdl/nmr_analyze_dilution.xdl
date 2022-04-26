@@ -30,13 +30,14 @@
         vessel="reactor"
         sample_volume="2.5 mL"
         method_props="{
-          'protocol': '1D FLUORINE HDEC,
+          'protocol': '1D FLUORINE HDEC',
           'protocol_options': {
             'centerFrequency': -85
           }
         }"
         dilution_volume="10 mL"
         dilution_solvent="methanol"
+        cleaning_solvent="water"
       />
     </Procedure>
 

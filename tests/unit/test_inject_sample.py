@@ -14,6 +14,7 @@ from ..utils import (
     remove_chempiler_files,
     remove_all_logs,
     get_prepared_xdl,
+    remove_xdlexes,
 )
 
 
@@ -39,18 +40,26 @@ def chempiler():
     remove_all_logs()
     remove_chempiler_files()
 
-@pytest.mark.integration
+@pytest.fixture
+def xdl():
+
+    def _get_xdl(xdl_file, graph):
+        return get_prepared_xdl(xdl_file, graph)
+
+    yield _get_xdl
+
+    remove_xdlexes(FILES.joinpath('xdl').absolute())
+
+@pytest.mark.unit
 @pytest.mark.parametrize('graph', GRAPHS)
-def test_dilute_step(chempiler, graph):
+def test_dilute_step(chempiler, xdl, graph):
 
     # Path to string
     graph = graph.absolute().as_posix()
 
     # Instantiating
     chempiler = chempiler(graph)
-
-    # Launching XDL
-    xdl = get_prepared_xdl(XDL, graph)
+    xdl = xdl(XDL, graph)
 
     # Checking correct sample excess volume for smaller syringe
     if SMALL_VOLUME_FP in graph:

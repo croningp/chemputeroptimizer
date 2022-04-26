@@ -30,12 +30,13 @@
         vessel="reactor"
         sample_volume="2.5 mL"
         method_props="{
-          'protocol': '1D FLUORINE HDEC,
+          'protocol': '1D FLUORINE HDEC',
           'protocol_options': {
             'centerFrequency': -85
           }
         }"
         force_shimming="True"
+        cleaning_solvent="water"
       />
     </Procedure>
 

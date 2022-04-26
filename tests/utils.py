@@ -37,7 +37,11 @@ def get_prepared_xdl(xdl_file: str, graph_file: str) -> XDL:
 
     xdl = XDL(xdl_file, platform=OptimizerPlatform)
 
-    xdl.prepare_for_execution(graph_file=graph_file, interactive=False)
+    xdl.prepare_for_execution(
+        graph_file=graph_file,
+        interactive=False,
+        device_modules=[ChemputerAPI, chemputer_devices]
+    )
 
     return xdl
 
@@ -85,3 +89,10 @@ def remove_all_logs():
                         time.sleep(.1)
                     except FileNotFoundError:
                         break
+
+def remove_xdlexes(xdl_path):
+    """Removes all xdlexes found in path"""
+    print('Removing xdlexes files.')
+    for path in xdl_path.iterdir():
+        if path.suffix == '.xdlexe':
+            os.remove(path)
