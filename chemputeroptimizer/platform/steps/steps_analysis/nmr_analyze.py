@@ -5,13 +5,14 @@ Current implementation relays on AnalyticalLabware interface for the benchtop
 Spinsolve NMR. For any details check the manual.
 """
 
-# pylint: disable=unused-argument,attribute-defined-outside-init
+# pylint: disable=unused-argument,attribute-defined-outside-init, super-init-not-called
 
 import typing
 import warnings
 from typing import Optional, Callable, Union
 
 from xdl.constants import JSON_PROP_TYPE
+from xdl.steps.base_steps import AbstractStep
 
 from chemputerxdl.steps import (
     CMove,
@@ -38,7 +39,7 @@ if typing.TYPE_CHECKING:
 SAMPLE_DISCARD_EXCESS = 2  # 200%
 SAMPLE_MOVE_EXCESS = 1.2  # 120%
 
-class NMRAnalyze(AbstactAnalyzeStep):
+class NMRAnalyze(AbstactAnalyzeStep, AbstractStep):
     """High-level XDL step to analyze a sample with NMR.
 
     Args:
@@ -56,8 +57,8 @@ class NMRAnalyze(AbstactAnalyzeStep):
             performed).
         method (str): Method used for the analysis. Defines the instrument to
             be used.
-        method_properties (dict): Dictionary with additional properties, passed
-            to the low-level analysis step.
+        method_props (dict): Dictionary with additional properties, passed to
+            the low-level analysis step.
         on_finish (Callable[[str], Callable]): Callback function to execute
             when analysis is performed. This function should accept a string
             argument and return a new callable -> the one which is passed to
@@ -89,6 +90,8 @@ class NMRAnalyze(AbstactAnalyzeStep):
         analyte_vessel (str): Name of the vessel containing the analyte. Is
             updated depending on the sample preparations, i.e. if dilution is
             required -> `analyte_vessel` = `dilution_vessel`.
+        injection_waste (str): Name of the vessel to dump sample excess. Given
+            internally.
     """
 
     INJECTION_SPEED = 5  # mL/min
@@ -103,13 +106,12 @@ class NMRAnalyze(AbstactAnalyzeStep):
         'instrument': str,
         'on_finish': Callable[[str], Union[Callable[['AbstractSpectrum'], None], None]],
         'reference_step': JSON_PROP_TYPE,
-        'method_properties': JSON_PROP_TYPE,
+        'method_props': JSON_PROP_TYPE,
         'on_finish_arg': str,
         # method related
         'cleaning_solvent': str,
         'cleaning_solvent_vessel': str,
         # sample related
-        'injection_pump': str,
         'dilution_vessel': str,
         'dilution_solvent_vessel': str,
         'analyte_vessel': str,
@@ -117,6 +119,7 @@ class NMRAnalyze(AbstactAnalyzeStep):
         'force_shimming': bool,
         'shimming_solvent_flask': str,
         'shimming_reference_peak': float,
+        'injection_waste': str,
     }
 
     INTERNAL_PROPS = [
@@ -125,12 +128,12 @@ class NMRAnalyze(AbstactAnalyzeStep):
         'cleaning_solvent_vessel',
         'dilution_vessel',
         'dilution_solvent_vessel',
-        'distribution_valve',
         'on_finish',
         'on_finish_arg',
         'analyte_vessel',
         'shimming_solvent_flask',
         'shimming_reference_peak',
+        'injection_waste',
     ]
 
     DEFAULT_PROPS = {
@@ -160,13 +163,19 @@ class NMRAnalyze(AbstactAnalyzeStep):
         dilution_vessel: Optional[str] = None,
         on_finish_arg: Optional[str] = None,
         analyte_vessel: Optional[str] = None,
+        injection_waste: Optional[str] = None,
         # NMR
         force_shimming: Optional[bool] = 'default',
         shimming_solvent_flask: Optional[str] = None,
         shimming_reference_peak: Optional[float] = None,
         **kwargs
     ) -> None:
-        super().__init__(locals())  # pylint: disable=no-value-for-parameter
+
+        # Directly load step properties
+        # Similar to a typical super().__init__
+        AbstractStep.__init__(self, locals())
+
+        self.validate_props()
 
     def _prepare_for_analysis(self, graph: 'MultiDiGraph') -> None:
         """Additional preparations for the NMR analysis.
@@ -216,6 +225,7 @@ the NMR found, but shimming is required!')
                 sample_volume=self.sample_volume,
                 target_vessel=self.instrument,
                 injection_speed=self.INJECTION_SPEED,
+                injection_waste=self.injection_waste,
             ),
             # Shim
             ShimNMR(
