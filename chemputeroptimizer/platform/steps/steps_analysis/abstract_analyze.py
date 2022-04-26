@@ -6,7 +6,7 @@ Generic interface class for all steps dedicated for analysis.
 
 import typing
 from typing import Callable, Union, Optional
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 
 from xdl.constants import JSON_PROP_TYPE
 from xdl.steps.base_steps import AbstractStep
@@ -14,11 +14,13 @@ from xdl.steps.base_steps import AbstractStep
 from chemputerxdl.steps.base_step import ChemputerStep
 from chemputerxdl.utils.execution import (
     get_reagent_vessel,
+    get_nearest_node,
 )
 from chemputerxdl.steps import (
     ResetHandling,
     CleanVessel
 )
+from chemputerxdl.constants import CHEMPUTER_WASTE
 
 from .utils import (
     find_instrument,
@@ -37,7 +39,7 @@ if typing.TYPE_CHECKING:
     from networkx import MultiDiGraph
     from xdl.steps.base_steps import Step
 
-class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
+class AbstactAnalyzeStep(ChemputerStep, AbstractStep, ABC):
     """Abstract step to run the analysis.
 
     Args:
@@ -55,7 +57,7 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
             performed).
         method (str): Method used for the analysis. Defines the instrument to
             be used.
-        method_properties (dict): Dictionary with additional properties, passed
+        method_props (dict): Dictionary with additional properties, passed
             to the low-level analysis step.
         on_finish (Callable[[str], Callable]): Callback function to execute
             when analysis is performed. This function should accept a string
@@ -79,6 +81,8 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         analyte_vessel (str): Name of the vessel containing the analyte. Is
             updated depending on the sample preparations, i.e. if dilution is
             required -> `analyte_vessel` = `dilution_vessel`.
+        injection_waste (str): Name of the vessel to dump sample excess. Given
+            internally. Normally is used by an ancestor classes.
     """
 
     PROP_TYPES = {
@@ -91,16 +95,16 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         'instrument': str,
         'on_finish': Callable[[str], Union[Callable[['AbstractSpectrum'], None], None]],
         'reference_step': JSON_PROP_TYPE,
-        'method_properties': JSON_PROP_TYPE,
+        'method_props': JSON_PROP_TYPE,
         'on_finish_arg': str,
         # method related
         'cleaning_solvent': str,
         'cleaning_solvent_vessel': str,
         # sample related
-        'injection_pump': str,
         'dilution_vessel': str,
         'dilution_solvent_vessel': str,
         'analyte_vessel': str,
+        'injection_waste': str,
     }
 
     INTERNAL_PROPS = [
@@ -109,10 +113,10 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         'cleaning_solvent_vessel',
         'dilution_vessel',
         'dilution_solvent_vessel',
-        'distribution_valve',
         'on_finish',
         'on_finish_arg',
         'analyte_vessel',
+        'injection_waste',
     ]
 
     DEFAULT_PROPS = {
@@ -140,6 +144,7 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         dilution_vessel: Optional[str] = None,
         on_finish_arg: Optional[str] = None,
         analyte_vessel: Optional[str] = None,
+        injection_waste: Optional[str] = None,
         **kwargs
     ) -> None:
         super().__init__(locals())
@@ -284,7 +289,7 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
                     vessel=self.instrument,
                     solvent=self.cleaning_solvent,
                     # Actual time of "cleaning"
-                    stir_time=600,  # seconds
+                    stir_time=120,  # seconds
                     # Normally analytical instruments don't have a dry option
                     dry=False,
                 )
@@ -334,6 +339,13 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
 
         # Updating the vessel with analyte
         self.analyte_vessel = self.vessel
+
+        # Look up for the nearest waste to instrument
+        self.injection_waste = get_nearest_node(
+            graph=graph,
+            src=self.instrument,
+            target_vessel_class=CHEMPUTER_WASTE
+        )
 
     def _prepare_for_dilution(self, graph: 'MultiDiGraph') -> None:
         """Necessary preparations if dilution is required."""
