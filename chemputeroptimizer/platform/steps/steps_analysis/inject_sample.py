@@ -71,10 +71,10 @@ class InjectSample(ChemputerStep, AbstractStep):
         'aspiration_valve': str,
         'sample_excess_volume': float,
         'injection_pump': str,
+        'target_vessel': str,
     }
 
     INTERNAL_PROPS = [
-        'dilution_solvent_vessel',
         'injection_waste',
         'sample_excess_volume',
         'injection_pump',
@@ -93,6 +93,7 @@ class InjectSample(ChemputerStep, AbstractStep):
         self,
         sample_vessel: str,
         sample_volume: float,
+        target_vessel: str,
         injection_waste: Optional[str] = None,
         priming_volume: Optional[float] = 'default',
         aspiration_speed: Optional[float] = 'default',

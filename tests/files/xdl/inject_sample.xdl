@@ -29,6 +29,7 @@
       <InjectSample
         sample_vessel="reactor"
         sample_volume="4 mL"
+        target_vessel="flask_sample_2"
       />
     </Procedure>
 
