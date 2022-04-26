@@ -39,7 +39,7 @@ def chempiler():
     remove_all_logs()
     remove_chempiler_files()
 
-@pytest.mark.integration
+@pytest.mark.unit
 @pytest.mark.parametrize('graph', GRAPHS)
 def test_dilute_step(chempiler, graph):
 

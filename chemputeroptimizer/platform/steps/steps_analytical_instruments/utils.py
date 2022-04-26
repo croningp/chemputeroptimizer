@@ -14,6 +14,7 @@ from .constants import (
     SHIMMING_TIME_CHECK,
     SHIMMING_SOLVENTS,
 )
+from ....utils.errors import OptimizerError
 
 if typing.TYPE_CHECKING:
     from networkx import MultiDiGraph
@@ -25,6 +26,12 @@ SHIMMING_RESULTS_RELATIVE_PATH = Path(
     'Spinsolve',
     'utils',
 )
+
+class NoShimmingSolvent(OptimizerError):
+    """Exception for missing solvent suitable for shimming."""
+
+class ShimmingRequired(UserWarning):
+    """Warning for required shimming."""
 
 def check_last_shimming_results() -> bool:
     """ Returns the result of the last shimming.

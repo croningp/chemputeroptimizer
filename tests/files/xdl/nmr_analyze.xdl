@@ -1,0 +1,41 @@
+<Synthesis>
+
+    <Hardware>
+      <Component
+        id="reactor"
+        type="reactor"
+      />
+    </Hardware>
+
+    <Reagents>
+      <Reagent
+        name="water"
+      />
+      <Reagent
+        name="methanol"
+      />
+    </Reagents>
+
+    <Procedure>
+      <Add
+        reagent="water"
+        vessel="reactor"
+        volume="30 mL"
+      />
+      <Stir
+        vessel="reactor"
+        time="30 secs"
+      />
+      <NMRAnalyze
+        vessel="reactor"
+        sample_volume="2.5 mL"
+        method_props="{
+          'protocol': '1D FLUORINE HDEC,
+          'protocol_options': {
+            'centerFrequency': -85
+          }
+        }"
+      />
+    </Procedure>
+
+  </Synthesis>
