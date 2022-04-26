@@ -24,6 +24,7 @@ XDL = FILES.joinpath('xdl', 'inject_sample.xdl').absolute().as_posix()
 GRAPHS = FILES.joinpath('graph').glob('graph_inject_*')
 
 SMALL_VOLUME_FP = 'small_volume'
+CORRECT_SMALL_VOLUME_EXCESS = 0.5
 
 @pytest.fixture
 def chempiler():
@@ -56,7 +57,7 @@ def test_dilute_step(chempiler, graph):
         for step in xdl.steps:
             if isinstance(step, InjectSample):
                 # For 5 mL syringe and 4 mL sample
-                assert step.sample_excess_volume == 1
+                assert step.sample_excess_volume == CORRECT_SMALL_VOLUME_EXCESS
 
     # Validate execution
     xdl.execute(chempiler)
