@@ -122,10 +122,14 @@ class InjectSample(ChemputerStep, AbstractStep):
         )
 
         # Reducing if the desired volume exceeds the pump's max volume
-        if (self.sample_excess_volume + self.sample_volume >
-        injection_pump_max_volume):
+        if (
+            self.sample_excess_volume + \
+                self.sample_volume + \
+                    self.priming_volume > injection_pump_max_volume
+        ):
             self.sample_excess_volume = \
-                injection_pump_max_volume - self.sample_volume
+                injection_pump_max_volume - \
+                    self.sample_volume - self.priming_volume
 
         # Obtaining nearest waste to dispose sample before injection
         self.injection_waste = get_nearest_node(
