@@ -36,6 +36,7 @@ from .utils import (
     validate_dilution_vessel,
 )
 from .dilute_sample import DiluteSample
+from .inject_sample import InjectSample
 
 if typing.TYPE_CHECKING:
     from AnalyticalLabware.devices.chemputer_devices import AbstractSpectrum
@@ -79,17 +80,6 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         instrument (str): Name of the analytical instrument on graph.
         cleaning_solvent_vessel (str): Name of the cleaning solvent vessel on
             the graph.
-        priming_waste (str): Name of the waste container to dispose the sample
-            after tubing priming.
-        sample_pump (str): Name of the pump to withdraw the sample, i.e. pump
-            closest to the "vessel".
-        injection_pump (str): Name of the pump to inject the sample, i.e. pump
-            closest to the "instrument".
-        sample_excess_volume (float): Extra volume taken with sample to
-            eliminate air gap during sample injection. Is either discarded to
-            "injection_waste" or returned to the sample "vessel".
-        injection_waste (str): Name of the waste container to discard the
-            excess/remaining of the sample after injection.
         dilution_solvent_vessel (str): Name of the dilution solvent vessel on
             the graph.
         analyte_vessel (str): Name of the vessel containing the analyte. Is
@@ -112,29 +102,20 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         # method related
         'cleaning_solvent': str,
         'cleaning_solvent_vessel': str,
-        'priming_waste': str,
         # sample related
-        'sample_pump': str,
         'injection_pump': str,
-        'sample_excess_volume': float,
         'dilution_vessel': str,
         'dilution_solvent_vessel': str,
-        'injection_waste': str,
         'analyte_vessel': str,
     }
 
     INTERNAL_PROPS = [
         'instrument',
         'reference_step',
-        'priming_waste',
-        'sample_pump',
-        'injection_pump',
-        'sample_excess_volume',
         'cleaning_solvent_vessel',
         'dilution_vessel',
         'dilution_solvent_vessel',
         'distribution_valve',
-        'injection_waste',
         'on_finish',
         'on_finish_arg',
         'analyte_vessel',
@@ -144,8 +125,6 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         # anonymous function to take a string argument
         # and return a new callable
         'on_finish': lambda arg: lambda spec: None,
-        # volume left in the syringe after sample is injected
-        'sample_excess_volume': 2,
         'method_props': {},
     }
 
@@ -162,14 +141,9 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         # Internal properties
         instrument: Optional[str] = None,
         reference_step: Optional[JSON_PROP_TYPE] = None,
-        priming_waste: Optional[str] = None,
-        sample_pump: Optional[str] = None,
-        injection_pump: Optional[str] = None,
-        sample_excess_volume: Optional[float] = 'default',
         cleaning_solvent_vessel: Optional[str] = None,
         dilution_solvent_vessel: Optional[str] = None,
         dilution_vessel: Optional[str] = None,
-        injection_waste: Optional[str] = None,
         on_finish_arg: Optional[str] = None,
         analyte_vessel: Optional[str] = None,
         **kwargs
@@ -261,6 +235,14 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
         and slowly injected into the instrument.
         """
 
+        return [
+            InjectSample(
+                sample_vessel=self.analyte_vessel,
+                target_vessel=self.instrument,
+                sample_volume=self.sample_volume,
+            )
+        ]
+
     def get_dilution_steps(self) -> list['Step']:
         """Get steps required to dilute the sample.
 
@@ -323,50 +305,6 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
     def _prepare_for_sampling(self, graph: 'MultiDiGraph') -> None:
         """Necessary preparations if sampling is required."""
 
-        # Pump to withdraw the sample
-        self.sample_pump = get_aspiration_pump(
-            graph=graph,
-            src_vessel=self.vessel,
-        )
-
-        # Nearest pump needed to store "buffer" of the sample volume
-        self.injection_pump = get_nearest_node(
-            graph=graph,
-            src=self.instrument,
-            target_vessel_class=CHEMPUTER_PUMP
-        )
-
-        injection_pump_max_volume = get_pump_max_volume(
-            graph=graph,
-            aspiration_pump=self.injection_pump
-        )
-
-        # Reducing if the desired volume exceeds the pump's max volume
-        if (self.sample_excess_volume + self.sample_volume >
-        injection_pump_max_volume):
-            self.sample_excess_volume = \
-                injection_pump_max_volume - self.sample_volume
-
-        # Obtaining cleaning solvent vessel
-        self.cleaning_solvent_vessel = get_reagent_vessel(
-            graph,
-            self.cleaning_solvent
-        )
-
-        # Obtaining nearest waste to dispose sample after priming
-        self.priming_waste = get_nearest_node(
-            graph=graph,
-            src=self.vessel,
-            target_vessel_class=CHEMPUTER_WASTE
-        )
-
-        # Obtaining nearest waste to dispose sample before injection
-        self.injection_waste = get_nearest_node(
-            graph=graph,
-            src=self.instrument,
-            target_vessel_class=CHEMPUTER_WASTE
-        )
-
         # Updating the vessel with analyte
         self.analyte_vessel = self.vessel
 
@@ -387,12 +325,6 @@ class AbstactAnalyzeStep(ChemputerStep, AbstractStep):
 
         # Updating analyte_vessel
         self.analyte_vessel = self.dilution_vessel
-
-        # Updating the sample pump
-        self.sample_pump = get_aspiration_pump(
-            graph=graph,
-            src_vessel=self.analyte_vessel
-        )
 
     @abstractmethod
     def _prepare_for_analysis(self, graph: 'MultiDiGraph') -> None:
