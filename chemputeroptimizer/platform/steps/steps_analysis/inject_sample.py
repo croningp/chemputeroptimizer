@@ -19,16 +19,13 @@ from xdl.steps.base_steps import AbstractStep
 
 from chemputerxdl.steps.base_step import ChemputerStep
 from chemputerxdl.utils.execution import (
-    get_aspiration_pump,
     get_nearest_node,
     get_pump_max_volume,
 )
 
 from chemputerxdl.steps import (
     Transfer,
-    Stir,
     CMove,
-    Add,
 )
 from chemputerxdl.constants import (
     CHEMPUTER_PUMP,
