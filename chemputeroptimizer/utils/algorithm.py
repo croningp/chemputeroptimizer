@@ -517,7 +517,7 @@ see below:\n%s', reply['exception'])
         np.savetxt(
             path,
             full_matrix,
-            fmt='%.04f',
+            fmt='%.04e',
             delimiter=',',
             header=header.rstrip(', '), # stripping the last delimiter
             comments='', # removing prepended "#"
