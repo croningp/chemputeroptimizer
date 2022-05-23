@@ -351,7 +351,7 @@ def check_volumes(
                 # And in the graph
                 graph.nodes[container]['current_volume'] = max_volume
 
-            # If contanier filled and not enough space left
+            # If container filled and not enough space left
             elif (volume_diff > 0 and
                   volume_diff * SAFETY_EXCESS_VOLUME > \
                     max_volume - current_volume):
