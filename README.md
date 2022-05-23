@@ -57,23 +57,16 @@ ChemputerOptimizer now supports interaction with  Summit benchmarking framework 
 
 ## Features
 
-### v0.3.6 alpha0
-* Minor code fixes after merging Raman and HPLC branches.
-* Added automatic control experiment every N iterations (see #92).
-* Saving state of the `OptimizeDynamicStep` to preserve information about control  experiment result.
-* Simulation improved by suppressing flasks/wastes checks.
-
-### v0.4.0
-* Major release to catch up with xdl/chemputerxdl v1.1.
-* Explicit loss functions.
-* Integration tests.
-* [Documentation](/docs/README.md).
-
 ### v0.4.1
 * Catch up with xdl/chemputerxdl v1.5.
 
 ### v0.4.2
 * Fixed incorrect `OptimizeStep` validation.
+
+### v0.4.3
+* Data is now saved using scientific notation (no data loss if target < 1e-04).
+* Multiple Analyze steps can now be used in procedure. Only **first** one will be update the optimization target.
+* [Documentation](/docs/README.md) update.
 
 ## Development
 
