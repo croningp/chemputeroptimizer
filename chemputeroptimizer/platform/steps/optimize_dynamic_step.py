@@ -509,6 +509,10 @@ class OptimizeDynamicStep(AbstractDynamicStep):
                     methods for performing basic processing and analysis.
             """
 
+            # Prevent further calls for several Analyze steps
+            if not self.state['updated']:
+                return
+
             self._analyzer.load_spectrum(spectrum)
 
             # Final parsing occurs in SpectraAnalyzer.final_analysis
