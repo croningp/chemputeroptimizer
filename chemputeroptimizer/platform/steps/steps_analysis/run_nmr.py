@@ -28,7 +28,7 @@ class RunNMR(AbstractBaseStep):
             nmr: str,
             on_finish: Callable = 'default',
             protocol: str = None,
-            protocol_options: JSON_PROP_TYPE = None,
+            protocol_options: JSON_PROP_TYPE = {},
             **kwargs
     ):
         super().__init__(locals())
